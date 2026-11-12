@@ -365,6 +365,85 @@
   </div>
 
   <script>
+    // Dual-mode detection: standalone GitHub Pages vs Backend API
+    const IS_STATIC = window.location.hostname.includes('github.io') || window.location.protocol === 'file:';
+    const LISTI_CLOUD_URL = 'https://project-1-listi-checklist-app.fly.dev';
+    const LISTI_PIN = '1201';
+
+    const DEFAULT_RECIPES = [
+      {
+        id: 1,
+        title: 'גלידת חלבון וניל לנינג\'ה קרימי',
+        description: 'גלידת וניל קרמית במיוחד, עתירת חלבון וללא תוספת סוכר, מושלמת לנינג\'ה קרימי.',
+        instructions: '1. מערבבים חלב שקדים, סקופ אבקת חלבון ופודינג וניל.\n2. מקפיאים ל-24 שעות במכל הייעודי.\n3. מעבדים בתוכנית Lite Ice Cream בנינג\'ה קרימי.',
+        source_url: 'https://recipes.local/creami-vanilla',
+        image_url: 'https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=600',
+        prep_time_minutes: 5,
+        calories: 190,
+        protein_grams: 32,
+        difficulty: 'קל',
+        ingredients: JSON.stringify([
+          { name: 'חלב שקדים ללא סוכר', amount: '350', unit: 'מ"ל' },
+          { name: 'אבקת חלבון וניל', amount: '1', unit: 'סקופ' },
+          { name: 'פודינג וניל', amount: '7', unit: 'גרם' }
+        ]),
+        tags: JSON.stringify(['עתיר חלבון', 'דל סוכר', 'מתאים לנינג\'ה קרימי', 'צמחוני', 'ללא כוסברה', 'ללא סלטים'])
+      },
+      {
+        id: 2,
+        title: 'פילה סלמון צלוי בעשבי תיבול וחרדל',
+        description: 'מנת דג עסיסית ומהירה בתנור עם ציפוי חרדל דיז\'ון ושום.',
+        instructions: '1. מחממים תנור ל-200 מעלות.\n2. מורחים שמן זית, חרדל דיז\'ון ושום כתוש.\n3. אופים 15 דקות.',
+        source_url: 'https://recipes.local/baked-salmon',
+        image_url: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=600',
+        prep_time_minutes: 20,
+        calories: 380,
+        protein_grams: 41,
+        difficulty: 'קל',
+        ingredients: JSON.stringify([
+          { name: 'סלמון', amount: '220', unit: 'גרם' },
+          { name: 'שמן זית', amount: '1', unit: 'כף' },
+          { name: 'שום כתוש', amount: '2', unit: 'שיניים' }
+        ]),
+        tags: JSON.stringify(['עתיר חלבון', 'דל סוכר', 'מנות דגים', 'ללא כוסברה', 'ללא סלטים'])
+      },
+      {
+        id: 3,
+        title: 'משקה קפוא אבטיח וליים לנינג\'ה סלאשי',
+        description: 'סלאשי פירות מרענן וטבעי, ללא תוספת סוכר.',
+        instructions: '1. חותכים אבטיח ומסננים.\n2. מוסיפים מיץ ליים ומים קרים.\n3. מפעילים במצב Slush.',
+        source_url: 'https://recipes.local/slushi',
+        image_url: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=600',
+        prep_time_minutes: 10,
+        calories: 85,
+        protein_grams: 2,
+        difficulty: 'קל',
+        ingredients: JSON.stringify([
+          { name: 'אבטיח', amount: '400', unit: 'גרם' },
+          { name: 'לימון', amount: '1', unit: 'כף' }
+        ]),
+        tags: JSON.stringify(['דל סוכר', 'מתאים לנינג\'ה סלאשי', 'צמחוני', 'ללא כוסברה', 'ללא סלטים'])
+      }
+    ];
+
+    function getLocalRecipes() {
+      try {
+        const stored = localStorage.getItem('my_recipes_db');
+        if (stored) return JSON.parse(stored);
+      } catch {}
+      return DEFAULT_RECIPES;
+    }
+
+    function saveLocalRecipe(recipe) {
+      const current = getLocalRecipes();
+      recipe.id = Date.now();
+      current.unshift(recipe);
+      try {
+        localStorage.setItem('my_recipes_db', JSON.stringify(current));
+      } catch {}
+      return recipe;
+    }
+
     // State
     const PREDEFINED_TAGS = [
       'עתיר חלבון',
