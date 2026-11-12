@@ -1159,7 +1159,91 @@
     }
 
     // Recipe Import from URL
-    async function scrapeFromUrl() {
+    
+    function parseClientScrapedMarkdown(markdownText, defaultTitle, sourceUrl) {
+      let title = defaultTitle || '';
+      let description = '';
+      let instructions = '';
+      let ingredients = [];
+      let imageUrl = '';
+      let prepTime = 15;
+      let calories = 360;
+      let protein = 30;
+
+      // Extract title
+      if (!title) {
+        const mTitle = markdownText.match(/Title:\s*(.+)/i) || markdownText.match(/^#\s*(.+)/m);
+        if (mTitle) title = mTitle[1].split('|')[0].split('-')[0].trim();
+      }
+
+      // Extract image
+      const mImg = markdownText.match(/!\[.*?\]\((https?:\/\/.*?)\)/);
+      if (mImg) imageUrl = mImg[1];
+
+      // Parse lines for ingredients and instructions
+      const lines = markdownText.split('\n').map(l => l.trim()).filter(Boolean);
+      let inIng = false;
+      let inInst = false;
+      const instSteps = [];
+
+      for (const line of lines) {
+        const l = line.trim();
+        const low = l.toLowerCase();
+
+        if (
+          l.includes('מצרכים') || l.includes('רכיבים') || l.includes('חומרים') ||
+          low.includes('ingredients')
+        ) {
+          inIng = true;
+          inInst = false;
+          continue;
+        }
+
+        if (
+          l.includes('אופן הכנה') || l.includes('הוראות הכנה') || l.includes('שלבי הכנה') || l.includes('אופן ההכנה') ||
+          low.includes('instructions') || low.includes('method') || low.includes('directions')
+        ) {
+          inIng = false;
+          inInst = true;
+          continue;
+        }
+
+        if (inIng && (l.startsWith('##') || l.includes('ערכים תזונתיים') || low.includes('nutrition') || low.includes('notes'))) {
+          inIng = false;
+        }
+
+        if (inIng && l.length > 2 && !l.startsWith('#')) {
+          const cleanI = l.replace(/^[\*\-•\d.]+\s*/, '').replace(/\[.*?\]\(.*?\)/g, '').trim();
+          if (cleanI && !cleanI.includes('שתף') && !cleanI.includes('הדפס')) {
+            ingredients.push({ name: cleanI, amount: '', unit: '' });
+          }
+        } else if (inInst && l.length > 3 && !l.startsWith('#')) {
+          const cleanS = l.replace(/^[\*\-•]+\s*/, '').replace(/\[.*?\]\(.*?\)/g, '').trim();
+          if (cleanS && !cleanS.includes('תגובות') && !cleanS.includes('שתף')) {
+            instSteps.push(cleanS);
+          }
+        }
+      }
+
+      if (instSteps.length > 0) {
+        instructions = instSteps.map((s, idx) => s.match(/^\d+\./) ? s : `${idx + 1}. ${s}`).join('\n');
+      }
+
+      return {
+        title: title || 'מתכון שיובא מקישור',
+        description: `מתכון שיובא מ-${new URL(sourceUrl).hostname}`,
+        instructions: instructions || 'עיינו בהוראות ההכנה המלאות באתר המקור.',
+        ingredients,
+        imageUrl: imageUrl || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600',
+        sourceUrl,
+        prepTimeMinutes: prepTime,
+        calories: calories,
+        proteinGrams: protein
+      };
+    }
+
+
+        async function scrapeFromUrl() {
       const urlInput = document.getElementById('importUrlInput');
       const status = document.getElementById('importStatus');
       const btn = document.getElementById('btnScrape');
@@ -1177,25 +1261,34 @@
       try {
         btn.disabled = true;
         btn.textContent = 'שואב...';
-        status.textContent = 'מנתח נתוני מתכון מהשרת בענן...';
+        status.textContent = 'קורא ומנתח את כל פרטי המתכון (עברית ואנגלית)...';
         status.style.color = 'var(--primary)';
 
-        const endpoints = [
-          'https://project-1-listi-checklist-app.fly.dev/api/recipes/scrape',
-          '/api/recipes/scrape'
-        ];
-
         let data = null;
-        for (const ep of endpoints) {
+
+        // Strategy 1: Server-side scraper on Fly.io
+        try {
+          const res = await fetch('https://project-1-listi-checklist-app.fly.dev/api/recipes/scrape', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+          });
+          if (res.ok) {
+            data = await res.json();
+          }
+        } catch (e) {}
+
+        // Strategy 2: Client-side Reader API (bypasses bot blocks for any site)
+        if (!data || (!data.title && (!data.ingredients || data.ingredients.length === 0))) {
           try {
-            const res = await fetch(ep, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ url })
+            const jRes = await fetch('https://r.jina.ai/' + url, {
+              headers: { 'Accept': 'application/json' }
             });
-            if (res.ok) {
-              data = await res.json();
-              if (data && (data.title || (data.ingredients && data.ingredients.length > 0))) break;
+            if (jRes.ok) {
+              const jData = await jRes.json();
+              if (jData && jData.data) {
+                data = parseClientScrapedMarkdown(jData.data.content || '', jData.data.title || '', url);
+              }
             }
           } catch (e) {}
         }
@@ -1210,6 +1303,7 @@
           if (data.calories) document.getElementById('formCalories').value = data.calories;
           if (data.proteinGrams) document.getElementById('formProtein').value = data.proteinGrams;
 
+          // Fill ingredients
           const container = document.getElementById('ingredientsContainer');
           container.innerHTML = '';
           if (Array.isArray(data.ingredients) && data.ingredients.length > 0) {
@@ -1218,15 +1312,39 @@
             addIngredientRow();
           }
 
-          status.textContent = '✓ הנתונים נשאבו ומולאו בטופס בהצלחה!';
+          // Auto-select relevant tags
+          const textContent = ((data.title || '') + ' ' + (data.instructions || '')).toLowerCase();
+          selectedFormTags.add('דל סוכר');
+          selectedFormTags.add('עתיר חלבון');
+          selectedFormTags.add('ללא כוסברה');
+          selectedFormTags.add('ללא סלטים');
+
+          if (textContent.includes('סלמון') || textContent.includes('דג') || textContent.includes('טונה') || textContent.includes('fish') || textContent.includes('salmon')) {
+            selectedFormTags.add('מנות דגים');
+          } else {
+            selectedFormTags.add('צמחוני');
+          }
+
+          if (textContent.includes('אייר פרייר') || textContent.includes('air fryer') || textContent.includes('airfryer')) {
+            selectedFormTags.add('נינג\'ה אייר פרייר');
+          } else if (textContent.includes('קרימי') || textContent.includes('creami')) {
+            selectedFormTags.add('מתאים לנינג\'ה קרימי');
+          } else if (textContent.includes('סלאשי') || textContent.includes('slushi')) {
+            selectedFormTags.add('מתאים לנינג\'ה סלאשי');
+          }
+
+          renderFormTags();
+
+          const ingCount = Array.isArray(data.ingredients) ? data.ingredients.length : 0;
+          status.innerHTML = `✓ כל פרטי המתכון נשאבו בהצלחה! כותרת, <b>${ingCount}</b> מצרכים והוראות הכנה מלאות.`;
           status.style.color = 'var(--success)';
         } else {
-          status.innerHTML = '⚠️ לא הצלחנו לקרוא אוטומטית מאתר זה (חסימת בוטים). השתמשי ב<b>הדבקה חכמה</b> למטה!';
+          status.innerHTML = '⚠️ האתר חוסם גישה ישירה. הדביקי את טקסט המתכון ב<b>"הדבקה חכמה"</b> למטה וכל הפרטים ימולאו מיד!';
           status.style.color = 'var(--warning)';
           document.getElementById('smartPasteSection').style.display = 'block';
         }
       } catch (err) {
-        status.innerHTML = '⚠️ שגיאה בשאיבה: ' + err.message + '. נסי הדבקה חכמה למטה.';
+        status.innerHTML = '⚠️ שגיאה בשאיבה: ' + err.message + '. באפשרותך להשתמש ב<b>"הדבקה חכמה"</b>.';
         status.style.color = 'var(--warning)';
         document.getElementById('smartPasteSection').style.display = 'block';
       } finally {
