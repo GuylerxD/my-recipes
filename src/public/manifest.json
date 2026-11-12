@@ -1,0 +1,33 @@
+{
+  "name": "MY RECIPES - מאגר מתכונים ותפריט שבועי",
+  "short_name": "My Recipes",
+  "description": "אפליקציית מתכונים סולידית, תפריט שבועי, רשימת קניות ושף חכם",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "he",
+  "dir": "rtl",
+  "background_color": "#f7f6f2",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
