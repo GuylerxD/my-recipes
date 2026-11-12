@@ -303,7 +303,7 @@
 
         <!-- Context Ribbon -->
         <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; font-size: 0.8rem; color: #4338ca; background: #e0e7ff; padding: 8px 12px; border-radius: 8px;">
-          <span>🎯 <b>פרופיל אישי פעיל:</b> עתיר חלבון | דל סוכר (PCOS) | ללא כוסברה | ללא סלטים חיים</span>
+          <span>🎯 <b>פרופיל תזונה:</b> צמחונית-פסקיטריאנית בלבד (דגים, ביצים, מוצרי חלב, טופו) | ללא עוף וללא בשר | דל סוכר (PCOS) | ללא כוסברה</span>
           <span>•</span>
           <span>⚡ <b>מכשירים מועדפים:</b> נינג'ה אייר פרייר, נינג'ה קרימי, נינג'ה סלאשי</span>
           <span>•</span>
@@ -314,7 +314,7 @@
         <div style="margin-bottom: 14px;">
           <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 6px;">💡 הצעות להתחלה מהירה:</div>
           <div class="tag-cloud">
-            <span class="tag-chip" onclick="quickSendAiPrompt('תבנה לי ארוחת צהריים עתירת חלבון (מעל 40 גרם) בנינג\'ה אייר פרייר עם מה שיש במזווה')">🍗 צהריים עתיר חלבון באייר פרייר</span>
+            <span class="tag-chip" onclick="quickSendAiPrompt('תבנה לי ארוחת צהריים פסקיטריאנית עתירת חלבון (מעל 40 גרם) עם סלמון בנינג\'ה אייר פרייר')">🐟 סלמון עסיסי באייר פרייר (40g חלבון)</span>
             <span class="tag-chip" onclick="quickSendAiPrompt('תמציא לי גלידת חלבון מפנקת ודלת סוכר שמתאימה לנינג\'ה קרימי עם יוגורט')">🍨 גלידת חלבון לנינג'ה קרימי</span>
             <span class="tag-chip" onclick="quickSendAiPrompt('תכין לי משקה ברד אנרגיה מרענן לנינג\'ה סלאשי שמתאים ל-PCOS ולא מקפיץ סוכר')">🍧 ברד אנרגיה לנינג'ה סלאשי</span>
             <span class="tag-chip" onclick="quickSendAiPrompt('אני רעבה עכשיו! תמליץ לי על ארוחת ערב מהירה ב-10 דקות עם ביצים וטוסט ממה שיש במזווה')">🍳 ארוחת ערב מהירה ב-10 דקות</span>
@@ -837,7 +837,7 @@
     
     function getStoredRecipes() {
       try {
-        const stored = localStorage.getItem('my_recipes_db_v6');
+        const stored = localStorage.getItem('my_recipes_db_v7');
         if (stored) {
           const list = JSON.parse(stored);
           if (Array.isArray(list) && list.length >= 8) return list;
@@ -849,7 +849,7 @@
 
     function saveStoredRecipes(recipes) {
       try {
-        localStorage.setItem('my_recipes_db_v6', JSON.stringify(recipes));
+        localStorage.setItem('my_recipes_db_v7', JSON.stringify(recipes));
         localStorage.setItem('my_recipes_db', JSON.stringify(recipes));
       } catch (e) {}
     }
@@ -2133,19 +2133,33 @@ ${itemNames.join(', ')}`);
           '2. מפעילים בתוכנית Slush וממתינים 10-15 דקות עד מרקם ברד מושלם.\n' +
           '3. שותים לצד מנת חלבון (יוגורט או אצבע גבינה) להאטת ספיגת הפחמימות ושמירה על איזון סוכר.';
       }
-      // SPECIFIC DISH: CHICKEN / AIR FRYER
-      else if (lower.includes('עוף') || lower.includes('חזה עוף') || lower.includes('פרגית') || (appliance.includes('אייר פרייר') && !lower.includes('טופו') && !lower.includes('סלמון'))) {
-        calories = 360;
-        protein = 46;
+      // SPECIFIC DISH: FISH / SEAFOOD / PESCATARIAN
+      else if (tags.includes('מנות דגים') || lower.includes('סלמון') || lower.includes('דג') || lower.includes('טונה') || lower.includes('מושט') || lower.includes('ברמונדי') || lower.includes('לברק')) {
+        calories = 420;
+        protein = 42;
         ingredients = [
-          { name: 'חזה עוף טרי חתוך לרצועות או קוביות', amount: '220', unit: 'גרם' },
-          { name: 'שום גבישי, פפריקה מתוקה ומלח דק', amount: '1', unit: 'כפית' },
-          { name: 'תרסיס שמן זית', amount: '2', unit: 'ריסוסים' },
-          { name: 'קישוא או פלפל אדום חתוך לרצועות', amount: '1', unit: 'יחידה' }
+          { name: 'פילה סלמון / דג טרי', amount: '200', unit: 'גרם' },
+          { name: 'חרדל דיז\'ון ללא סוכר ושום כתוש', amount: '1', unit: 'כפית' },
+          { name: 'שמן זית כתית מעולה ומלח ים', amount: '1', unit: 'כפית' },
+          { name: 'זוקיני או רצועות גמבה קלויות', amount: '1', unit: 'יחידה' }
         ];
-        instructions = '1. מתבלים את חזה העוף והירקות בתבלינים ותרסיס שמן זית.\n' +
-          '2. מחממים את הנינג\'ה אייר פרייר ל-200 מעלות על מצב Air Crisp.\n' +
-          '3. צולים במשך 11-13 דקות ומנערים את הסלסלה באמצע לקראנצ\'יות מקסימלית ועסיסיות מבפנים.';
+        instructions = '1. מייבשים את פילה הדג ומתבלים בחרדל, שום, שמן זית ומלח ים.\n' +
+          '2. מניחים בסלסלת הנינג\'ה אייר פרייר ב-195 מעלות ל-10-12 דקות (או במחבת פסים).\n' +
+          '3. מגישים חם ונימוח — מנת דג עתירת חלבון (42g), דלת פחמימות ופסקיטריאנית מושלמת.';
+      }
+      // SPECIFIC DISH: TOFU / VEGETARIAN PROTEIN
+      else if (lower.includes('טופו') || lower.includes('סויה') || lower.includes('טבעול') || lower.includes('צמחונ') || appliance.includes('אייר פרייר')) {
+        calories = 370;
+        protein = 32;
+        ingredients = [
+          { name: 'טופו קשה סחוט / נתחי סויה צמחוניים', amount: '200', unit: 'גרם' },
+          { name: 'רוטב סויה ללא סוכר ושמן שומשום', amount: '1', unit: 'כף' },
+          { name: 'קורנפלור (לציפוי אקסטרה קראנצ\'י)', amount: '1', unit: 'כפית' },
+          { name: 'שומשום ותרסיס שמן זית', amount: '1', unit: 'כפית' }
+        ];
+        instructions = '1. חותכים את הטופו לקוביות, מערבבים עם סויה, שמן שומשום וקורנפלור.\n' +
+          '2. מכניסים לנינג\'ה אייר פרייר ב-200 מעלות ל-13 דקות (או מקפיצים במחבת).\n' +
+          '3. מנערים באמצע לקבלת מעטפת פריכה במיוחד ועשירה בחלבון צמחי.';
       }
       // SPECIFIC DISH: FISH / SALMON
       else if (tags.includes('מנות דגים')) {
