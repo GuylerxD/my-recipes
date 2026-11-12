@@ -220,12 +220,15 @@
     <!-- Pantry Tab -->
     <div id="tab-pantry" class="tab-content" style="display: none;">
       <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
           <div>
-            <h3>מזווה ורשימת קניות (Listi Sync)</h3>
-            <p style="color: var(--text-muted); font-size: 0.85rem;">מצרכים מסונכרנים ישירות מאפליקציית Listi</p>
+            <h3>מזווה ורשימת קניות (Listi Cloud Sync)</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">סנכרון מלא מול ענן Fly.io של Listi (Pin: 1201)</p>
           </div>
-          <button class="btn btn-outline" onclick="simulateListiSync()">סימולציית ייבוא מ-Listi</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-primary" onclick="syncFromListiCloud()">🔄 סנכרן עכשיו מ-Listi בענן</button>
+            <button class="btn btn-outline" onclick="simulateListiSync()">סימולציה מקומית</button>
+          </div>
         </div>
         <table>
           <thead>
@@ -839,6 +842,19 @@
       const result = await res.json();
       document.getElementById('payloadPreview').textContent = JSON.stringify(result, null, 2);
       alert('התפריט אושר והנתונים נשלחו בהצלחה ל-The Healing Cabin!');
+    }
+
+    async function syncFromListiCloud() {
+      try {
+        const res = await fetch('/api/integrations/listi/sync-now', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.details || data.error);
+        await loadPantry();
+        await loadWhatToCook();
+        alert(`סנכרון מ-Listi עבר בהצלחה!\nנסרקו ${data.pantry_count} מוצרים במזווה ו-${data.shopping_count} מוצרים ברשימת הקניות.`);
+      } catch (err) {
+        alert('שגיאה בסנכרון מ-Listi: ' + err.message);
+      }
     }
 
     async function simulateListiSync() {

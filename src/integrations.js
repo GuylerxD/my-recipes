@@ -104,6 +104,8 @@ export async function pushToHealingCabin(recipes, destinationUrl = process.env.T
   };
 }
 
+import { pushItemsToListi } from './listiClient.js';
+
 /**
  * Pushes missing recipe ingredients directly to Listi shopping cart
  */
@@ -126,34 +128,18 @@ export async function addMissingIngredientsToListi(db, items, listiUrl = process
     addedItems.push({ item_name: itemName, quantity, status: 'ברשימת קניות' });
   }
 
-  const payload = {
-    source: 'MyRecipesApp',
-    event: 'ADD_TO_SHOPPING_CART',
-    timestamp: new Date().toISOString(),
-    items: addedItems
-  };
-
-  if (!listiUrl) {
-    return {
-      status: 'success',
-      synced_locally: true,
-      message: 'Items added to shopping list locally in pantry_groceries (ready for Listi sync).',
-      payload
-    };
+  // Push to Fly.io cloud directly
+  let cloudResult = null;
+  try {
+    cloudResult = await pushItemsToListi(addedItems);
+  } catch (err) {
+    console.error('Listi cloud push error:', err.message);
   }
 
-  const response = await fetch(listiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'User-Agent': 'MyRecipes/1.0'
-    },
-    body: JSON.stringify(payload)
-  });
-
   return {
-    status: response.ok ? 'success' : 'failed',
-    statusCode: response.status,
-    payload
+    status: 'success',
+    synced_locally: true,
+    cloud_result: cloudResult,
+    added_items: addedItems
   };
 }

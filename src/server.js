@@ -7,6 +7,7 @@ import { seedData } from './seed.js';
 import { syncFromListi, pushToHealingCabin, addMissingIngredientsToListi } from './integrations.js';
 import { scrapeRecipeFromUrl } from './scraper.js';
 import { calculateRecipeMatches } from './matching.js';
+import { syncListiCloudToDb } from './listiClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -211,6 +212,22 @@ export function createServer(customDb) {
           message: 'Listi inventory synchronized successfully',
           ...result
         });
+        return;
+      }
+
+      // 6.1 POST /api/integrations/listi/sync-now - Trigger pull from Listi Fly.io cloud directly
+      if (req.method === 'POST' && pathname === '/api/integrations/listi/sync-now') {
+        try {
+          const listId = parseInt(parsedUrl.searchParams.get('list_id') || '1', 10);
+          const result = await syncListiCloudToDb(db, listId);
+          sendJson(200, {
+            success: true,
+            message: 'Listi cloud inventory synchronized successfully',
+            ...result
+          });
+        } catch (err) {
+          sendJson(500, { error: 'Failed to sync from Listi cloud', details: err.message });
+        }
         return;
       }
 
