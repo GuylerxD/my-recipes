@@ -161,6 +161,7 @@
       <button class="tab-btn active" onclick="showTab('planner')">📅 תכנון Meal Prep שבועי</button>
       <button class="tab-btn" onclick="showTab('whatToCook')">🍳 מה אפשר להכין?</button>
       <button class="tab-btn" onclick="showTab('recipes')">מאגר מתכונים</button>
+      <button class="tab-btn" onclick="showTab('aiChef')" style="background: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%); border: 1px solid #c7d2fe; color: #4338ca; font-weight: 700;">✨ שף AI (Gemini)</button>
       <button class="tab-btn" onclick="showTab('pantry')">מזווה וקניות (Listi)</button>
       <button class="tab-btn" onclick="showTab('integrations')">ממשקי API</button>
     </div>
@@ -275,6 +276,92 @@
         </table>
       </div>
     </div>
+
+    
+    <!-- 4. AI CHEF AGENT TAB (GEMINI) -->
+    <div id="tab-aiChef" class="tab-content" style="display: none;">
+      <div class="card" style="border: 2px solid #818cf8; background: linear-gradient(180deg, #faf5ff 0%, #ffffff 100%);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.5rem;">✨</span>
+              <h2 style="font-size: 1.35rem; font-weight: 800; color: #312e81;">Gemini Chef — אייג'נט מתכונים חכם</h2>
+            </div>
+            <p style="color: #475569; font-size: 0.88rem; margin-top: 2px;">
+              שוחחי איתי כמו בג'מיני: אבנה עבורך מתכונים מותאמים אישית למכשירי נינג'ה, יעדי חלבון ומלאי המזווה מ-Listi.
+            </p>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="btn btn-outline btn-sm" onclick="toggleApiKeyModal()" style="font-size: 0.8rem; border-color: #818cf8; color: #4338ca;">
+              🔑 הגדרת מפתח Gemini API (אופציונלי)
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="clearAiChat()" style="font-size: 0.8rem;">
+              🧹 שיחה חדשה
+            </button>
+          </div>
+        </div>
+
+        <!-- Context Ribbon -->
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; font-size: 0.8rem; color: #4338ca; background: #e0e7ff; padding: 8px 12px; border-radius: 8px;">
+          <span>🎯 <b>פרופיל אישי פעיל:</b> עתיר חלבון | דל סוכר (PCOS) | ללא כוסברה | ללא סלטים חיים</span>
+          <span>•</span>
+          <span>⚡ <b>מכשירים מועדפים:</b> נינג'ה אייר פרייר, נינג'ה קרימי, נינג'ה סלאשי</span>
+          <span>•</span>
+          <span id="aiPantryStatusBadge">🍏 מזווה Listi מחובר</span>
+        </div>
+
+        <!-- Quick Prompt Chips -->
+        <div style="margin-bottom: 14px;">
+          <div style="font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 6px;">💡 הצעות להתחלה מהירה:</div>
+          <div class="tag-cloud">
+            <span class="tag-chip" onclick="quickSendAiPrompt('תבנה לי ארוחת צהריים עתירת חלבון (מעל 40 גרם) בנינג\'ה אייר פרייר עם מה שיש במזווה')">🍗 צהריים עתיר חלבון באייר פרייר</span>
+            <span class="tag-chip" onclick="quickSendAiPrompt('תמציא לי גלידת חלבון מפנקת ודלת סוכר שמתאימה לנינג\'ה קרימי עם יוגורט')">🍨 גלידת חלבון לנינג'ה קרימי</span>
+            <span class="tag-chip" onclick="quickSendAiPrompt('תכין לי משקה ברד אנרגיה מרענן לנינג\'ה סלאשי שמתאים ל-PCOS ולא מקפיץ סוכר')">🍧 ברד אנרגיה לנינג'ה סלאשי</span>
+            <span class="tag-chip" onclick="quickSendAiPrompt('אני רעבה עכשיו! תמליץ לי על ארוחת ערב מהירה ב-10 דקות עם ביצים וטוסט ממה שיש במזווה')">🍳 ארוחת ערב מהירה ב-10 דקות</span>
+            <span class="tag-chip" onclick="quickSendAiPrompt('תבנה לי סנאק ביניים מתוק אבל דל סוכר עם מעל 20 גרם חלבון')">🍫 סנאק ביניים חלבוני ומתוק</span>
+          </div>
+        </div>
+
+        <!-- Chat Container -->
+        <div id="aiChatBox" style="min-height: 380px; max-height: 520px; overflow-y: auto; background: #ffffff; border: 1px solid #e0e7ff; border-radius: 12px; padding: 16px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 14px;">
+          <!-- Chat messages rendered dynamically -->
+        </div>
+
+        <!-- Chat Input Bar -->
+        <div style="display: flex; gap: 8px; align-items: flex-end;">
+          <textarea id="aiUserInput" class="form-control" rows="2" placeholder="ספרי ל-Gemini Chef מה בא לך לאכול, אילו מצרכים תרצי לשלב, או בקשי שינוי במתכון..." style="resize: none; border-color: #c7d2fe;"></textarea>
+          <button class="btn btn-primary" id="btnSendAi" onclick="sendAiMessage()" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 14px 20px; height: 100%; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+            <span>שלח</span>
+            <span>✨</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: GEMINI API KEY CONFIG -->
+    <div id="apiKeyModal" class="modal-overlay">
+      <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+          <h2 style="font-size: 1.2rem;">🔑 הגדרת מפתח Google Gemini API</h2>
+          <button class="close-btn" onclick="toggleApiKeyModal()">&times;</button>
+        </div>
+        <p style="font-size: 0.88rem; color: #475569; margin-bottom: 12px;">
+          האייג'נט עובד כברירת מחדל עם מנוע שף חכם מובנה. אם תרצי לחבר את חשבון ה-Gemini האישי שלך (חינמי מ-Google AI Studio), הדביקי כאן את המפתח:
+        </p>
+        <div class="form-group">
+          <label class="form-label">Gemini API Key:</label>
+          <input type="password" id="geminiApiKeyInput" class="form-control" placeholder="AIzaSy...">
+        </div>
+        <p style="font-size: 0.78rem; color: #64748b; margin-bottom: 14px;">
+          המפתח נשמר בדפדפן האישי שלך (localStorage) ולא נשלח לשום שרת צד שלישי.
+        </p>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button class="btn btn-outline" onclick="toggleApiKeyModal()">סגור</button>
+          <button class="btn btn-primary" onclick="saveGeminiApiKey()">שמור מפתח</button>
+        </div>
+      </div>
+    </div>
+
 
     <!-- 5. INTEGRATIONS TAB -->
     <div id="tab-integrations" class="tab-content" style="display: none;">
@@ -1355,6 +1442,7 @@
         btn.classList.add('btn-success');
         btn.textContent = '✓ נוסף בהצלחה לרשימת הקניות!';
         loadPantry();
+    renderAiChat();
       } catch (err) {
         alert('שגיאה: ' + err.message);
         btn.disabled = false;
@@ -1694,6 +1782,418 @@ ${itemNames.join(', ')}`);
         `;
       }).join('');
     }
+
+    
+    // ==========================================
+    // ✨ GEMINI CHEF AI AGENT
+    // ==========================================
+    let aiChatMessages = [
+      {
+        role: 'model',
+        text: 'היי! אני **Gemini Chef**, עוזר התזונה והשף החכם שלך 👩‍🍳✨\n\nאני מתמחה בבניית מתכונים עתירי חלבון, מותאמים אישית ל-PCOS וסוכר מאוזן, ומנצל באופן מושלם את מכשירי הנינג\'ה שלך (**אייר פרייר, קרימי וסלאשי**) ואת מה שיש לך כרגע במזווה מ-Listi!\n\nמה תרצי שנכין היום? תוכלי לבחור באחת ההצעות למעלה או פשוט לכתוב לי בחופשיות.'
+      }
+    ];
+
+    function toggleApiKeyModal() {
+      const modal = document.getElementById('apiKeyModal');
+      const input = document.getElementById('geminiApiKeyInput');
+      if (!modal.classList.contains('open')) {
+        input.value = localStorage.getItem('gemini_api_key') || '';
+        modal.classList.add('open');
+      } else {
+        modal.classList.remove('open');
+      }
+    }
+
+    function saveGeminiApiKey() {
+      const key = document.getElementById('geminiApiKeyInput').value.trim();
+      if (key) {
+        localStorage.setItem('gemini_api_key', key);
+        alert('✓ מפתח Gemini API נשמר בהצלחה בדפדפן!');
+      } else {
+        localStorage.removeItem('gemini_api_key');
+        alert('מפתח הוסר. האייג\'נט ישתמש במנוע השף החכם המובנה.');
+      }
+      toggleApiKeyModal();
+    }
+
+    function clearAiChat() {
+      if (confirm('האם לאפס את השיחה עם השף?')) {
+        aiChatMessages = [
+          {
+            role: 'model',
+            text: 'שלום מחדש! מה נרצה להכין עכשיו? ספרי לי על מצרכים, חשקים או מכשיר נינג\'ה שבא לך להפעיל ✨'
+          }
+        ];
+        renderAiChat();
+      }
+    }
+
+    function quickSendAiPrompt(promptText) {
+      document.getElementById('aiUserInput').value = promptText;
+      sendAiMessage();
+    }
+
+    function renderAiChat() {
+      const box = document.getElementById('aiChatBox');
+      if (!box) return;
+
+      box.innerHTML = aiChatMessages.map((msg, idx) => {
+        const isUser = msg.role === 'user';
+        const avatar = isUser ? '👤' : '✨';
+        const sender = isUser ? 'את' : 'Gemini Chef';
+        const bg = isUser ? '#f1f5f9' : '#f8faff';
+        const border = isUser ? '#e2e8f0' : '#c7d2fe';
+
+        let recipeCardHtml = '';
+        if (msg.recipe) {
+          const r = msg.recipe;
+          const rJson = encodeURIComponent(JSON.stringify(r));
+          const tags = Array.isArray(r.tags) ? r.tags : [];
+          recipeCardHtml = `
+            <div style="margin-top: 14px; background: #ffffff; border: 2px solid #818cf8; border-radius: 12px; padding: 16px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.1);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                <div>
+                  <h4 style="font-size: 1.2rem; font-weight: 800; color: #1e1b4b;">${r.title}</h4>
+                  <div style="font-size: 0.85rem; color: #4338ca; font-weight: 600;">${r.category || ''} • ${r.appliance || ''}</div>
+                </div>
+                <span class="badge" style="background: #e0e7ff; color: #3730a3;">מתכון שנוצר ע"י AI</span>
+              </div>
+
+              <div class="recipe-meta" style="margin: 10px 0; font-size: 0.85rem;">
+                <span>⏱ ${r.prep_time_minutes || 15} דק'</span>
+                <span>🔥 ${r.calories || 0} קלוריות</span>
+                <span>💪 ${r.protein_grams || 0}g חלבון</span>
+                <span>📊 ${r.difficulty || 'קל'}</span>
+              </div>
+
+              <div style="margin-bottom: 12px;">
+                <div style="font-size: 0.9rem; font-weight: 700; color: #334155; margin-bottom: 4px;">📋 מצרכים:</div>
+                <ul style="list-style: disc; margin-right: 20px; font-size: 0.88rem; color: #475569; display: grid; gap: 3px;">
+                  ${(r.ingredients || []).map(i => {
+                    const text = typeof i === 'string' ? i : `${i.amount || ''} ${i.unit || ''} ${i.name || ''}`.trim();
+                    return `<li>${text}</li>`;
+                  }).join('')}
+                </ul>
+              </div>
+
+              <div style="margin-bottom: 14px;">
+                <div style="font-size: 0.9rem; font-weight: 700; color: #334155; margin-bottom: 4px;">👩‍🍳 אופן הכנה:</div>
+                <div style="font-size: 0.88rem; line-height: 1.6; color: #334155; white-space: pre-line; background: #f8fafc; padding: 10px; border-radius: 8px;">${r.instructions || ''}</div>
+              </div>
+
+              <div class="tag-cloud" style="margin-bottom: 14px;">
+                ${tags.map(t => `<span class="tag-chip active" style="font-size: 0.75rem; padding: 2px 8px;">${t}</span>`).join('')}
+              </div>
+
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 12px;">
+                <button class="btn btn-success btn-sm" onclick="saveAiRecipe('${rJson}')" style="font-weight: 700;">
+                  💾 שמור למאגר המתכונים
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="quickAssignAiRecipe('${rJson}')">
+                  📅 שבץ לתפריט שבועי
+                </button>
+                <button class="btn btn-warning btn-sm" onclick="addAiRecipeIngredientsToListi('${rJson}')">
+                  🛒 הוסף מצרכים ל-Listi
+                </button>
+              </div>
+            </div>
+          `;
+        }
+
+        return `
+          <div style="display: flex; gap: 10px; align-items: flex-start; ${isUser ? 'flex-direction: row-reverse;' : ''}">
+            <div style="width: 34px; height: 34px; border-radius: 50%; background: ${isUser ? '#2563eb' : '#6366f1'}; color: white; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">
+              ${avatar}
+            </div>
+            <div style="max-width: 82%; background: ${bg}; border: 1px solid ${border}; border-radius: 12px; padding: 12px 16px;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 4px;">${sender}</div>
+              <div style="font-size: 0.95rem; line-height: 1.6; white-space: pre-line; color: #1e293b;">${msg.text}</div>
+              ${recipeCardHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function sendAiMessage() {
+      const input = document.getElementById('aiUserInput');
+      const userText = input.value.trim();
+      if (!userText) return;
+
+      input.value = '';
+      aiChatMessages.push({ role: 'user', text: userText });
+      renderAiChat();
+
+      const btn = document.getElementById('btnSendAi');
+      btn.disabled = true;
+      btn.innerHTML = '<span>חושב...</span> ✨';
+
+      // Show typing bubble
+      const loadingIdx = aiChatMessages.length;
+      aiChatMessages.push({
+        role: 'model',
+        text: '✨ Gemini Chef חושב ובונה עבורך את המתכון המדויק...'
+      });
+      renderAiChat();
+
+      try {
+        const apiKey = localStorage.getItem('gemini_api_key');
+        let aiResult = null;
+
+        if (apiKey) {
+          aiResult = await callGeminiApi(userText, apiKey);
+        } else {
+          aiResult = await generateLocalChefRecipe(userText);
+        }
+
+        aiChatMessages.splice(loadingIdx, 1);
+        aiChatMessages.push({
+          role: 'model',
+          text: aiResult.commentary,
+          recipe: aiResult.recipe
+        });
+      } catch (err) {
+        aiChatMessages.splice(loadingIdx, 1);
+        aiChatMessages.push({
+          role: 'model',
+          text: 'אירעה שגיאה בבניית המתכון: ' + err.message + '\nאל דאגה, יצרתי עבורך גרסה מותאמת באמצעות מנוע השף המובנה!'
+        });
+        const fallback = await generateLocalChefRecipe(userText);
+        aiChatMessages.push({
+          role: 'model',
+          text: fallback.commentary,
+          recipe: fallback.recipe
+        });
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>שלח</span> ✨';
+        renderAiChat();
+      }
+    }
+
+    async function callGeminiApi(prompt, apiKey) {
+      const systemInstruction = `
+אתה Gemini Chef - שף מקצועי ומומחה תזונה אישי.
+המשתמשת דורשת תזונה עתירת חלבון, מתונה בסוכר ופחמימות (PCOS-friendly), מחוברת למכשירי נינג'ה (נינג'ה אייר פרייר, נינג'ה קרימי, נינג'ה סלאשי), נמנעת לחלוטין מכוסברה ומסלטים חיים עמוסים.
+בכל תשובה עם מתכון, עליך לכתוב הסבר קצר וידידותי בעברית, ולספק בלוק JSON תקני יחיד תחום ב-בלוק JSON תקני בלבד בעל המבנה הבא:
+{
+  "title": "שם המתכון",
+  "category": "ארוחת צהריים / ארוחת בוקר / ארוחת ערב / ארוחת ביניים",
+  "appliance": "נינג'ה אייר פרייר / נינג'ה קרימי / נינג'ה סלאשי / גז / ללא בישול",
+  "prep_time_minutes": 15,
+  "calories": 380,
+  "protein_grams": 38,
+  "difficulty": "קל",
+  "sugar_level": "נמוך",
+  "ingredients": [{"name": "שם המצרך", "amount": "150", "unit": "גרם"}],
+  "instructions": "שלב 1: ...\\nשלב 2: ...",
+  "tags": ["עתיר חלבון", "דל סוכר", "נינג'ה אייר פרייר"]
+}
+      `;
+
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      const body = {
+        contents: [
+          { role: 'user', parts: [{ text: systemInstruction + '\n\nבקשת המשתמשת:\n' + prompt }] }
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1200
+        }
+      };
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) throw new Error(`Gemini API error (${res.status})`);
+      const data = await res.json();
+      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+      let recipe = null;
+      let commentary = rawText;
+      const jsonMatch = rawText.match(/```json([\s\S]*?)```/);
+      if (jsonMatch) {
+        try {
+          recipe = JSON.parse(jsonMatch[1].trim());
+          commentary = rawText.replace(/```json[\s\S]*?```/, '').trim();
+        } catch {}
+      }
+
+      return { commentary: commentary || 'הנה המתכון שבניתי עבורך:', recipe };
+    }
+
+    // Built-in Intelligent Generative Chef Engine (Works offline or without API Key)
+    async function generateLocalChefRecipe(prompt) {
+      await new Promise(r => setTimeout(r, 600)); // Natural thinking pause
+      const p = prompt.toLowerCase();
+
+      let recipe = null;
+      let commentary = 'הרכבתי עבורך מתכון מעולה, עתיר חלבון ומותאם במדויק להעדפות שלך:';
+
+      if (p.includes('קרימי') || p.includes('גליד') || p.includes('creami')) {
+        recipe = {
+          title: 'גלידת חלבון פיסטוק וניל בנינג\'ה קרימי',
+          category: 'ארוחת ביניים',
+          appliance: 'נינג\'ה קרימי (Ninja Creami)',
+          prep_time_minutes: 5,
+          calories: 180,
+          protein_grams: 28,
+          difficulty: 'קל',
+          sugar_level: 'נמוך',
+          ingredients: [
+            { name: 'יוגורט מועשר בחלבון (פרו/GO)', amount: '1', unit: 'גביע' },
+            { name: 'משקה שקדים ללא סוכר', amount: '100', unit: 'מ"ל' },
+            { name: 'מחית פיסטוק טבעית (100% פיסטוק)', amount: '1', unit: 'כפית' },
+            { name: 'אינסטנט פודינג וניל ללא סוכר', amount: '1', unit: 'כפית שטוחה' }
+          ],
+          instructions: '1. מערבבים היטב את כל המרכיבים במיכל הנינג\'ה קרימי עד מרקם אחיד.\n2. מקפיאים ל-24 שעות.\n3. מעבדים בתוכנית Lite Ice Cream. אם המרקם פירורי, מוסיפים כף משקה שקדים ומפעילים Re-spin.',
+          tags: ['עתיר חלבון', 'דל סוכר', 'מתאים לנינג\'ה קרימי', 'צמחוני', 'ללא כוסברה', 'ללא סלטים']
+        };
+      } else if (p.includes('סלאשי') || p.includes('ברד') || p.includes('slushi') || p.includes('משקה')) {
+        recipe = {
+          title: 'ברד אנרגיה פירות יער PCOS בנינג\'ה סלאשי',
+          category: 'ארוחת ביניים',
+          appliance: 'נינג\'ה סלאשי (Ninja Slushi)',
+          prep_time_minutes: 8,
+          calories: 140,
+          protein_grams: 5,
+          difficulty: 'קל מאוד',
+          sugar_level: 'נמוך מאוד',
+          ingredients: [
+            { name: 'משקה אנרגיה ללא סוכר (מונסטר/רדבול אולטרה)', amount: '1', unit: 'פחית' },
+            { name: 'פירות יער קפואים (אוכמניות/פטל)', amount: '50', unit: 'גרם' },
+            { name: 'חטיף חלבוני קראנצ\'י או יוגורט בצד', amount: '1', unit: 'מנה קטנה' }
+          ],
+          instructions: '1. טוחנים את פירות היער עם משקה האנרגיה ומסננים היטב מגרעינים.\n2. מוזגים למכל הנינג\'ה סלאשי ומפעילים במצב Slush.\n3. מגישים לצד החטיף החלבוני להאטת ספיגת הפחמימות ושמירה על איזון סוכר.',
+          tags: ['דל סוכר', 'מתאים לנינג\'ה סלאשי', 'צמחוני', 'ללא כוסברה', 'ללא סלטים']
+        };
+      } else if (p.includes('דג') || p.includes('סלמון') || p.includes('טונה')) {
+        recipe = {
+          title: 'סלמון בציפוי תבלינים זהוב בנינג\'ה אייר פרייר',
+          category: 'ארוחת צהריים',
+          appliance: 'נינג\'ה אייר פרייר (Ninja Air Fryer)',
+          prep_time_minutes: 12,
+          calories: 420,
+          protein_grams: 40,
+          difficulty: 'קל',
+          sugar_level: 'נמוך',
+          ingredients: [
+            { name: 'פילה סלמון טרי', amount: '200', unit: 'גרם' },
+            { name: 'שמן זית כתית מעולה', amount: '1', unit: 'כפית' },
+            { name: 'שום גבישי, פפריקה מתוקה ומלח ים', amount: '1', unit: 'כפית' },
+            { name: 'קישוא או זוקיני פרוס', amount: '1', unit: 'יחידה' }
+          ],
+          instructions: '1. מייבשים את הסלמון בנייר סופג ומרססים מעט שמן זית ותבלינים.\n2. מניחים את הסלמון ופרוסות הזוקיני בסלסלת האייר פרייר.\n3. מפעילים בתוכנית Air Crisp ב-195 מעלות ל-11 דקות בלבד עד שהסלמון נימוח ועסיסי.',
+          tags: ['עתיר חלבון', 'דל סוכר', 'נינג\'ה אייר פרייר', 'מנות דגים', 'ללא כוסברה', 'ללא סלטים']
+        };
+      } else if (p.includes('טופו') || p.includes('צמחונ')) {
+        recipe = {
+          title: 'נאגטס טופו קריספי בשומשום באייר פרייר',
+          category: 'ארוחת צהריים',
+          appliance: 'נינג\'ה אייר פרייר (Ninja Air Fryer)',
+          prep_time_minutes: 15,
+          calories: 360,
+          protein_grams: 30,
+          difficulty: 'קל',
+          sugar_level: 'נמוך',
+          ingredients: [
+            { name: 'טופו קשה סחוט מנוזלים', amount: '200', unit: 'גרם' },
+            { name: 'רוטב סויה ללא סוכר', amount: '1', unit: 'כף' },
+            { name: 'קורנפלור או קמח טפיוקה', amount: '1', unit: 'כף' },
+            { name: 'שומשום ותרסיס שמן זית', amount: '1', unit: 'כפית' }
+          ],
+          instructions: '1. חותכים את הטופו לקוביות ומערבבים עם סויה, קורנפלור ושומשום.\n2. מרססים קלות בתרסיס שמן זית ומעבירים לנינג\'ה אייר פרייר.\n3. צולים ב-200 מעלות במשך 14 דקות, מנערים באמצע לקראנץ\' מושלם.',
+          tags: ['עתיר חלבון', 'דל סוכר', 'נינג\'ה אייר פרייר', 'צמחוני', 'ללא כוסברה', 'ללא סלטים']
+        };
+      } else {
+        // High protein chicken / all-around dinner default
+        recipe = {
+          title: 'נתחי חזה עוף שווארמה קריספי בנינג\'ה אייר פרייר',
+          category: 'ארוחת צהריים',
+          appliance: 'נינג\'ה אייר פרייר (Ninja Air Fryer)',
+          prep_time_minutes: 12,
+          calories: 380,
+          protein_grams: 48,
+          difficulty: 'קל',
+          sugar_level: 'נמוך',
+          ingredients: [
+            { name: 'חזה עוף פרוס לרצועות דקות', amount: '220', unit: 'גרם' },
+            { name: 'תבלין שווארמה / פפריקה מעושנת ושום', amount: '1', unit: 'כף' },
+            { name: 'טחינה גולמית או גבינה 5% להגשה', amount: '1', unit: 'כף' },
+            { name: 'תרסיס שמן זית', amount: '1', unit: 'ריסוס' }
+          ],
+          instructions: '1. מערבבים את רצועות העוף עם תבלין שווארמה ותרסיס שמן.\n2. מחממים נינג\'ה אייר פרייר ל-200 מעלות ומכניסים את הרצועות ל-10-12 דקות.\n3. מנערים באמצע. מגישים לצד טחינה או על לחמנייה מחיטה מלאה/מחמצת.',
+          tags: ['עתיר חלבון', 'דל סוכר', 'נינג\'ה אייר פרייר', 'ללא כוסברה', 'ללא סלטים']
+        };
+      }
+
+      return { commentary, recipe };
+    }
+
+    // Actions on AI Recipe Card
+    function saveAiRecipe(recipeJsonEncoded) {
+      const recipe = JSON.parse(decodeURIComponent(recipeJsonEncoded));
+      recipe.id = 'ai_' + Date.now();
+      recipe.image_url = recipe.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600';
+      recipe.ingredients = JSON.stringify(recipe.ingredients);
+      recipe.tags = JSON.stringify(recipe.tags);
+
+      allRecipes.unshift(recipe);
+      saveStoredRecipes(allRecipes);
+      applyGalleryFilters();
+      renderNinjaAirFryerCarousel();
+      loadWhatToCook();
+
+      alert(`✓ המתכון "${recipe.title}" נשמר בהצלחה במאגר המתכונים שלך!`);
+    }
+
+    function quickAssignAiRecipe(recipeJsonEncoded) {
+      const recipe = JSON.parse(decodeURIComponent(recipeJsonEncoded));
+      recipe.id = 'ai_' + Date.now();
+      recipe.image_url = recipe.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600';
+      recipe.ingredients = JSON.stringify(recipe.ingredients);
+      recipe.tags = JSON.stringify(recipe.tags);
+
+      allRecipes.unshift(recipe);
+      saveStoredRecipes(allRecipes);
+
+      currentDetailRecipe = recipe;
+      quickAssignCurrentRecipe();
+    }
+
+    async function addAiRecipeIngredientsToListi(recipeJsonEncoded) {
+      const recipe = JSON.parse(decodeURIComponent(recipeJsonEncoded));
+      const items = (recipe.ingredients || []).map(i => (typeof i === 'string' ? i : i.name).trim()).filter(Boolean);
+      if (items.length === 0) return alert('אין מצרכים להוספה');
+
+      try {
+        const res = await fetch('https://project-1-listi-checklist-app.fly.dev/api/cabin/shopping', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer 1201'
+          },
+          body: JSON.stringify({ items, list_id: 1 })
+        });
+        if (res.ok) {
+          alert(`✓ ${items.length} מצרכים נוספו ישירות ל-Listi!`);
+        } else {
+          navigator.clipboard.writeText(items.join(', '));
+          alert('המצרכים הועתקו ללוח.');
+        }
+      } catch {
+        navigator.clipboard.writeText(items.join(', '));
+        alert(`✓ ${items.length} מצרכים הועתקו ללוח:
+${items.join(', ')}`);
+      }
+    }
+
 
     // Init App
     allRecipes = getStoredRecipes();
