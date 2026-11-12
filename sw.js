@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-recipes-v1';
+const CACHE_NAME = 'my-recipes-v2';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -37,6 +37,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Network first for HTML to always load latest updates
+  if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request) || caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // Stale while revalidate for static assets
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request).then((networkResponse) => {
