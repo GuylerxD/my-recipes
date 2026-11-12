@@ -1310,6 +1310,76 @@
       'ללא סלטים'
     ];
 
+    // =========================================================
+    // SMART RECIPE IMAGE ENGINE & CURATED MAP
+    // =========================================================
+    const SMART_IMAGE_MAP = [
+      {
+        keywords: ['טוקבוקי', 'tteokbokki', 'עוגיות אורז', 'אורז קוריאני', 'קוריאני'],
+        url: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=800'
+      },
+      {
+        keywords: ['טוסט', 'גבינה צהובה', 'toast', 'grilled cheese', 'גבינת שמנת', 'לחמנייה', 'פוקצ\'ה'],
+        url: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800'
+      },
+      {
+        keywords: ['טופו', 'tofu', 'בטטה', 'קריספי', 'סויה'],
+        url: 'https://images.unsplash.com/photo-1584278860047-22db9ff82bed?w=800'
+      },
+      {
+        keywords: ['סלמון', 'salmon', 'דג', 'מושט', 'לברק', 'דניס', 'חרדל דיז\'ון'],
+        url: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800'
+      },
+      {
+        keywords: ['טונה', 'tuna', 'סלט טונה'],
+        url: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800'
+      },
+      {
+        keywords: ['קרימי', 'creami', 'גלידה', 'ice cream', 'פודינג'],
+        url: 'https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=800'
+      },
+      {
+        keywords: ['סלאשי', 'slushi', 'ברד', 'slush', 'אייס', 'אנרגיה'],
+        url: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=800'
+      },
+      {
+        keywords: ['מקושקשת', 'ביצה', 'ביצים', 'מחמצת', 'חביתה', 'שקשוקה', 'scrambled', 'eggs'],
+        url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=800'
+      },
+      {
+        keywords: ['יוגורט', 'yogurt', 'קוטג', 'מוצרלה', 'סנאק'],
+        url: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=800'
+      },
+      {
+        keywords: ['פנקייק', 'pancake', 'וופל', 'waffle'],
+        url: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800'
+      },
+      {
+        keywords: ['פיצה', 'pizza'],
+        url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800'
+      },
+      {
+        keywords: ['פסטה', 'pasta', 'נודלס', 'ספגטי'],
+        url: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=800'
+      }
+    ];
+
+    function getSmartRecipeImage(recipe) {
+      if (recipe && recipe.image_url && 
+          !recipe.image_url.includes('photo-1498837167922-ddd27525d352') && 
+          !recipe.image_url.includes('photo-1562967914-608f82629710') && 
+          !recipe.image_url.includes('placeholder')) {
+        return recipe.image_url;
+      }
+      const text = ((recipe?.title || '') + ' ' + (recipe?.description || '') + ' ' + (recipe?.appliance || '') + ' ' + (recipe?.tags || '') + ' ' + (recipe?.instructions || '')).toLowerCase();
+      for (const item of SMART_IMAGE_MAP) {
+        if (item.keywords.some(k => text.includes(k.toLowerCase()))) {
+          return item.url;
+        }
+      }
+      return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';
+    }
+
     const DEFAULT_RECIPES = [
       {
         id: 'breakfast_1',
@@ -1318,7 +1388,7 @@
         description: 'טוסט גבינה צהובה וגבינת שמנת בלחמנייה מחיטה מלאה לצד קפה לונגו עם חלב מוקצף וקינוח מדוד למיתון קפיצת הסוכר.',
         instructions: '1. מורחים את גבינת השמנת או רסק העגבניות על הלחמנייה, מניחים את הגבינה הצהובה וקולים בטוסטר.\n2. מכינים לונגו מקפסולה 11 עם מעט חלב מוקצף.\n3. את המתוק אוכלים בסוף הארוחה כדי למתן את קפיצת הסוכר.',
         source_url: '',
-        image_url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600',
+        image_url: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800',
         prep_time_minutes: 5,
         calories: 400,
         protein_grams: 19,
@@ -1342,7 +1412,7 @@
         description: 'יוגורט טבעי מועשר בחלבון עם אצבע מוצרלה או לחמניית קוטג\' קטנה לאיזון סוכר ושובע עד הצהריים.',
         instructions: 'אוכלים את היוגורט יחד עם אצבע המוצרלה או לחמניית הקוטג\' לאיזון אופטימלי של סוכר ולתחושת שובע עד צהריים.',
         source_url: '',
-        image_url: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=600',
+        image_url: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=800',
         prep_time_minutes: 2,
         calories: 200,
         protein_grams: 27,
@@ -1362,7 +1432,7 @@
         description: 'קוביות טופו פריכות ברוטב סויה ומקלות בטטה זהובים בנינג\'ה אייר פרייר לצד סלט רענן.',
         instructions: '1. חותכים את הטופו לקוביות, מערבבים עם סויה וקורנפלור.\n2. חותכים את הבטטה למקלות.\n3. מכניסים את הטופו והבטטה לאייר פרייר ב-200 מעלות ל-15 דקות עד פריכות.\n4. מגישים עם סלט קטן מתובל בשמן זית.',
         source_url: '',
-        image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600',
+        image_url: 'https://images.unsplash.com/photo-1584278860047-22db9ff82bed?w=800',
         prep_time_minutes: 20,
         calories: 410,
         protein_grams: 27,
@@ -1386,7 +1456,7 @@
         description: 'פילה סלמון עסיסי צלוי בנינג\'ה אייר פרייר עם זוקיני וגמבה, מוגש לצד קינואה או אורז.',
         instructions: '1. מתבלים את הסלמון והירקות.\n2. מניחים בנינג\'ה אייר פרייר ב-190 מעלות לכ-10 דקות.\n3. מכינים את האורז/קינואה בסיר אורז ומגישים הכל יחד.',
         source_url: '',
-        image_url: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=600',
+        image_url: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=800',
         prep_time_minutes: 15,
         calories: 470,
         protein_grams: 36,
@@ -1408,7 +1478,7 @@
         description: 'סלט טונה מהיר עם מיונז לייט, מיקס חסה ועגבניות שרי, לצד פריכיות כוסמת או תפוח אדמה באייר פרייר.',
         instructions: '1. מערבבים את הטונה עם המיונז.\n2. מסדרים את החסה והעגבניות בקערה, מניחים מעל את סלט הטונה.\n3. אוכלים עם פריכיות כוסמת או תפוח אדמה קטן קלוי באייר פרייר.',
         source_url: '',
-        image_url: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600',
+        image_url: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800',
         prep_time_minutes: 5,
         calories: 270,
         protein_grams: 28,
@@ -1430,7 +1500,7 @@
         description: 'גלידת חלבון קרמית ועשירה בנינג\'ה קרימי עם אבקת חלבון ופודינג ללא סוכר.',
         instructions: '1. מערבבים את כל החומרים ומקפיאים ל-24 שעות במכל הקרימי.\n2. מפעילים בתוכנית Lite Ice Cream.\n3. מוסיפים כף חלב ועושים Re-spin למרקם מושלם.',
         source_url: '',
-        image_url: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=600',
+        image_url: 'https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=800',
         prep_time_minutes: 5,
         calories: 160,
         protein_grams: 25,
@@ -1451,7 +1521,7 @@
         description: 'משקה ברד קפוא ומרענן בנינג\'ה סלאשי ללא סוכר לצד חטיף חלבון לשמירה על שובע.',
         instructions: '1. מוזגים את משקה האנרגיה ללא סוכר לתוך מכל הסלאשי.\n2. מפעילים בתוכנית Slush למשך 12 דקות.\n3. שותים לצד מנת חלבון.',
         source_url: '',
-        image_url: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600',
+        image_url: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=800',
         prep_time_minutes: 2,
         calories: 100,
         protein_grams: 12,
@@ -1471,7 +1541,25 @@
         description: 'פרוסת לחם מחמצת קלויה עם מריחת גבינה רזה, מקושקשת מ-2 ביצים, סלט קצוץ ושוקולד מריר לקינוח.',
         instructions: '1. קולים את לחם המחמצת ומורחים גבינה.\n2. טורפים 2 ביצים ומכינים מקושקשת עדינה במחבת עם תרסיס שמן.\n3. קוצצים עגבניות שרי, בצל ועירית.\n4. נהנים משתי קוביות שוקולד מריר ותה מרגיע לסיום היום.',
         source_url: '',
-        image_url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600',
+        image_url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=800',
+        prep_time_minutes: 10,
+        calories: 360,
+        protein_grams: 23,
+        difficulty: 'קל',
+        appliance: 'גז (מחבת) + טוסטר',
+        sugar_level: 'נמוך',
+        ingredients: JSON.stringify([
+          { name: 'לחם מחמצת', amount: '1', unit: 'פרוסה' },
+          { name: 'קוטג\', לבנה 5% או סימפוניה 5%', amount: '2', unit: 'כפות' },
+          { name: 'ביצים', amount: '2', unit: 'יחידות' },
+          { name: 'עגבניות שרי, בצל לבן, בצל ירוק ועירית', amount: '1', unit: 'מנה' },
+          { name: 'תרסיס שמן', amount: '1', unit: 'ריסוס' },
+          { name: 'שוקולד מריר', amount: '2', unit: 'קוביות' },
+          { name: 'תה', amount: '1', unit: 'כוס' }
+        ]),
+        tags: JSON.stringify(['עתיר חלבון', 'דל סוכר', 'צמחוני', 'ללא כוסברה', 'ללא סלטים'])
+      }
+    ];
         prep_time_minutes: 10,
         calories: 360,
         protein_grams: 23,
@@ -1573,10 +1661,21 @@
 
     function getStoredRecipes() {
       try {
-        const stored = localStorage.getItem('my_recipes_db_v7');
+        const stored = localStorage.getItem('my_recipes_db_v8') || localStorage.getItem('my_recipes_db_v7');
         if (stored) {
           const list = JSON.parse(stored);
-          if (Array.isArray(list) && list.length >= 8) return list;
+          if (Array.isArray(list) && list.length >= 8) {
+            let updated = false;
+            list.forEach(r => {
+              const smartImg = getSmartRecipeImage(r);
+              if (!r.image_url || r.image_url.includes('photo-1498837167922-ddd27525d352') || r.image_url.includes('photo-1546069901-ba9599a7e63c') || r.image_url.includes('photo-1562967914-608f82629710')) {
+                r.image_url = smartImg;
+                updated = true;
+              }
+            });
+            if (updated) saveStoredRecipes(list);
+            return list;
+          }
         }
       } catch (e) {}
       saveStoredRecipes(DEFAULT_RECIPES);
@@ -1585,13 +1684,14 @@
 
     function saveStoredRecipes(recipes) {
       try {
+        localStorage.setItem('my_recipes_db_v8', JSON.stringify(recipes));
         localStorage.setItem('my_recipes_db_v7', JSON.stringify(recipes));
         localStorage.setItem('my_recipes_db', JSON.stringify(recipes));
       } catch (e) {}
     }
 
     function resetRecipesToDefault() {
-      if (confirm('האם לשחזר את כל 8 המתכונים המקוריים של המאגר?')) {
+      if (confirm('האם לשחזר את כל 8 המתכונים המקוריים של המאגר עם התמונות החדשות?')) {
         saveStoredRecipes(DEFAULT_RECIPES);
         allRecipes = [...DEFAULT_RECIPES];
         applyGalleryFilters();
@@ -1630,9 +1730,11 @@
         return;
       }
 
-      carousel.innerHTML = airFryerRecipes.map(r => `
+      carousel.innerHTML = airFryerRecipes.map(r => {
+        const img = getSmartRecipeImage(r);
+        return `
         <div class="carousel-card">
-          <img class="carousel-img" src="${r.image_url || 'https://images.unsplash.com/photo-1562967914-608f82629710?w=600'}" alt="${r.title}" onerror="this.src='https://images.unsplash.com/photo-1562967914-608f82629710?w=600'">
+          <img class="carousel-img" src="${img}" alt="${r.title}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1584278860047-22db9ff82bed?w=800'">
           <div class="carousel-body">
             <div class="carousel-title">${r.title}</div>
             <div class="carousel-meta">
@@ -1645,7 +1747,8 @@
             </button>
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
 
     // =========================================================
@@ -1679,12 +1782,13 @@
             const prot = Number(recipe.protein_grams) || 0;
             totalCal += cal;
             totalProt += prot;
+            const img = getSmartRecipeImage(recipe);
 
             return `
               <div class="meal-slot filled">
                 <div class="slot-label">${meal}</div>
                 <div class="slot-content">
-                  <img class="slot-thumb" src="${recipe.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600'}" onerror="this.src='https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600'">
+                  <img class="slot-thumb" src="${img}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'">
                   <div class="slot-info">
                     <div class="slot-title" title="${recipe.title}">${recipe.title}</div>
                     <div class="slot-meta">🔥 ${cal} קל' | 💪 ${prot}g חלבון</div>
@@ -1749,16 +1853,19 @@
         return;
       }
 
-      container.innerHTML = recipes.map(r => `
+      container.innerHTML = recipes.map(r => {
+        const img = getSmartRecipeImage(r);
+        return `
         <div style="display: flex; gap: 12px; align-items: center; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; background: white;">
-          <img src="${r.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600'}" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border);" onerror="this.src='https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600'">
+          <img src="${img}" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border);" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'">
           <div style="flex-grow: 1; min-width: 0;">
             <div style="font-weight: 700; font-size: 0.92rem; color: var(--text);">${r.title}</div>
             <div style="font-size: 0.78rem; color: var(--text-muted);">⏱ ${r.prep_time_minutes} דק' | 🔥 ${r.calories} קל' | 💪 ${r.protein_grams}g חלבון</div>
           </div>
           <button class="btn btn-primary btn-sm" onclick="selectRecipeForActiveSlot('${r.id}')">בחר מתכון</button>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
 
     function selectRecipeForActiveSlot(recipeId) {
@@ -1945,10 +2052,10 @@
 
       gallery.innerHTML = recipes.map(r => {
         const tags = getRecipeTags(r);
-        const image = r.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600';
+        const image = getSmartRecipeImage(r);
         return `
           <div class="recipe-card" onclick="openRecipeDetails('${r.id}')" style="cursor: pointer;">
-            <img class="recipe-img" src="${image}" alt="${r.title}" onerror="this.src='https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600'">
+            <img class="recipe-img" src="${image}" alt="${r.title}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'">
             <div class="recipe-body">
               <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
                 <div class="recipe-title">${r.title}</div>
@@ -1987,7 +2094,10 @@
 
       document.getElementById('detailTitle').textContent = recipe.title;
       document.getElementById('detailSubtitle').textContent = (recipe.category ? recipe.category + ' • ' : '') + (recipe.appliance || '');
-      document.getElementById('detailImg').src = recipe.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600';
+      const detailImg = getSmartRecipeImage(recipe);
+      const imgEl = document.getElementById('detailImg');
+      imgEl.src = detailImg;
+      imgEl.onerror = function() { this.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'; };
       document.getElementById('detailDesc').textContent = recipe.description || 'ללא תיאור נוסף';
       document.getElementById('detailTime').innerHTML = `⏱ <b>${recipe.prep_time_minutes || 0}</b> דק'`;
       document.getElementById('detailCalories').innerHTML = `🔥 <b>${recipe.calories || 0}</b> קל'`;
@@ -2387,7 +2497,7 @@ ${itemNames.join(', ')}`);
         description: description || 'מתכון שיובא מהרשת',
         instructions: instructions || 'הוראות הכנה מיובאות מהאתר',
         ingredients,
-        image_url: imageUrl,
+        image_url: imageUrl || getSmartRecipeImage({ title, instructions, ingredients }),
         source_url: sourceUrl,
         prep_time_minutes: prepTime,
         calories,
@@ -2420,9 +2530,11 @@ ${itemNames.join(', ')}`);
       });
 
       const tags = Array.from(selectedFormTags);
+      const finalImageUrl = image_url || getSmartRecipeImage({ title, description, instructions, tags, ingredients });
       const newRecipe = {
         id: Date.now(),
-        title, description, instructions, source_url, image_url,
+        title, description, instructions, source_url, 
+        image_url: finalImageUrl,
         prep_time_minutes, calories, protein_grams, difficulty,
         ingredients: JSON.stringify(ingredients),
         tags: JSON.stringify(tags)
@@ -2569,7 +2681,7 @@ ${itemNames.join(', ')}`);
       grid.innerHTML = recipes.map(r => {
         const isFullMatch = r.match_percentage === 100;
         const cardClass = isFullMatch ? 'card-match-100' : 'card-match-missing';
-        const image = r.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600';
+        const image = getSmartRecipeImage(r);
         const tags = getRecipeTags(r);
 
         let missingHtml = '';
@@ -2604,7 +2716,7 @@ ${itemNames.join(', ')}`);
 
         return `
           <div class="recipe-card ${cardClass}">
-            <img class="recipe-img" src="${image}" alt="${r.title}" onerror="this.src='https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600'">
+            <img class="recipe-img" src="${image}" alt="${r.title}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'">
             <div class="recipe-body">
               <div class="recipe-title">${r.title}</div>
               <div class="recipe-desc">${r.description || ''}</div>
@@ -3065,12 +3177,22 @@ ${itemNames.join(', ')}`);
 
       const commentary = `בניתי עבורך את המתכון המדויק ל-${coreTitle}! הוא עתיר חלבון, מותאם לפרופיל שלך (דל סוכר, צמחוני/פסקיטריאני, ללא חריף, ללא כוסברה) ומוכן להכנה או שיבוץ:`;
 
+      const smartImg = getSmartRecipeImage({
+        title: coreTitle,
+        category,
+        appliance,
+        tags,
+        ingredients,
+        instructions
+      });
+
       return {
         commentary,
         recipe: {
           title: coreTitle,
           category,
           appliance,
+          image_url: smartImg,
           prep_time_minutes: prepTime,
           calories,
           protein_grams: protein,
@@ -3086,13 +3208,14 @@ ${itemNames.join(', ')}`);
       const r = aiGeneratedRecipes[rId];
       if (!r) return;
 
+      const smartImg = r.image_url || getSmartRecipeImage(r);
       const newRecipe = {
         id: Date.now(),
         title: r.title,
         description: `${r.category || 'מנה אישית'} • ${r.appliance || ''} (נוצר ע"י שף AI)`,
         instructions: r.instructions || '',
         source_url: '',
-        image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600',
+        image_url: smartImg,
         prep_time_minutes: r.prep_time_minutes || 15,
         calories: r.calories || 350,
         protein_grams: r.protein_grams || 25,
@@ -3121,6 +3244,7 @@ ${itemNames.join(', ')}`);
       const chosenMeal = prompt('בחר סוג ארוחה (בוקר, ביניים בוקר, צהריים, ארוחת ערב):', 'צהריים');
       if (!chosenMeal || !MEALS.includes(chosenMeal.trim())) return;
 
+      const smartImg = r.image_url || getSmartRecipeImage(r);
       const key = `${chosenDay.trim()}_${chosenMeal.trim()}`;
       weeklyPlan[key] = {
         id: 'ai_' + Date.now(),
@@ -3128,7 +3252,7 @@ ${itemNames.join(', ')}`);
         description: r.appliance || '',
         calories: r.calories || 350,
         protein_grams: r.protein_grams || 25,
-        image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600'
+        image_url: smartImg
       };
       saveStoredPlan(weeklyPlan);
       renderWeeklyPlanner();
