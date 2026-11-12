@@ -1,0 +1,21 @@
+{
+  "name": "nutrition-recipe-planner",
+  "version": "1.0.0",
+  "description": "Smart nutrition management, personal recipe database, and weekly meal prep planner with Listi & The Healing Cabin integrations",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node test/test_api.js",
+    "seed": "node src/seed.js"
+  },
+  "keywords": [
+    "nutrition",
+    "recipes",
+    "meal-prep",
+    "listi",
+    "the-healing-cabin"
+  ],
+  "author": "",
+  "license": "MIT"
+}

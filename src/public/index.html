@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>מרכז תזונה חכם, מתכונים ותפריט שבועי</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #16a34a;
+      --surface: #ffffff;
+      --bg: #f8fafc;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --tag-bg: #e0f2fe;
+      --tag-text: #0369a1;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 24px; line-height: 1.5; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    h1 { font-size: 1.75rem; font-weight: 700; color: #1e293b; }
+    .badge { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+    .tab-btn { padding: 8px 16px; border: none; background: transparent; border-radius: 8px; font-weight: 600; cursor: pointer; color: var(--text-muted); }
+    .tab-btn.active { background: var(--primary); color: white; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .tag-chip { padding: 6px 12px; border-radius: 20px; background: var(--tag-bg); color: var(--tag-text); font-size: 0.85rem; font-weight: 500; cursor: pointer; border: 1px solid transparent; user-select: none; }
+    .tag-chip.active { background: var(--primary); color: white; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+    .recipe-card { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: white; display: flex; flex-direction: column; }
+    .recipe-img { width: 100%; height: 180px; object-fit: cover; background: #cbd5e1; }
+    .recipe-body { padding: 16px; flex-grow: 1; display: flex; flex-direction: column; }
+    .recipe-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; }
+    .recipe-desc { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px; flex-grow: 1; }
+    .recipe-meta { display: flex; gap: 12px; font-size: 0.85rem; color: #475569; margin-bottom: 12px; background: #f1f5f9; padding: 6px 10px; border-radius: 6px; }
+    .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-success { background: var(--success); color: white; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { text-align: right; padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    th { color: var(--text-muted); font-weight: 600; }
+    .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+    .status-in_pantry { background: #dcfce7; color: #166534; }
+    .status-missing { background: #fee2e2; color: #991b1b; }
+    .status-grocery { background: #fef3c7; color: #92400e; }
+    .banner { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; }
+    .banner-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    pre { background: #0f172a; color: #38bdf8; padding: 12px; border-radius: 8px; font-size: 0.85rem; overflow-x: auto; direction: ltr; text-align: left; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>מרכז תזונה חכם &amp; מתכונים</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">סנכרון מלא מול Listi ו-The Healing Cabin</p>
+      </div>
+      <div>
+        <span class="badge">מחובר ומסונכרן</span>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('recipes')">מאגר מתכונים</button>
+      <button class="tab-btn" onclick="showTab('planner')">תפריט שבועי (Meal Prep)</button>
+      <button class="tab-btn" onclick="showTab('pantry')">מזווה וקניות (Listi)</button>
+      <button class="tab-btn" onclick="showTab('integrations')">ממשקי API וסנכרון</button>
+    </div>
+
+    <!-- Recipes Tab -->
+    <div id="tab-recipes" class="tab-content">
+      <div class="card">
+        <h3 style="margin-bottom: 10px;">סינון מתקדם לפי תגיות</h3>
+        <div id="tagCloud" class="tag-cloud"></div>
+      </div>
+      <div id="recipeList" class="grid"></div>
+    </div>
+
+    <!-- Planner Tab -->
+    <div id="tab-planner" class="tab-content" style="display: none;">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div>
+            <h3>תכנון תפריט שבועי</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">שיבוץ מנות לפי ימי השבוע וסוגי ארוחות</p>
+          </div>
+          <button class="btn btn-success" onclick="approveAndPush()">אישור תפריט ודחיפה ל-The Healing Cabin</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>יום</th>
+              <th>סוג ארוחה</th>
+              <th>מתכון משובץ</th>
+              <th>קלוריות</th>
+              <th>חלבון</th>
+              <th>הערות</th>
+            </tr>
+          </thead>
+          <tbody id="planTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pantry Tab -->
+    <div id="tab-pantry" class="tab-content" style="display: none;">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div>
+            <h3>מזווה ורשימת קניות (Listi Sync)</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">מצרכים מסונכרנים ישירות מאפליקציית Listi</p>
+          </div>
+          <button class="btn btn-outline" onclick="simulateListiSync()">סימולציית ייבוא מ-Listi</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>מצרך</th>
+              <th>כמות</th>
+              <th>סטטוס</th>
+              <th>עודכן לאחרונה</th>
+            </tr>
+          </thead>
+          <tbody id="pantryTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Integrations Tab -->
+    <div id="tab-integrations" class="tab-content" style="display: none;">
+      <div class="card">
+        <h3>ממשקי אינטגרציה פעילים</h3>
+        <div style="margin-top: 14px; display: grid; gap: 16px;">
+          <div class="banner banner-info">
+            <strong>1. Webhook ייבוא מ-Listi:</strong><br>
+            <code>POST /api/integrations/listi</code> — מקבל מערך של <code>{ itemName, quantity, status }</code> ומעדכן את המזווה.
+          </div>
+          <div class="banner banner-info">
+            <strong>2. דחיפה מאובטחת ל-The Healing Cabin:</strong><br>
+            <code>POST /api/weekly-plan/approve-and-push</code> — מופעל בעת אישור התפריט, ושולח <strong>אך ורק</strong>: שם מנה, תיאור, קלוריות, וכמות חלבון (מסנן אוטומטית מצרכים והוראות הכנה).
+          </div>
+        </div>
+        <h4 style="margin: 16px 0 8px;">לוג Payload אחרון שנשלח ל-The Healing Cabin:</h4>
+        <pre id="payloadPreview">// טרם נשלח נתון. לחץ על 'אישור תפריט ודחיפה' בלשונית התפריט השבועי.</pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeTag = null;
+
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + tabName).style.display = 'block';
+      event.target.classList.add('active');
+    }
+
+    async function loadTags() {
+      const res = await fetch('/api/tags');
+      const tags = await res.json();
+      const cloud = document.getElementById('tagCloud');
+      cloud.innerHTML = `<span class="tag-chip ${activeTag === null ? 'active' : ''}" onclick="filterTag(null)">הכל</span>` +
+        tags.map(t => `<span class="tag-chip ${activeTag === t ? 'active' : ''}" onclick="filterTag('${t}')">${t}</span>`).join('');
+    }
+
+    function filterTag(tag) {
+      activeTag = tag;
+      loadTags();
+      loadRecipes();
+    }
+
+    async function loadRecipes() {
+      const url = activeTag ? `/api/recipes?tag=${encodeURIComponent(activeTag)}` : '/api/recipes';
+      const res = await fetch(url);
+      const recipes = await res.json();
+      const list = document.getElementById('recipeList');
+      list.innerHTML = recipes.map(r => `
+        <div class="recipe-card">
+          <img class="recipe-img" src="${r.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600'}" alt="${r.title}">
+          <div class="recipe-body">
+            <div class="recipe-title">${r.title}</div>
+            <div class="recipe-desc">${r.description || ''}</div>
+            <div class="recipe-meta">
+              <span>⏱ ${r.prep_time_minutes} דק'</span>
+              <span>🔥 ${r.calories} קל'</span>
+              <span>💪 ${r.protein_grams}g חלבון</span>
+              <span>📊 ${r.difficulty}</span>
+            </div>
+            <div class="tag-cloud" style="margin-bottom: 0;">
+              ${(JSON.parse(r.tags || '[]')).map(t => `<span class="tag-chip" style="font-size: 0.75rem;">${t}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadPantry() {
+      const res = await fetch('/api/pantry');
+      const items = await res.json();
+      const tbody = document.getElementById('pantryTableBody');
+      tbody.innerHTML = items.map(i => {
+        let statusClass = 'status-in_pantry';
+        if (i.status === 'חסר') statusClass = 'status-missing';
+        if (i.status === 'ברשימת קניות') statusClass = 'status-grocery';
+        return `
+          <tr>
+            <td><strong>${i.item_name}</strong></td>
+            <td>${i.quantity}</td>
+            <td><span class="status-badge ${statusClass}">${i.status}</span></td>
+            <td>${new Date(i.updated_at).toLocaleString('he-IL')}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function loadWeeklyPlan() {
+      const res = await fetch('/api/weekly-plan');
+      const plan = await res.json();
+      const tbody = document.getElementById('planTableBody');
+      tbody.innerHTML = plan.map(p => `
+        <tr>
+          <td><strong>יום ${p.day_of_week}</strong></td>
+          <td>${p.meal_type}</td>
+          <td>${p.recipe_title || 'לא נבחר'}</td>
+          <td>${p.calories || 0}</td>
+          <td>${p.protein_grams || 0}g</td>
+          <td>${p.notes || '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function approveAndPush() {
+      const res = await fetch('/api/weekly-plan/approve-and-push', { method: 'POST' });
+      const result = await res.json();
+      document.getElementById('payloadPreview').textContent = JSON.stringify(result, null, 2);
+      alert('התפריט אושר והנתונים נשלחו בהצלחה ל-The Healing Cabin!');
+    }
+
+    async function simulateListiSync() {
+      const sampleListiPayload = [
+        { itemName: 'טופו במרקם קשה', quantity: '300 גרם', status: 'במזווה' },
+        { itemName: 'אוכמניות קפואות', quantity: '1 שקית', status: 'ברשימת קניות' },
+        { itemName: 'אבקת חלבון שוקולד', quantity: '0', status: 'חסר' }
+      ];
+      await fetch('/api/integrations/listi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sampleListiPayload)
+      });
+      loadPantry();
+      alert('נתוני Listi יובאו בהצלחה!');
+    }
+
+    // Init
+    loadTags();
+    loadRecipes();
+    loadPantry();
+    loadWeeklyPlan();
+  </script>
+</body>
+</html>
