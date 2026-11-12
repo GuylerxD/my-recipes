@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>מרכז תזונה חכם, מתכונים ותפריט שבועי</title>
+  <title>מרכז תזונה חכם, מאגר מתכונים ותפריט שבועי</title>
   <style>
     :root {
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
       --success: #16a34a;
+      --danger: #ef4444;
       --surface: #ffffff;
       --bg: #f8fafc;
       --text: #0f172a;
@@ -16,33 +17,79 @@
       --border: #e2e8f0;
       --tag-bg: #e0f2fe;
       --tag-text: #0369a1;
+      --tag-active-bg: #2563eb;
+      --tag-active-text: #ffffff;
       --radius: 12px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
     body { background-color: var(--bg); color: var(--text); padding: 24px; line-height: 1.5; }
     .container { max-width: 1200px; margin: 0 auto; }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     h1 { font-size: 1.75rem; font-weight: 700; color: #1e293b; }
     .badge { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+    
     .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
-    .tab-btn { padding: 8px 16px; border: none; background: transparent; border-radius: 8px; font-weight: 600; cursor: pointer; color: var(--text-muted); }
+    .tab-btn { padding: 8px 16px; border: none; background: transparent; border-radius: 8px; font-weight: 600; cursor: pointer; color: var(--text-muted); transition: 0.2s; }
     .tab-btn.active { background: var(--primary); color: white; }
+    
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-    .tag-chip { padding: 6px 12px; border-radius: 20px; background: var(--tag-bg); color: var(--tag-text); font-size: 0.85rem; font-weight: 500; cursor: pointer; border: 1px solid transparent; user-select: none; }
-    .tag-chip.active { background: var(--primary); color: white; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
-    .recipe-card { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: white; display: flex; flex-direction: column; }
+    
+    /* Search & Filter Bar */
+    .filter-bar { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+    .filter-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .search-input { flex: 1; min-width: 250px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; }
+    .tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag-chip { padding: 6px 14px; border-radius: 20px; background: var(--tag-bg); color: var(--tag-text); font-size: 0.85rem; font-weight: 500; cursor: pointer; border: 1px solid transparent; user-select: none; transition: all 0.15s ease; }
+    .tag-chip:hover { border-color: var(--primary); }
+    .tag-chip.active { background: var(--tag-active-bg); color: var(--tag-active-text); }
+    .tag-chip.form-chip.selected { background: var(--success); color: white; }
+
+    /* Recipe Grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
+    .recipe-card { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: white; display: flex; flex-direction: column; transition: transform 0.15s, box-shadow 0.15s; }
+    .recipe-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
     .recipe-img { width: 100%; height: 180px; object-fit: cover; background: #cbd5e1; }
     .recipe-body { padding: 16px; flex-grow: 1; display: flex; flex-direction: column; }
     .recipe-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; }
     .recipe-desc { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px; flex-grow: 1; }
-    .recipe-meta { display: flex; gap: 12px; font-size: 0.85rem; color: #475569; margin-bottom: 12px; background: #f1f5f9; padding: 6px 10px; border-radius: 6px; }
-    .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+    .recipe-meta { display: flex; justify-content: space-between; font-size: 0.85rem; color: #475569; margin-bottom: 12px; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; }
+    .recipe-meta span { display: inline-flex; align-items: center; gap: 4px; }
+
+    /* Buttons */
+    .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; font-size: 0.9rem; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-primary:hover { background: var(--primary-hover); }
     .btn-success { background: var(--success); color: white; }
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: #f1f5f9; }
+    .btn-danger { background: #fee2e2; color: #991b1b; padding: 4px 8px; font-size: 0.8rem; }
+    .btn-sm { padding: 4px 10px; font-size: 0.85rem; }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 16px; }
+    .modal-overlay.open { display: flex; }
+    .modal-content { background: white; border-radius: var(--radius); width: 100%; max-width: 720px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+    .close-btn { background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); }
+
+    /* Forms */
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.85rem; color: #334155; }
+    .form-control { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; }
+    textarea.form-control { min-height: 80px; resize: vertical; }
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+
+    /* Import Box */
+    .import-box { background: #eff6ff; border: 1px dashed #3b82f6; border-radius: 8px; padding: 14px; margin-bottom: 18px; }
+    .import-row { display: flex; gap: 8px; margin-top: 6px; }
+
+    /* Dynamic Ingredients */
+    .ingredient-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .ingredient-row input:nth-child(1) { flex: 2; }
+    .ingredient-row input:nth-child(2) { flex: 1; }
+    .ingredient-row input:nth-child(3) { flex: 1; }
+
+    /* Table */
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { text-align: right; padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
     th { color: var(--text-muted); font-weight: 600; }
@@ -50,8 +97,6 @@
     .status-in_pantry { background: #dcfce7; color: #166534; }
     .status-missing { background: #fee2e2; color: #991b1b; }
     .status-grocery { background: #fef3c7; color: #92400e; }
-    .banner { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; }
-    .banner-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
     pre { background: #0f172a; color: #38bdf8; padding: 12px; border-radius: 8px; font-size: 0.85rem; overflow-x: auto; direction: ltr; text-align: left; }
   </style>
 </head>
@@ -60,10 +105,10 @@
     <header>
       <div>
         <h1>מרכז תזונה חכם &amp; מתכונים</h1>
-        <p style="color: var(--text-muted); font-size: 0.9rem;">סנכרון מלא מול Listi ו-The Healing Cabin</p>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">ניהול מאגר מתכונים אישי, תפריט שבועי וסנכרון Listi / The Healing Cabin</p>
       </div>
       <div>
-        <span class="badge">מחובר ומסונכרן</span>
+        <span class="badge">ענן מסונכרן</span>
       </div>
     </header>
 
@@ -71,16 +116,31 @@
       <button class="tab-btn active" onclick="showTab('recipes')">מאגר מתכונים</button>
       <button class="tab-btn" onclick="showTab('planner')">תפריט שבועי (Meal Prep)</button>
       <button class="tab-btn" onclick="showTab('pantry')">מזווה וקניות (Listi)</button>
-      <button class="tab-btn" onclick="showTab('integrations')">ממשקי API וסנכרון</button>
+      <button class="tab-btn" onclick="showTab('integrations')">ממשקי API</button>
     </div>
 
-    <!-- Recipes Tab -->
+    <!-- Recipes Tab (Gallery & Filter) -->
     <div id="tab-recipes" class="tab-content">
       <div class="card">
-        <h3 style="margin-bottom: 10px;">סינון מתקדם לפי תגיות</h3>
-        <div id="tagCloud" class="tag-cloud"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <h2 style="font-size: 1.25rem;">ספריית המתכונים</h2>
+          <button class="btn btn-primary" onclick="openAddRecipeModal()">+ הוסף מתכון חדש</button>
+        </div>
+
+        <div class="filter-bar">
+          <div class="filter-row">
+            <input type="text" id="recipeSearchInput" class="search-input" placeholder="חיפוש חופשי לפי שם מנה, מצרכים או תיאור..." oninput="handleSearchInput()">
+            <button class="btn btn-outline btn-sm" onclick="clearFilters()">נקה הכל</button>
+          </div>
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">סינון לפי תגיות (התאמה מלאה - AND):</div>
+            <div id="galleryTagCloud" class="tag-cloud"></div>
+          </div>
+        </div>
       </div>
-      <div id="recipeList" class="grid"></div>
+
+      <div id="recipeGallery" class="grid"></div>
+      <div id="noRecipesMsg" style="display: none; text-align: center; padding: 40px; color: var(--text-muted);">לא נמצאו מתכונים התואמים את החיפוש והתגיות שנבחרו.</div>
     </div>
 
     <!-- Planner Tab -->
@@ -137,14 +197,15 @@
     <div id="tab-integrations" class="tab-content" style="display: none;">
       <div class="card">
         <h3>ממשקי אינטגרציה פעילים</h3>
-        <div style="margin-top: 14px; display: grid; gap: 16px;">
-          <div class="banner banner-info">
-            <strong>1. Webhook ייבוא מ-Listi:</strong><br>
-            <code>POST /api/integrations/listi</code> — מקבל מערך של <code>{ itemName, quantity, status }</code> ומעדכן את המזווה.
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">תקשורת מאובטחת ומסוננת עם אפליקציות חיצוניות</p>
+        <div style="margin-top: 14px; display: grid; gap: 14px;">
+          <div style="background: #eff6ff; padding: 12px; border-radius: 8px; border: 1px solid #bfdbfe;">
+            <strong>1. Webhook ייבוא מ-Listi:</strong> <code>POST /api/integrations/listi</code><br>
+            קולט עדכוני מלאי מצרכים ישירות מ-Listi ומעדכן את המזווה ורשימת הקניות.
           </div>
-          <div class="banner banner-info">
-            <strong>2. דחיפה מאובטחת ל-The Healing Cabin:</strong><br>
-            <code>POST /api/weekly-plan/approve-and-push</code> — מופעל בעת אישור התפריט, ושולח <strong>אך ורק</strong>: שם מנה, תיאור, קלוריות, וכמות חלבון (מסנן אוטומטית מצרכים והוראות הכנה).
+          <div style="background: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0;">
+            <strong>2. דחיפה ל-The Healing Cabin:</strong> <code>POST /api/weekly-plan/approve-and-push</code><br>
+            מופעל בעת אישור התפריט השבועי ושולח אך ורק: שם מנה, תיאור, קלוריות, וכמות חלבון.
           </div>
         </div>
         <h4 style="margin: 16px 0 8px;">לוג Payload אחרון שנשלח ל-The Healing Cabin:</h4>
@@ -153,8 +214,116 @@
     </div>
   </div>
 
+  <!-- ADD RECIPE MODAL -->
+  <div id="addRecipeModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 style="font-size: 1.25rem;">הוספת מתכון חדש</h2>
+        <button class="close-btn" onclick="closeAddRecipeModal()">&times;</button>
+      </div>
+
+      <!-- Feature: Import from URL -->
+      <div class="import-box">
+        <label class="form-label" style="color: #1e40af;">🌐 ייבוא מקישור (Import from URL)</label>
+        <div class="import-row">
+          <input type="url" id="importUrlInput" class="form-control" placeholder="הדבק כאן קישור למתכון (למשל: Mako, עוגיונט, Recipe Schema...)" style="background: white;">
+          <button type="button" class="btn btn-primary" id="btnScrape" onclick="scrapeFromUrl()">ייבא</button>
+        </div>
+        <div id="importStatus" style="font-size: 0.8rem; margin-top: 4px; color: var(--text-muted);"></div>
+      </div>
+
+      <form id="addRecipeForm" onsubmit="handleSaveRecipe(event)">
+        <!-- Title & Description -->
+        <div class="form-group">
+          <label class="form-label" for="formTitle">כותרת המנה *</label>
+          <input type="text" id="formTitle" class="form-control" required placeholder="למשל: סלמון צלוי בחרדל ועשבי תיבול">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="formDescription">תיאור קצר</label>
+          <input type="text" id="formDescription" class="form-control" placeholder="תיאור תמציתי של המנה והערכים שלה">
+        </div>
+
+        <!-- Dynamic Ingredients -->
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" style="margin-bottom: 0;">מצרכים נדרשים</label>
+            <button type="button" class="btn btn-outline btn-sm" onclick="addIngredientRow()">+ הוסף מצרך</button>
+          </div>
+          <div id="ingredientsContainer"></div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="form-group">
+          <label class="form-label" for="formInstructions">הוראות הכנה</label>
+          <textarea id="formInstructions" class="form-control" rows="3" placeholder="שלב 1: מחממים תנור ל-200 מעלות..."></textarea>
+        </div>
+
+        <!-- Numbers row: prep time, calories, protein, difficulty -->
+        <div class="form-row form-group">
+          <div>
+            <label class="form-label" for="formPrepTime">זמן הכנה (דקות)</label>
+            <input type="number" id="formPrepTime" class="form-control" min="0" value="15">
+          </div>
+          <div>
+            <label class="form-label" for="formCalories">קלוריות</label>
+            <input type="number" id="formCalories" class="form-control" min="0" value="250">
+          </div>
+          <div>
+            <label class="form-label" for="formProtein">גרם חלבון</label>
+            <input type="number" step="0.1" id="formProtein" class="form-control" min="0" value="25">
+          </div>
+          <div>
+            <label class="form-label" for="formDifficulty">רמת קושי</label>
+            <select id="formDifficulty" class="form-control">
+              <option value="קל">קל</option>
+              <option value="בינוני" selected>בינוני</option>
+              <option value="קשה">קשה</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Image URL & Source URL -->
+        <div class="form-row form-group">
+          <div>
+            <label class="form-label" for="formImageUrl">קישור לתמונה (URL)</label>
+            <input type="url" id="formImageUrl" class="form-control" placeholder="https://images.unsplash.com/...">
+          </div>
+          <div>
+            <label class="form-label" for="formSourceUrl">קישור למקור</label>
+            <input type="url" id="formSourceUrl" class="form-control" placeholder="https://...">
+          </div>
+        </div>
+
+        <!-- Multi-select Tags / Chips -->
+        <div class="form-group">
+          <label class="form-label">תגיות לסינון מהיר (Multi-select)</label>
+          <div id="formTagChips" class="tag-cloud"></div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px;">
+          <button type="button" class="btn btn-outline" onclick="closeAddRecipeModal()">ביטול</button>
+          <button type="submit" class="btn btn-success" id="btnSubmitRecipe">שמור מתכון</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
-    let activeTag = null;
+    // State
+    const PREDEFINED_TAGS = [
+      'עתיר חלבון',
+      'דל סוכר',
+      'מתאים לנינג\'ה קרימי',
+      'מתאים לנינג\'ה סלאשי',
+      'צמחוני',
+      'מנות דגים',
+      'ללא כוסברה',
+      'ללא סלטים'
+    ];
+    let selectedGalleryTags = new Set();
+    let selectedFormTags = new Set();
+    let allRecipes = [];
 
     function showTab(tabName) {
       document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
@@ -163,45 +332,274 @@
       event.target.classList.add('active');
     }
 
-    async function loadTags() {
-      const res = await fetch('/api/tags');
-      const tags = await res.json();
-      const cloud = document.getElementById('tagCloud');
-      cloud.innerHTML = `<span class="tag-chip ${activeTag === null ? 'active' : ''}" onclick="filterTag(null)">הכל</span>` +
-        tags.map(t => `<span class="tag-chip ${activeTag === t ? 'active' : ''}" onclick="filterTag('${t}')">${t}</span>`).join('');
+    // Modal control
+    function openAddRecipeModal() {
+      document.getElementById('addRecipeModal').classList.add('open');
+      selectedFormTags.clear();
+      renderFormTags();
+      // Ensure at least one ingredient row
+      const container = document.getElementById('ingredientsContainer');
+      if (container.children.length === 0) {
+        addIngredientRow();
+      }
     }
 
-    function filterTag(tag) {
-      activeTag = tag;
-      loadTags();
-      loadRecipes();
+    function closeAddRecipeModal() {
+      document.getElementById('addRecipeModal').classList.remove('open');
+      document.getElementById('addRecipeForm').reset();
+      document.getElementById('ingredientsContainer').innerHTML = '';
+      document.getElementById('importStatus').textContent = '';
+      selectedFormTags.clear();
     }
 
+    // Ingredients dynamic rows
+    function addIngredientRow(name = '', amount = '', unit = '') {
+      const container = document.getElementById('ingredientsContainer');
+      const row = document.createElement('div');
+      row.className = 'ingredient-row';
+      row.innerHTML = `
+        <input type="text" class="form-control ing-name" placeholder="שם מצרך (למשל: סלמון)" value="${name}">
+        <input type="text" class="form-control ing-amount" placeholder="כמות (למשל: 200)" value="${amount}">
+        <input type="text" class="form-control ing-unit" placeholder="יחידה (למשל: גרם)" value="${unit}">
+        <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">&times;</button>
+      `;
+      container.appendChild(row);
+    }
+
+    // Render Tag chips in Form
+    function renderFormTags() {
+      const container = document.getElementById('formTagChips');
+      container.innerHTML = PREDEFINED_TAGS.map(tag => {
+        const isSelected = selectedFormTags.has(tag);
+        return `<span class="tag-chip form-chip ${isSelected ? 'selected' : ''}" onclick="toggleFormTag('${tag}')">${tag}</span>`;
+      }).join('');
+    }
+
+    function toggleFormTag(tag) {
+      if (selectedFormTags.has(tag)) selectedFormTags.delete(tag);
+      else selectedFormTags.add(tag);
+      renderFormTags();
+    }
+
+    // Render Gallery Filter Tag chips
+    function renderGalleryTags() {
+      const cloud = document.getElementById('galleryTagCloud');
+      cloud.innerHTML = PREDEFINED_TAGS.map(t => {
+        const isSelected = selectedGalleryTags.has(t);
+        return `<span class="tag-chip ${isSelected ? 'active' : ''}" onclick="toggleGalleryTag('${t}')">${t}</span>`;
+      }).join('');
+    }
+
+    function toggleGalleryTag(tag) {
+      if (selectedGalleryTags.has(tag)) selectedGalleryTags.delete(tag);
+      else selectedGalleryTags.add(tag);
+      renderGalleryTags();
+      applyGalleryFilters();
+    }
+
+    function clearFilters() {
+      selectedGalleryTags.clear();
+      document.getElementById('recipeSearchInput').value = '';
+      renderGalleryTags();
+      applyGalleryFilters();
+    }
+
+    function handleSearchInput() {
+      applyGalleryFilters();
+    }
+
+    // Load & Render Recipes
     async function loadRecipes() {
-      const url = activeTag ? `/api/recipes?tag=${encodeURIComponent(activeTag)}` : '/api/recipes';
-      const res = await fetch(url);
-      const recipes = await res.json();
-      const list = document.getElementById('recipeList');
-      list.innerHTML = recipes.map(r => `
-        <div class="recipe-card">
-          <img class="recipe-img" src="${r.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600'}" alt="${r.title}">
-          <div class="recipe-body">
-            <div class="recipe-title">${r.title}</div>
-            <div class="recipe-desc">${r.description || ''}</div>
-            <div class="recipe-meta">
-              <span>⏱ ${r.prep_time_minutes} דק'</span>
-              <span>🔥 ${r.calories} קל'</span>
-              <span>💪 ${r.protein_grams}g חלבון</span>
-              <span>📊 ${r.difficulty}</span>
-            </div>
-            <div class="tag-cloud" style="margin-bottom: 0;">
-              ${(JSON.parse(r.tags || '[]')).map(t => `<span class="tag-chip" style="font-size: 0.75rem;">${t}</span>`).join('')}
+      try {
+        const res = await fetch('/api/recipes');
+        allRecipes = await res.json();
+        applyGalleryFilters();
+      } catch (err) {
+        console.error('Failed to load recipes', err);
+      }
+    }
+
+    function applyGalleryFilters() {
+      const searchTerm = (document.getElementById('recipeSearchInput').value || '').trim().toLowerCase();
+      
+      const filtered = allRecipes.filter(r => {
+        // Multi-tag matching (AND logic)
+        const tags = JSON.parse(r.tags || '[]');
+        for (const reqTag of selectedGalleryTags) {
+          // Normalize matching tag: "מנות דגים" matches "מנות דגים (ללא בקר ועוף)"
+          const hasTag = tags.some(t => t === reqTag || t.startsWith(reqTag));
+          if (!hasTag) return false;
+        }
+
+        // Search text matching
+        if (searchTerm) {
+          const title = (r.title || '').toLowerCase();
+          const desc = (r.description || '').toLowerCase();
+          const ing = (r.ingredients || '').toLowerCase();
+          if (!title.includes(searchTerm) && !desc.includes(searchTerm) && !ing.includes(searchTerm)) {
+            return false;
+          }
+        }
+        return true;
+      });
+
+      renderRecipeCards(filtered);
+    }
+
+    function renderRecipeCards(recipes) {
+      const gallery = document.getElementById('recipeGallery');
+      const noMsg = document.getElementById('noRecipesMsg');
+
+      if (recipes.length === 0) {
+        gallery.innerHTML = '';
+        noMsg.style.display = 'block';
+        return;
+      }
+      noMsg.style.display = 'none';
+
+      gallery.innerHTML = recipes.map(r => {
+        const tags = JSON.parse(r.tags || '[]');
+        const image = r.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600';
+        return `
+          <div class="recipe-card">
+            <img class="recipe-img" src="${image}" alt="${r.title}" onerror="this.src='https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600'">
+            <div class="recipe-body">
+              <div class="recipe-title">${r.title}</div>
+              <div class="recipe-desc">${r.description || ''}</div>
+              <div class="recipe-meta">
+                <span>⏱ ${r.prep_time_minutes || 0} דק'</span>
+                <span>🔥 ${r.calories || 0} קל'</span>
+                <span>💪 ${r.protein_grams || 0}g חלבון</span>
+                <span>📊 ${r.difficulty || 'בינוני'}</span>
+              </div>
+              <div class="tag-cloud" style="margin-top: auto;">
+                ${tags.map(t => `<span class="tag-chip" style="font-size: 0.75rem; padding: 3px 8px;">${t}</span>`).join('')}
+              </div>
             </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
+    // Feature: Import from URL (Scraping)
+    async function scrapeFromUrl() {
+      const urlInput = document.getElementById('importUrlInput');
+      const status = document.getElementById('importStatus');
+      const btn = document.getElementById('btnScrape');
+      const url = urlInput.value.trim();
+
+      if (!url) {
+        status.textContent = 'אנא הזן כתובת אינטרנט תקינה.';
+        status.style.color = 'var(--danger)';
+        return;
+      }
+
+      try {
+        btn.disabled = true;
+        btn.textContent = 'שואב...';
+        status.textContent = 'מנתח נתוני מתכון מהאתר...';
+        status.style.color = 'var(--primary)';
+
+        const res = await fetch('/api/recipes/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.details || 'שגיאה בשאיבת הנתונים');
+        }
+
+        const data = await res.json();
+        
+        // Auto-fill fields
+        if (data.title) document.getElementById('formTitle').value = data.title;
+        if (data.description) document.getElementById('formDescription').value = data.description;
+        if (data.instructions) document.getElementById('formInstructions').value = data.instructions;
+        if (data.imageUrl) document.getElementById('formImageUrl').value = data.imageUrl;
+        if (data.sourceUrl) document.getElementById('formSourceUrl').value = data.sourceUrl;
+        if (data.prepTimeMinutes) document.getElementById('formPrepTime').value = data.prepTimeMinutes;
+        if (data.calories) document.getElementById('formCalories').value = data.calories;
+        if (data.proteinGrams) document.getElementById('formProtein').value = data.proteinGrams;
+
+        // Auto-fill ingredients
+        const container = document.getElementById('ingredientsContainer');
+        container.innerHTML = '';
+        if (Array.isArray(data.ingredients) && data.ingredients.length > 0) {
+          data.ingredients.forEach(ing => addIngredientRow(ing.name || ing, ing.amount || '', ing.unit || ''));
+        } else {
+          addIngredientRow();
+        }
+
+        status.textContent = '✓ הנתונים נשאבו ומולאו בטופס בהצלחה!';
+        status.style.color = 'var(--success)';
+      } catch (err) {
+        status.textContent = 'שגיאה בייבוא: ' + err.message;
+        status.style.color = 'var(--danger)';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'ייבא';
+      }
+    }
+
+    // Action: Save Recipe
+    async function handleSaveRecipe(e) {
+      e.preventDefault();
+      const submitBtn = document.getElementById('btnSubmitRecipe');
+
+      const title = document.getElementById('formTitle').value.trim();
+      const description = document.getElementById('formDescription').value.trim();
+      const instructions = document.getElementById('formInstructions').value.trim();
+      const prep_time_minutes = parseInt(document.getElementById('formPrepTime').value, 10) || 0;
+      const calories = parseInt(document.getElementById('formCalories').value, 10) || 0;
+      const protein_grams = parseFloat(document.getElementById('formProtein').value) || 0;
+      const difficulty = document.getElementById('formDifficulty').value;
+      const image_url = document.getElementById('formImageUrl').value.trim();
+      const source_url = document.getElementById('formSourceUrl').value.trim();
+
+      // Collect ingredients
+      const ingRows = document.querySelectorAll('#ingredientsContainer .ingredient-row');
+      const ingredients = [];
+      ingRows.forEach(row => {
+        const name = row.querySelector('.ing-name').value.trim();
+        const amount = row.querySelector('.ing-amount').value.trim();
+        const unit = row.querySelector('.ing-unit').value.trim();
+        if (name) {
+          ingredients.push({ name, amount, unit });
+        }
+      });
+
+      const tags = Array.from(selectedFormTags);
+
+      try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'שומר...';
+
+        const res = await fetch('/api/recipes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title, description, instructions, source_url, image_url,
+            prep_time_minutes, calories, protein_grams, difficulty,
+            ingredients, tags
+          })
+        });
+
+        if (!res.ok) throw new Error('שגיאה בשמירת המתכון');
+
+        closeAddRecipeModal();
+        await loadRecipes();
+        alert('המתכון נשמר בהצלחה במסד הנתונים!');
+      } catch (err) {
+        alert('שגיאה: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'שמור מתכון';
+      }
+    }
+
+    // Weekly Plan & Pantry
     async function loadPantry() {
       const res = await fetch('/api/pantry');
       const items = await res.json();
@@ -260,7 +658,7 @@
     }
 
     // Init
-    loadTags();
+    renderGalleryTags();
     loadRecipes();
     loadPantry();
     loadWeeklyPlan();

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { getDatabase } from './db.js';
 import { seedData } from './seed.js';
 import { syncFromListi, pushToHealingCabin } from './integrations.js';
+import { scrapeRecipeFromUrl } from './scraper.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,17 +66,51 @@ export function createServer(customDb) {
         return;
       }
 
-      // 3. GET /api/recipes - All recipes or filtered by tag
+      // 3. GET /api/recipes - All recipes or filtered by search / tags
       if (req.method === 'GET' && pathname === '/api/recipes') {
-        const tag = parsedUrl.searchParams.get('tag');
+        const tagParam = parsedUrl.searchParams.get('tag');
+        const tagsParam = parsedUrl.searchParams.get('tags');
+        const searchParam = (parsedUrl.searchParams.get('q') || parsedUrl.searchParams.get('search') || '').trim().toLowerCase();
+
+        const requestedTags = tagsParam ? tagsParam.split(',').map(t => t.trim()).filter(Boolean) : (tagParam ? [tagParam.trim()] : []);
+
         let recipes = db.prepare('SELECT * FROM recipes ORDER BY id DESC').all();
-        if (tag) {
+
+        if (requestedTags.length > 0) {
           recipes = recipes.filter(r => {
-            const tags = JSON.parse(r.tags || '[]');
-            return tags.includes(tag);
+            const recipeTags = JSON.parse(r.tags || '[]');
+            return requestedTags.every(t => recipeTags.includes(t));
           });
         }
+
+        if (searchParam) {
+          recipes = recipes.filter(r => {
+            const titleMatch = (r.title || '').toLowerCase().includes(searchParam);
+            const descMatch = (r.description || '').toLowerCase().includes(searchParam);
+            const ingredientsMatch = (r.ingredients || '').toLowerCase().includes(searchParam);
+            return titleMatch || descMatch || ingredientsMatch;
+          });
+        }
+
         sendJson(200, recipes);
+        return;
+      }
+
+      // 3.1 POST /api/recipes/scrape - Scrape and extract recipe data from a URL
+      if (req.method === 'POST' && pathname === '/api/recipes/scrape') {
+        const body = await readJsonBody();
+        const { url } = body;
+        if (!url) {
+          sendJson(400, { error: 'url parameter is required' });
+          return;
+        }
+
+        try {
+          const scraped = await scrapeRecipeFromUrl(url);
+          sendJson(200, scraped);
+        } catch (err) {
+          sendJson(422, { error: 'Failed to extract recipe from URL', details: err.message });
+        }
         return;
       }
 

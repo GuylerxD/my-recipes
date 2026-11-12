@@ -119,4 +119,30 @@ assert.strictEqual(sanitizedItem.source_url, undefined, 'source_url MUST NOT be 
 assert.strictEqual(sanitizedItem.id, undefined, 'id MUST NOT be exposed');
 
 console.log('✓ The Healing Cabin payload strict sanitization passed.');
+
+// Test 6: Multi-tag AND filtering
+console.log('Test 6: Multi-tag AND filtering...');
+insertRecipe.run(
+  'גלידת חלבון נינג\'ה קרימי',
+  'מתכון לנינג\'ה',
+  'ערבב והקפא',
+  'https://example.com/icecream',
+  '',
+  5,
+  180,
+  30,
+  'קל',
+  '[]',
+  JSON.stringify(['עתיר חלבון', 'מתאים לנינג\'ה קרימי', 'דל סוכר'])
+);
+
+const all = db.prepare('SELECT * FROM recipes').all();
+const matchBoth = all.filter(r => {
+  const t = JSON.parse(r.tags || '[]');
+  return ['עתיר חלבון', 'מתאים לנינג\'ה קרימי'].every(tag => t.includes(tag));
+});
+assert.strictEqual(matchBoth.length, 1);
+assert.strictEqual(matchBoth[0].title, 'גלידת חלבון נינג\'ה קרימי');
+console.log('✓ Multi-tag AND filtering passed.');
+
 console.log('--- ALL TESTS PASSED! ---');
