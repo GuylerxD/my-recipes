@@ -42,6 +42,7 @@ export function getDatabase(dbPath = DB_PATH) {
       difficulty TEXT DEFAULT 'בינוני',
       ingredients TEXT DEFAULT '[]',
       tags TEXT DEFAULT '[]',
+      is_base_prep INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -63,6 +64,11 @@ export function getDatabase(dbPath = DB_PATH) {
       UNIQUE(day_of_week, meal_type)
     );
   `);
+
+  // Safe migration for is_base_prep column
+  try {
+    db.prepare('ALTER TABLE recipes ADD COLUMN is_base_prep INTEGER DEFAULT 0').run();
+  } catch {}
 
   // Seed default tags
   const insertTagStmt = db.prepare('INSERT OR IGNORE INTO tags (name) VALUES (?)');

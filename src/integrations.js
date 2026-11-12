@@ -59,17 +59,19 @@ export function syncFromListi(db, payload) {
  * Excludes: ingredients, instructions, source URLs, etc.
  */
 export function sanitizeWeeklyPlanForHealingCabin(recipes) {
-  return recipes.map(r => {
-    const item = {
-      title: r.title,
-      description: r.description || '',
-      calories: Number(r.calories) || 0,
-      protein_grams: Number(r.protein_grams) || 0
-    };
-    if (r.day_of_week) item.day_of_week = r.day_of_week;
-    if (r.meal_type) item.meal_type = r.meal_type;
-    return item;
-  });
+  return recipes
+    .filter(r => !r.is_base_prep && !r.isBasePrep && r.day_of_week !== 'weekend_prep')
+    .map(r => {
+      const item = {
+        title: r.title,
+        description: r.description || '',
+        calories: Number(r.calories) || 0,
+        protein_grams: Number(r.protein_grams) || 0
+      };
+      if (r.day_of_week) item.day_of_week = r.day_of_week;
+      if (r.meal_type) item.meal_type = r.meal_type;
+      return item;
+    });
 }
 
 /**

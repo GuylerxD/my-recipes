@@ -8,7 +8,7 @@ import { syncFromListi, pushToHealingCabin, addMissingIngredientsToListi } from 
 import { scrapeRecipeFromUrl } from './scraper.js';
 import { importRecipe } from './recipeScraperService.js';
 import { calculateRecipeMatches } from './matching.js';
-import { syncListiCloudToDb } from './listiClient.js';
+import { syncListiCloudToDb, addItemToListiPantry } from './listiClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -95,6 +95,12 @@ export function createServer(customDb) {
           });
         }
 
+        const basePrepParam = parsedUrl.searchParams.get('is_base_prep');
+        if (basePrepParam !== null) {
+          const expectBase = basePrepParam === 'true' || basePrepParam === '1';
+          recipes = recipes.filter(r => Boolean(r.is_base_prep) === expectBase);
+        }
+
         sendJson(200, recipes);
         return;
       }
@@ -147,7 +153,8 @@ export function createServer(customDb) {
         const {
           title, description = '', instructions = '', source_url = '',
           image_url = '', prep_time_minutes = 0, calories = 0,
-          protein_grams = 0, difficulty = 'בינוני', ingredients = [], tags = []
+          protein_grams = 0, difficulty = 'בינוני', ingredients = [], tags = [],
+          is_base_prep = false
         } = body;
 
         if (!title) {
@@ -158,14 +165,15 @@ export function createServer(customDb) {
         const stmt = db.prepare(`
           INSERT INTO recipes (
             title, description, instructions, source_url, image_url,
-            prep_time_minutes, calories, protein_grams, difficulty, ingredients, tags
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            prep_time_minutes, calories, protein_grams, difficulty, ingredients, tags, is_base_prep
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         stmt.run(
           title, description, instructions, source_url, image_url,
           prep_time_minutes, calories, protein_grams, difficulty,
-          JSON.stringify(ingredients), JSON.stringify(tags)
+          JSON.stringify(ingredients), JSON.stringify(tags),
+          is_base_prep ? 1 : 0
         );
 
         const newId = db.prepare('SELECT last_insert_rowid() as id').get().id;
@@ -225,6 +233,35 @@ export function createServer(customDb) {
 
         const result = await addMissingIngredientsToListi(db, items);
         sendJson(200, result);
+        return;
+      }
+
+      // 5.3 POST /api/integrations/listi/add-pantry - Add prepared base prep item to pantry
+      if (req.method === 'POST' && pathname === '/api/integrations/listi/add-pantry') {
+        const body = await readJsonBody();
+        const itemName = body.item || body.name || body.title;
+        const quantity = body.quantity || '1';
+        if (!itemName) {
+          sendJson(400, { error: 'item name is required' });
+          return;
+        }
+
+        db.prepare(`
+          INSERT INTO pantry_groceries (item_name, quantity, status, updated_at)
+          VALUES (?, ?, 'במזווה', CURRENT_TIMESTAMP)
+          ON CONFLICT(item_name) DO UPDATE SET
+            quantity = excluded.quantity,
+            status = 'במזווה',
+            updated_at = CURRENT_TIMESTAMP
+        `).run(itemName, String(quantity));
+
+        try {
+          await addItemToListiPantry(itemName, quantity);
+        } catch (e) {
+          console.warn('Listi cloud sync warning:', e.message);
+        }
+
+        sendJson(200, { success: true, item: itemName, status: 'במזווה' });
         return;
       }
 

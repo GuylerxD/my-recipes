@@ -439,6 +439,24 @@
     }
 
     /* Meal Prep Weekly Grid */
+    .weekend-preps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .weekend-prep-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .weekend-prep-card.completed {
+      background: #f0fdf4;
+      border-color: var(--primary);
+    }
     .planner-days-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -826,8 +844,28 @@
         </button>
       </div>
 
+      <!-- Weekend Preps Section (הכנות לסופ"ש) -->
+      <div class="card card-solid-khaki" style="margin-top: 14px; border: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 6px;">
+              <span>🥫</span> הכנות לסופ"ש (Weekend Preps)
+            </h3>
+            <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 2px;">
+              רטבים, ממרחים, לחמים ותוספות בסיס להכנה מראש לשימוש במהלך השבוע
+            </p>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openWeekendPrepChooser()">
+            + הוסף הכנת בסיס
+          </button>
+        </div>
+        <div id="weekendPrepsList" class="weekend-preps-grid">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
       <!-- Days Grid (ראשון עד שבת) -->
-      <div id="weeklyPlannerDaysGrid" class="planner-days-grid">
+      <div id="weeklyPlannerDaysGrid" class="planner-days-grid" style="margin-top: 14px;">
         <!-- Rendered dynamically -->
       </div>
     </section>
@@ -1123,6 +1161,16 @@
             <label class="form-label" for="formSourceUrl">קישור למקור</label>
             <input type="url" id="formSourceUrl" class="form-control" placeholder="https://...">
           </div>
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); padding: 12px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+          <div>
+            <label class="form-label" for="formIsBasePrep" style="margin-bottom: 2px; font-weight: 800; cursor: pointer; color: var(--text);">
+              🥫 הגדר כהכנת בסיס (רטבים/ממרחים/לחמים)
+            </label>
+            <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">מתכון זה יוצג באזור 'הכנות לסופ"ש' וניתן יהיה לסמנו כהושלם ולהוסיפו ישירות למזווה</span>
+          </div>
+          <input type="checkbox" id="formIsBasePrep" style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--primary);">
         </div>
 
         <div class="form-group">
@@ -1558,6 +1606,50 @@
           { name: 'תה', amount: '1', unit: 'כוס' }
         ]),
         tags: JSON.stringify(['עתיר חלבון', 'דל סוכר', 'צמחוני', 'ללא כוסברה', 'ללא סלטים'])
+      },
+      {
+        id: 'base_prep_1',
+        title: 'טחינה ירוקה עשירה עם עשבי תיבול ולימון',
+        category: 'הכנת בסיס',
+        description: 'טחינה ירוקה מזינה ועתירת סידן עם פטרוזיליה, שום ולימון טרי. בסיס מושלם לארוחות השבוע.',
+        instructions: '1. מעבדים בבלנדר או מעבד מזון טחינה גולמית, מי קרח, לימון, שום ופטרוזיליה.\n2. מתבלים במלח וכמון עד לקבלת מרקם חלק וקרמי.\n3. מאחסנים בצנצנת זכוכית אטומה במקרר עד שבוע.',
+        source_url: '',
+        image_url: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800',
+        prep_time_minutes: 10,
+        calories: 180,
+        protein_grams: 8,
+        difficulty: 'קל',
+        is_base_prep: true,
+        ingredients: JSON.stringify([
+          { name: 'טחינה גולמית', amount: '1/2', unit: 'כוס' },
+          { name: 'מים קרים', amount: '1/2', unit: 'כוס' },
+          { name: 'מיץ לימון סחוט', amount: '2', unit: 'כפות' },
+          { name: 'שום', amount: '1', unit: 'שן' },
+          { name: 'פטרוזיליה', amount: '1/2', unit: 'צרור' },
+          { name: 'מלח', amount: '1/2', unit: 'כפית' }
+        ]),
+        tags: JSON.stringify(['צמחוני', 'דל סוכר', 'עתיר חלבון', 'ללא כוסברה', 'ללא סלטים'])
+      },
+      {
+        id: 'base_prep_2',
+        title: 'שום קונפי ארומטי בשמן זית',
+        category: 'הכנת בסיס',
+        description: 'שיני שום נימוחות ומקורמלות באיטיות עם שמן זית ועשבי תיבול. נשמרות שבועיים במקרר לשימוש יומי.',
+        instructions: '1. מניחים שיני שום קלופות בסיר קטן או קלחת ומכסים בשמן זית.\n2. מבשלים על אש קטנה ביותר כ-40 דקות עד שהשום רך וזהוב.\n3. מצננים ומעבירים לצנצנת מעוקרת במקרר.',
+        source_url: '',
+        image_url: 'https://images.unsplash.com/photo-1584278860047-22db9ff82bed?w=800',
+        prep_time_minutes: 45,
+        calories: 140,
+        protein_grams: 2,
+        difficulty: 'קל',
+        is_base_prep: true,
+        ingredients: JSON.stringify([
+          { name: 'שיני שום קלופות', amount: '3', unit: 'ראשים' },
+          { name: 'שמן זית', amount: '1', unit: 'כוס' },
+          { name: 'ענפי טימין או רוזמרין', amount: '2', unit: 'ענפים' },
+          { name: 'מלח גס', amount: '1/2', unit: 'כפית' }
+        ]),
+        tags: JSON.stringify(['צמחוני', 'דל סוכר', 'ללא כוסברה', 'ללא סלטים'])
       }
     ];
 
@@ -1566,6 +1658,7 @@
     // =========================================================
     let allRecipes = [];
     let weeklyPlan = {};
+    let weekendPreps = [];
     let selectedGalleryTags = new Set();
     let selectedWhatToCookTags = new Set();
     let selectedFormTags = new Set();
@@ -1655,6 +1748,12 @@
                 updated = true;
               }
             });
+            DEFAULT_RECIPES.forEach(defR => {
+              if (defR.is_base_prep && !list.some(r => r.id === defR.id || r.title === defR.title)) {
+                list.push(defR);
+                updated = true;
+              }
+            });
             if (updated) saveStoredRecipes(list);
             return list;
           }
@@ -1697,6 +1796,66 @@
       } catch {}
     }
 
+    function getStoredWeekendPreps() {
+      try {
+        const stored = localStorage.getItem('my_weekend_preps');
+        if (stored) return JSON.parse(stored);
+      } catch (e) {}
+      return [];
+    }
+
+    function saveStoredWeekendPreps(preps) {
+      weekendPreps = preps;
+      try {
+        localStorage.setItem('my_weekend_preps', JSON.stringify(preps));
+      } catch (e) {}
+    }
+
+    const listiService = {
+      async addToPantry(itemName, quantity = '1') {
+        upsertLocalPantryItem(itemName, quantity, 'במזווה');
+
+        try {
+          const res = await fetch('/api/integrations/listi/add-pantry', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item: itemName, quantity })
+          });
+          if (res.ok) return await res.json();
+        } catch (e) {}
+
+        try {
+          const res = await fetch('https://project-1-listi-checklist-app.fly.dev/api/cabin/pantry', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer 1201',
+              'x-pin': '1201',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ item: itemName, name: itemName, status: 'במזווה', list_id: 1, stock_qty: 1 })
+          });
+          if (res.ok) return await res.json();
+        } catch (e) {}
+
+        return { success: true, item: itemName };
+      }
+    };
+
+    function upsertLocalPantryItem(name, quantity, status) {
+      try {
+        const stored = localStorage.getItem('my_pantry_items') || '[]';
+        let items = JSON.parse(stored);
+        const existing = items.find(i => i.item_name === name || i.name === name);
+        if (existing) {
+          existing.status = status;
+          existing.quantity = quantity;
+        } else {
+          items.unshift({ item_name: name, quantity: String(quantity), status });
+        }
+        localStorage.setItem('my_pantry_items', JSON.stringify(items));
+      } catch (e) {}
+    }
+
     // =========================================================
     // 1. CAROUSEL: NINJA AIR FRYER
     // =========================================================
@@ -1734,11 +1893,12 @@
     }
 
     // =========================================================
-    // 2. WEEKLY PLANNER GRID
+    // 2. WEEKLY PLANNER GRID & WEEKEND PREPS
     // =========================================================
     function renderWeeklyPlanner() {
       const container = document.getElementById('weeklyPlannerDaysGrid');
       renderNinjaAirFryerCarousel();
+      renderWeekendPreps();
 
       container.innerHTML = DAYS.map(day => {
         let totalCal = 0;
@@ -1804,6 +1964,113 @@
       }).join('');
     }
 
+    // =========================================================
+    // WEEKEND PREPS LOGIC (BASE PREPS)
+    // =========================================================
+    function renderWeekendPreps() {
+      const container = document.getElementById('weekendPrepsList');
+      if (!container) return;
+
+      if (!weekendPreps || weekendPreps.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); font-size: 0.88rem; padding: 14px; background: var(--card-bg); border: 1px dashed var(--border); border-radius: var(--radius-sm);">
+            עדיין לא שובצו הכנות לסופ"ש. לחצי על <b>"+ הוסף הכנת בסיס"</b> כדי לתזמן רטבים, ממרחים או לחמים לקראת השבוע.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = weekendPreps.map(prep => {
+        const fullRecipe = allRecipes.find(r => String(r.id) === String(prep.recipeId)) || prep;
+        const img = getSmartRecipeImage(fullRecipe);
+        const isDone = prep.completed;
+        const inPantry = prep.added_to_pantry;
+
+        return `
+          <div class="weekend-prep-card ${isDone ? 'completed' : ''}" id="prepCard_${prep.id}">
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <img src="${img}" style="width: 44px; height: 44px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border);" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'">
+              <div style="flex-grow: 1; min-width: 0;">
+                <div style="font-weight: 700; font-size: 0.9rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${prep.title}">${prep.title}</div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">⏱ ${prep.prep_time_minutes || 15} דק' | 🔥 ${prep.calories || 0} קל' | 💪 ${prep.protein_grams || 0}g</div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--border);">
+              <div>
+                ${isDone
+                  ? `<span class="badge" style="background: var(--primary); color: white; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.78rem;">✓ הוכן ${inPantry ? '(במזווה)' : ''}</span>`
+                  : `<button class="btn btn-primary btn-sm" style="padding: 4px 10px; font-size: 0.8rem;" onclick="completeWeekendPrep('${prep.id}')">✓ סמן כהושלם</button>`
+                }
+              </div>
+              <button class="btn btn-outline btn-sm" style="padding: 2px 8px; font-size: 0.78rem; color: var(--text-muted);" onclick="removeWeekendPrep('${prep.id}')">הסר</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openWeekendPrepChooser() {
+      activeSlotTarget = { isWeekendPrep: true };
+      document.getElementById('chooseModalTitle').textContent = 'הוספת הכנת בסיס לסופ"ש';
+      document.getElementById('chooseModalSubtitle').textContent = 'בחרי מתכון שהוגדר כהכנת בסיס (רטבים, ממרחים, לחמים)';
+      document.getElementById('chooseSearchInput').value = '';
+      document.getElementById('chooseRecipeModal').classList.add('open');
+      const baseRecipes = allRecipes.filter(r => Boolean(r.is_base_prep));
+      renderChooseRecipesList(baseRecipes);
+    }
+
+    function selectRecipeForWeekendPrep(recipeId) {
+      const recipe = allRecipes.find(r => String(r.id) === String(recipeId));
+      if (!recipe) return;
+
+      const newPrep = {
+        id: 'prep_' + Date.now(),
+        recipeId: recipe.id,
+        title: recipe.title,
+        calories: recipe.calories || 0,
+        protein_grams: recipe.protein_grams || 0,
+        prep_time_minutes: recipe.prep_time_minutes || 0,
+        image_url: recipe.image_url || '',
+        completed: false,
+        added_to_pantry: false
+      };
+
+      weekendPreps.push(newPrep);
+      saveStoredWeekendPreps(weekendPreps);
+      renderWeekendPreps();
+    }
+
+    async function completeWeekendPrep(prepId) {
+      const prep = weekendPreps.find(p => p.id === prepId);
+      if (!prep) return;
+
+      prep.completed = true;
+      saveStoredWeekendPreps(weekendPreps);
+      renderWeekendPreps();
+
+      const addToPantry = confirm(`המתכון "${prep.title}" סומן כהוכן בהצלחה!\n\nלהוסיף למזווה?`);
+      if (addToPantry) {
+        try {
+          await listiService.addToPantry(prep.title);
+          prep.added_to_pantry = true;
+          saveStoredWeekendPreps(weekendPreps);
+          renderWeekendPreps();
+          alert(`✓ "${prep.title}" נוסף בהצלחה למלאי המזווה ב-Listi!`);
+          loadPantry();
+          loadWhatToCook();
+        } catch (err) {
+          alert(`המתכון סומן כהושלם. שגיאה בסנכרון למזווה: ${err.message}`);
+        }
+      }
+    }
+
+    function removeWeekendPrep(prepId) {
+      weekendPreps = weekendPreps.filter(p => p.id !== prepId);
+      saveStoredWeekendPreps(weekendPreps);
+      renderWeekendPreps();
+    }
+
     function openRecipeChooser(day, meal) {
       activeSlotTarget = { day, meal };
       document.getElementById('chooseModalTitle').textContent = `שיבוץ מתכון ליום ${day}`;
@@ -1820,7 +2087,11 @@
 
     function filterChooseRecipes() {
       const query = (document.getElementById('chooseSearchInput').value || '').trim().toLowerCase();
-      const filtered = allRecipes.filter(r => {
+      let sourceList = allRecipes;
+      if (activeSlotTarget && activeSlotTarget.isWeekendPrep) {
+        sourceList = allRecipes.filter(r => Boolean(r.is_base_prep));
+      }
+      const filtered = sourceList.filter(r => {
         return (r.title || '').toLowerCase().includes(query) ||
                (r.description || '').toLowerCase().includes(query) ||
                (r.tags || '').toLowerCase().includes(query);
@@ -1831,7 +2102,7 @@
     function renderChooseRecipesList(recipes) {
       const container = document.getElementById('chooseModalRecipeList');
       if (recipes.length === 0) {
-        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">לא נמצאו מתכונים.</div>';
+        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">לא נמצאו מתכונים מתאימים.</div>';
         return;
       }
 
@@ -1852,6 +2123,13 @@
 
     function selectRecipeForActiveSlot(recipeId) {
       if (!activeSlotTarget) return;
+
+      if (activeSlotTarget.isWeekendPrep) {
+        selectRecipeForWeekendPrep(recipeId);
+        closeChooseRecipeModal();
+        return;
+      }
+
       const recipe = allRecipes.find(r => String(r.id) === String(recipeId));
       if (!recipe) return;
 
@@ -1910,6 +2188,9 @@
       for (const [key, recipe] of Object.entries(weeklyPlan)) {
         if (!recipe) continue;
         const [day, meal] = key.split('_');
+        // Exclude invalid keys and strictly exclude base preps from The Healing Cabin
+        if (!DAYS.includes(day) || !MEALS.includes(meal)) continue;
+        if (recipe.is_base_prep) continue;
 
         filledSlots.push({
           day_of_week: day,
@@ -2211,6 +2492,7 @@ ${itemNames.join(', ')}`);
       document.getElementById('addRecipeModal').classList.add('open');
       selectedFormTags.clear();
       renderFormTags();
+      if (document.getElementById('formIsBasePrep')) document.getElementById('formIsBasePrep').checked = false;
       const container = document.getElementById('ingredientsContainer');
       if (container.children.length === 0) addIngredientRow();
     }
@@ -2220,6 +2502,7 @@ ${itemNames.join(', ')}`);
       document.getElementById('addRecipeForm').reset();
       document.getElementById('ingredientsContainer').innerHTML = '';
       document.getElementById('importStatus').textContent = '';
+      if (document.getElementById('formIsBasePrep')) document.getElementById('formIsBasePrep').checked = false;
       selectedFormTags.clear();
     }
 
@@ -2274,6 +2557,10 @@ ${itemNames.join(', ')}`);
       if (data.image_url) document.getElementById('formImageUrl').value = data.image_url;
       if (data.source_url || sourceUrl) {
         document.getElementById('formSourceUrl').value = data.source_url || sourceUrl;
+      }
+      if (document.getElementById('formIsBasePrep')) {
+        const isBase = Boolean(data.is_base_prep) || /טחינה|קונפי|רוטב|ממרח|לחמניות|פסטו|מטבל/i.test(data.title || '');
+        document.getElementById('formIsBasePrep').checked = isBase;
       }
 
       const container = document.getElementById('ingredientsContainer');
@@ -2608,6 +2895,7 @@ ${itemNames.join(', ')}`);
       const difficulty = document.getElementById('formDifficulty').value;
       const image_url = document.getElementById('formImageUrl').value.trim();
       const source_url = document.getElementById('formSourceUrl').value.trim();
+      const is_base_prep = document.getElementById('formIsBasePrep') ? document.getElementById('formIsBasePrep').checked : false;
 
       const ingRows = document.querySelectorAll('#ingredientsContainer .ingredient-row');
       const ingredients = [];
@@ -2625,6 +2913,7 @@ ${itemNames.join(', ')}`);
         title, description, instructions, source_url, 
         image_url: finalImageUrl,
         prep_time_minutes, calories, protein_grams, difficulty,
+        is_base_prep,
         ingredients: JSON.stringify(ingredients),
         tags: JSON.stringify(tags)
       };
@@ -2642,7 +2931,7 @@ ${itemNames.join(', ')}`);
           body: JSON.stringify({
             title, description, instructions, source_url, image_url,
             prep_time_minutes, calories, protein_grams, difficulty,
-            ingredients, tags
+            ingredients, tags, is_base_prep
           })
         }).catch(() => {});
 
@@ -3462,6 +3751,7 @@ ${itemNames.join(', ')}`);
 
     allRecipes = getStoredRecipes();
     weeklyPlan = getStoredPlan();
+    weekendPreps = getStoredWeekendPreps();
     renderGalleryTags();
     renderWhatToCookTags();
     renderWeeklyPlanner();

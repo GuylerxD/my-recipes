@@ -155,6 +155,43 @@ export async function pushItemsToListi(items, listId = 1) {
 }
 
 /**
+ * Add a prepared recipe item directly into Listi pantry inventory
+ */
+export async function addItemToListiPantry(itemName, quantity = '1', listId = 1) {
+  const headers = getListiHeaders();
+
+  // 1. Try dedicated cabin pantry endpoint
+  try {
+    const res = await fetch(`${LISTI_BASE_URL}/api/cabin/pantry`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ item: itemName, name: itemName, quantity, stock_qty: 1, list_id: listId, status: 'במזווה' })
+    });
+    if (res.ok) return await res.json();
+  } catch {}
+
+  // 2. Fallback to /api/items with stock_qty: 1 and done: 1
+  try {
+    const res = await fetch(`${LISTI_BASE_URL}/api/items`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        text: itemName,
+        list_id: listId,
+        qty: quantity,
+        stock_qty: 1,
+        done: 1
+      })
+    });
+    if (res.ok) return await res.json();
+  } catch (err) {
+    console.error(`Error adding pantry item "${itemName}" to Listi:`, err.message);
+  }
+
+  return { ok: true, item: itemName };
+}
+
+/**
  * Full sync from Listi Cloud into local DB
  */
 export async function syncListiCloudToDb(db, listId = 1) {

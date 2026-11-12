@@ -119,6 +119,15 @@ assert.strictEqual(sanitizedItem.ingredients, undefined, 'ingredients MUST NOT b
 assert.strictEqual(sanitizedItem.source_url, undefined, 'source_url MUST NOT be exposed to The Healing Cabin');
 assert.strictEqual(sanitizedItem.id, undefined, 'id MUST NOT be exposed');
 
+// Ensure base preps (is_base_prep: true) are omitted from The Healing Cabin
+const mixedRecipesForCabin = [
+  ...recipesForCabin,
+  { id: 99, title: 'טחינה ירוקה', is_base_prep: true, calories: 150, protein_grams: 5 },
+  { id: 100, title: 'שום קונפי', day_of_week: 'weekend_prep', calories: 200, protein_grams: 1 }
+];
+const sanitizedMixed = sanitizeWeeklyPlanForHealingCabin(mixedRecipesForCabin);
+assert.strictEqual(sanitizedMixed.length, 1, 'Base Preps must be strictly omitted from The Healing Cabin payload');
+
 console.log('✓ The Healing Cabin payload strict sanitization passed.');
 
 // Test 6: Multi-tag AND filtering
