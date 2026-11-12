@@ -103,3 +103,57 @@ export async function pushToHealingCabin(recipes, destinationUrl = process.env.T
     payload
   };
 }
+
+/**
+ * Pushes missing recipe ingredients directly to Listi shopping cart
+ */
+export async function addMissingIngredientsToListi(db, items, listiUrl = process.env.LISTI_API_URL) {
+  const upsertStmt = db.prepare(`
+    INSERT INTO pantry_groceries (item_name, quantity, status, updated_at)
+    VALUES (?, ?, 'ברשימת קניות', CURRENT_TIMESTAMP)
+    ON CONFLICT(item_name) DO UPDATE SET
+      status = 'ברשימת קניות',
+      updated_at = CURRENT_TIMESTAMP
+  `);
+
+  const addedItems = [];
+  for (const item of items) {
+    const itemName = typeof item === 'object' ? (item.name || item.itemName) : String(item);
+    const quantity = typeof item === 'object' ? `${item.amount || ''} ${item.unit || ''}`.trim() || '1' : '1';
+    if (!itemName) continue;
+
+    upsertStmt.run(itemName, quantity);
+    addedItems.push({ item_name: itemName, quantity, status: 'ברשימת קניות' });
+  }
+
+  const payload = {
+    source: 'MyRecipesApp',
+    event: 'ADD_TO_SHOPPING_CART',
+    timestamp: new Date().toISOString(),
+    items: addedItems
+  };
+
+  if (!listiUrl) {
+    return {
+      status: 'success',
+      synced_locally: true,
+      message: 'Items added to shopping list locally in pantry_groceries (ready for Listi sync).',
+      payload
+    };
+  }
+
+  const response = await fetch(listiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'User-Agent': 'MyRecipes/1.0'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  return {
+    status: response.ok ? 'success' : 'failed',
+    statusCode: response.status,
+    payload
+  };
+}

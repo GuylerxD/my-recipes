@@ -4,8 +4,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getDatabase } from './db.js';
 import { seedData } from './seed.js';
-import { syncFromListi, pushToHealingCabin } from './integrations.js';
+import { syncFromListi, pushToHealingCabin, addMissingIngredientsToListi } from './integrations.js';
 import { scrapeRecipeFromUrl } from './scraper.js';
+import { calculateRecipeMatches } from './matching.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -151,6 +152,53 @@ export function createServer(customDb) {
       if (req.method === 'GET' && pathname === '/api/pantry') {
         const items = db.prepare('SELECT * FROM pantry_groceries ORDER BY updated_at DESC').all();
         sendJson(200, items);
+        return;
+      }
+
+      // 5.1 GET /api/what-can-i-cook - Matching algorithm between recipes and pantry
+      if (req.method === 'GET' && pathname === '/api/what-can-i-cook') {
+        const tagsParam = parsedUrl.searchParams.get('tags') || parsedUrl.searchParams.get('tag');
+        const minMatch = parseInt(parsedUrl.searchParams.get('min_match') || '0', 10);
+        const maxMissing = parsedUrl.searchParams.has('max_missing') ? parseInt(parsedUrl.searchParams.get('max_missing'), 10) : null;
+
+        const requestedTags = tagsParam ? tagsParam.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+        let recipes = db.prepare('SELECT * FROM recipes').all();
+        const pantry = db.prepare('SELECT * FROM pantry_groceries').all();
+
+        // Tag filtering (AND logic)
+        if (requestedTags.length > 0) {
+          recipes = recipes.filter(r => {
+            const recipeTags = JSON.parse(r.tags || '[]');
+            return requestedTags.every(t => recipeTags.some(rt => rt === t || rt.startsWith(t)));
+          });
+        }
+
+        let scored = calculateRecipeMatches(recipes, pantry);
+
+        if (minMatch > 0) {
+          scored = scored.filter(r => r.match_percentage >= minMatch);
+        }
+
+        if (maxMissing !== null && !isNaN(maxMissing)) {
+          scored = scored.filter(r => r.missing_count <= maxMissing);
+        }
+
+        sendJson(200, scored);
+        return;
+      }
+
+      // 5.2 POST /api/integrations/listi/add-missing - Quick-add missing ingredients to Listi
+      if (req.method === 'POST' && pathname === '/api/integrations/listi/add-missing') {
+        const body = await readJsonBody();
+        const { items } = body;
+        if (!items || !Array.isArray(items) || items.length === 0) {
+          sendJson(400, { error: 'items array is required' });
+          return;
+        }
+
+        const result = await addMissingIngredientsToListi(db, items);
+        sendJson(200, result);
         return;
       }
 

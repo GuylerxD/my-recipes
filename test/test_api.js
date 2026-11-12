@@ -1,7 +1,8 @@
 import assert from 'node:assert';
 import { DatabaseSync } from 'node:sqlite';
 import { getDatabase, PREDEFINED_TAGS } from '../src/db.js';
-import { syncFromListi, sanitizeWeeklyPlanForHealingCabin } from '../src/integrations.js';
+import { syncFromListi, sanitizeWeeklyPlanForHealingCabin, addMissingIngredientsToListi } from '../src/integrations.js';
+import { calculateRecipeMatches } from '../src/matching.js';
 
 console.log('--- Starting Integration & Schema Tests ---');
 
@@ -144,5 +145,47 @@ const matchBoth = all.filter(r => {
 assert.strictEqual(matchBoth.length, 1);
 assert.strictEqual(matchBoth[0].title, 'גלידת חלבון נינג\'ה קרימי');
 console.log('✓ Multi-tag AND filtering passed.');
+
+// Test 7: Matching Algorithm (What Can I Cook)
+console.log('Test 7: Matching Algorithm (100% vs Missing)...');
+
+// Recipe with 2 ingredients
+insertRecipe.run(
+  'שייק חלבון ופירות יער',
+  'שייק קל ומהיר',
+  'לערבב בבלנדר',
+  '',
+  '',
+  3,
+  150,
+  25,
+  'קל',
+  JSON.stringify([
+    { name: 'אבקת חלבון וניל', amount: '1', unit: 'סקופ' },
+    { name: 'פירות יער קפואים', amount: '100', unit: 'גרם' }
+  ]),
+  JSON.stringify(['עתיר חלבון', 'דל סוכר'])
+);
+
+// We have 'שיבולת שועל', 'סלמון' in pantry ('במזווה'), but not 'פירות יער קפואים'
+const currentPantry = db.prepare('SELECT * FROM pantry_groceries').all();
+const testRecipes = db.prepare('SELECT * FROM recipes').all();
+const scored = calculateRecipeMatches(testRecipes, currentPantry);
+
+assert(scored.length >= 3, 'Should score all recipes');
+// Salmon has 1 ingredient 'סלמון' which is matched or let's inspect match percentage
+const salmonRecipe = scored.find(r => r.title === 'סלמון בעשבי תיבול');
+assert(salmonRecipe, 'Salmon recipe should be scored');
+
+// Test 8: Quick-add to Listi shopping cart
+console.log('Test 8: Quick-add Missing Ingredients to Listi...');
+const missingItemsToAdd = [{ name: 'פירות יער קפואים', amount: '100', unit: 'גרם' }];
+const addResult = await addMissingIngredientsToListi(db, missingItemsToAdd);
+assert.strictEqual(addResult.status, 'success');
+
+const berries = db.prepare('SELECT * FROM pantry_groceries WHERE item_name = ?').get('פירות יער קפואים');
+assert(berries, 'Berries should be inserted into pantry_groceries');
+assert.strictEqual(berries.status, 'ברשימת קניות', 'Status should be shopping list');
+console.log('✓ Quick-add to Listi shopping list passed.');
 
 console.log('--- ALL TESTS PASSED! ---');

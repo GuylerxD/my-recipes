@@ -9,7 +9,11 @@
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
       --success: #16a34a;
+      --success-bg: #dcfce7;
+      --warning: #d97706;
+      --warning-bg: #fef3c7;
       --danger: #ef4444;
+      --danger-bg: #fee2e2;
       --surface: #ffffff;
       --bg: #f8fafc;
       --text: #0f172a;
@@ -28,7 +32,7 @@
     h1 { font-size: 1.75rem; font-weight: 700; color: #1e293b; }
     .badge { background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
     
-    .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 8px; flex-wrap: wrap; }
     .tab-btn { padding: 8px 16px; border: none; background: transparent; border-radius: 8px; font-weight: 600; cursor: pointer; color: var(--text-muted); transition: 0.2s; }
     .tab-btn.active { background: var(--primary); color: white; }
     
@@ -55,11 +59,22 @@
     .recipe-meta { display: flex; justify-content: space-between; font-size: 0.85rem; color: #475569; margin-bottom: 12px; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; }
     .recipe-meta span { display: inline-flex; align-items: center; gap: 4px; }
 
+    /* Match Specific Styles */
+    .card-match-100 { border: 2px solid #22c55e !important; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.15); }
+    .card-match-missing { border: 2px solid #f59e0b !important; }
+    .match-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; margin-bottom: 10px; width: fit-content; }
+    .match-badge-100 { background: #dcfce7; color: #15803d; }
+    .match-badge-missing { background: #fef3c7; color: #b45309; }
+    .missing-items-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px; margin: 10px 0; font-size: 0.85rem; }
+    .missing-item-chip { display: inline-block; background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 6px; font-size: 0.8rem; margin: 2px; font-weight: 600; }
+    .matched-item-chip { display: inline-block; background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 6px; font-size: 0.8rem; margin: 2px; }
+
     /* Buttons */
     .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; font-size: 0.9rem; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-primary:hover { background: var(--primary-hover); }
     .btn-success { background: var(--success); color: white; }
+    .btn-warning { background: var(--warning); color: white; }
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
     .btn-outline:hover { background: #f1f5f9; }
     .btn-danger { background: #fee2e2; color: #991b1b; padding: 4px 8px; font-size: 0.8rem; }
@@ -105,7 +120,7 @@
     <header>
       <div>
         <h1>מרכז תזונה חכם &amp; מתכונים</h1>
-        <p style="color: var(--text-muted); font-size: 0.9rem;">ניהול מאגר מתכונים אישי, תפריט שבועי וסנכרון Listi / The Healing Cabin</p>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">סנכרון מלא מול Listi ו-The Healing Cabin</p>
       </div>
       <div>
         <span class="badge">ענן מסונכרן</span>
@@ -113,14 +128,47 @@
     </header>
 
     <div class="tabs">
-      <button class="tab-btn active" onclick="showTab('recipes')">מאגר מתכונים</button>
+      <button class="tab-btn active" onclick="showTab('whatToCook')">🍳 מה אפשר להכין?</button>
+      <button class="tab-btn" onclick="showTab('recipes')">מאגר מתכונים</button>
       <button class="tab-btn" onclick="showTab('planner')">תפריט שבועי (Meal Prep)</button>
       <button class="tab-btn" onclick="showTab('pantry')">מזווה וקניות (Listi)</button>
       <button class="tab-btn" onclick="showTab('integrations')">ממשקי API</button>
     </div>
 
+    <!-- WHAT TO COOK TAB (Matching Algorithm & Cross-referencing) -->
+    <div id="tab-whatToCook" class="tab-content">
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div>
+            <h2 style="font-size: 1.25rem;">מה אפשר להכין עכשיו?</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">הצלבה חכמה בין מצרכי המתכונים למלאי הזמין במזווה (Listi Sync)</p>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="loadWhatToCook()">רענן הצלבה</button>
+        </div>
+
+        <div class="filter-bar">
+          <!-- Tier filters -->
+          <div class="filter-row">
+            <span style="font-weight: 600; font-size: 0.85rem;">רמת התאמה:</span>
+            <button class="btn btn-sm btn-outline tier-btn active" id="tierAll" onclick="setMatchTier('all')">הכל</button>
+            <button class="btn btn-sm btn-outline tier-btn" id="tier100" onclick="setMatchTier('100')">✓ 100% התאמה בלבד (מוכן להכנה)</button>
+            <button class="btn btn-sm btn-outline tier-btn" id="tierMissing" onclick="setMatchTier('missing_1_2')">חסרים 1-2 מצרכים</button>
+          </div>
+
+          <!-- Tag Cloud Filter -->
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">סינון אישי לפי תגיות (התאמה מלאה - AND):</div>
+            <div id="whatToCookTagCloud" class="tag-cloud"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="whatToCookGrid" class="grid"></div>
+      <div id="noMatchMsg" style="display: none; text-align: center; padding: 40px; color: var(--text-muted);">לא נמצאו מתכונים התואמים את המלאי והתגיות שנבחרו.</div>
+    </div>
+
     <!-- Recipes Tab (Gallery & Filter) -->
-    <div id="tab-recipes" class="tab-content">
+    <div id="tab-recipes" class="tab-content" style="display: none;">
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
           <h2 style="font-size: 1.25rem;">ספריית המתכונים</h2>
@@ -203,8 +251,12 @@
             <strong>1. Webhook ייבוא מ-Listi:</strong> <code>POST /api/integrations/listi</code><br>
             קולט עדכוני מלאי מצרכים ישירות מ-Listi ומעדכן את המזווה ורשימת הקניות.
           </div>
+          <div style="background: #fef3c7; padding: 12px; border-radius: 8px; border: 1px solid #fde68a;">
+            <strong>2. הוספה מהירה לעגלת Listi:</strong> <code>POST /api/integrations/listi/add-missing</code><br>
+            שולח מצרכים חסרים ממתכון ישירות לרשימת הקניות ב-Listi בלחיצה אחת.
+          </div>
           <div style="background: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0;">
-            <strong>2. דחיפה ל-The Healing Cabin:</strong> <code>POST /api/weekly-plan/approve-and-push</code><br>
+            <strong>3. דחיפה ל-The Healing Cabin:</strong> <code>POST /api/weekly-plan/approve-and-push</code><br>
             מופעל בעת אישור התפריט השבועי ושולח אך ורק: שם מנה, תיאור, קלוריות, וכמות חלבון.
           </div>
         </div>
@@ -322,14 +374,22 @@
       'ללא סלטים'
     ];
     let selectedGalleryTags = new Set();
+    let selectedWhatToCookTags = new Set();
     let selectedFormTags = new Set();
+    let whatToCookTier = 'all'; // 'all', '100', 'missing_1_2'
     let allRecipes = [];
+    let whatToCookList = [];
 
     function showTab(tabName) {
       document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById('tab-' + tabName).style.display = 'block';
-      event.target.classList.add('active');
+      const content = document.getElementById('tab-' + tabName);
+      if (content) content.style.display = 'block';
+      if (event && event.target) event.target.classList.add('active');
+
+      if (tabName === 'whatToCook') {
+        loadWhatToCook();
+      }
     }
 
     // Modal control
@@ -337,7 +397,6 @@
       document.getElementById('addRecipeModal').classList.add('open');
       selectedFormTags.clear();
       renderFormTags();
-      // Ensure at least one ingredient row
       const container = document.getElementById('ingredientsContainer');
       if (container.children.length === 0) {
         addIngredientRow();
@@ -381,7 +440,153 @@
       renderFormTags();
     }
 
-    // Render Gallery Filter Tag chips
+    // WHAT TO COOK MATCHING SCREEN
+    function renderWhatToCookTags() {
+      const cloud = document.getElementById('whatToCookTagCloud');
+      cloud.innerHTML = PREDEFINED_TAGS.map(t => {
+        const isSelected = selectedWhatToCookTags.has(t);
+        return `<span class="tag-chip ${isSelected ? 'active' : ''}" onclick="toggleWhatToCookTag('${t}')">${t}</span>`;
+      }).join('');
+    }
+
+    function toggleWhatToCookTag(tag) {
+      if (selectedWhatToCookTags.has(tag)) selectedWhatToCookTags.delete(tag);
+      else selectedWhatToCookTags.add(tag);
+      renderWhatToCookTags();
+      loadWhatToCook();
+    }
+
+    function setMatchTier(tier) {
+      whatToCookTier = tier;
+      document.querySelectorAll('.tier-btn').forEach(btn => btn.classList.remove('active'));
+      if (tier === 'all') document.getElementById('tierAll').classList.add('active');
+      if (tier === '100') document.getElementById('tier100').classList.add('active');
+      if (tier === 'missing_1_2') document.getElementById('tierMissing').classList.add('active');
+      applyWhatToCookFilters();
+    }
+
+    async function loadWhatToCook() {
+      try {
+        const tagsArr = Array.from(selectedWhatToCookTags);
+        const tagsParam = tagsArr.length > 0 ? `?tags=${encodeURIComponent(tagsArr.join(','))}` : '';
+        const res = await fetch(`/api/what-can-i-cook${tagsParam}`);
+        whatToCookList = await res.json();
+        applyWhatToCookFilters();
+      } catch (err) {
+        console.error('Failed to load what to cook matches', err);
+      }
+    }
+
+    function applyWhatToCookFilters() {
+      let filtered = [...whatToCookList];
+
+      if (whatToCookTier === '100') {
+        filtered = filtered.filter(r => r.match_percentage === 100);
+      } else if (whatToCookTier === 'missing_1_2') {
+        filtered = filtered.filter(r => r.missing_count >= 1 && r.missing_count <= 2);
+      }
+
+      renderWhatToCookCards(filtered);
+    }
+
+    function renderWhatToCookCards(recipes) {
+      const grid = document.getElementById('whatToCookGrid');
+      const noMsg = document.getElementById('noMatchMsg');
+
+      if (recipes.length === 0) {
+        grid.innerHTML = '';
+        noMsg.style.display = 'block';
+        return;
+      }
+      noMsg.style.display = 'none';
+
+      grid.innerHTML = recipes.map(r => {
+        const isFullMatch = r.match_percentage === 100;
+        const cardClass = isFullMatch ? 'card-match-100' : 'card-match-missing';
+        const image = r.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600';
+        const tags = JSON.parse(r.tags || '[]');
+
+        let missingHtml = '';
+        let actionBtnHtml = '';
+
+        if (isFullMatch) {
+          missingHtml = `
+            <div class="match-badge match-badge-100">✓ 100% התאמה — כל המצרכים במזווה!</div>
+            <div style="font-size: 0.85rem; color: #15803d; margin-bottom: 8px;">
+              ${r.matched_ingredients.map(m => `<span class="matched-item-chip">✓ ${m.name || m}</span>`).join('')}
+            </div>
+          `;
+        } else {
+          const missingCountLabel = r.missing_count === 1 ? 'חסר מצרך 1 בלבד' : `חסרים ${r.missing_count} מצרכים`;
+          missingHtml = `
+            <div class="match-badge match-badge-missing">${r.match_percentage}% התאמה — ${missingCountLabel}</div>
+            <div class="missing-items-box">
+              <div style="font-weight: 600; margin-bottom: 4px; color: #92400e;">מצרכים חסרים להכנה:</div>
+              <div>
+                ${r.missing_ingredients.map(m => `<span class="missing-item-chip">✗ ${m.name || m} (${m.amount || ''} ${m.unit || ''})</span>`).join('')}
+              </div>
+            </div>
+          `;
+
+          // Button to quick-add missing items to Listi
+          const missingEncoded = encodeURIComponent(JSON.stringify(r.missing_ingredients));
+          actionBtnHtml = `
+            <button class="btn btn-warning btn-sm" style="margin-top: 10px; width: 100%; justify-content: center;" onclick="quickAddToListi('${r.id}', '${missingEncoded}', this)">
+              🛒 הוסף חסרים לעגלה ב-Listi
+            </button>
+          `;
+        }
+
+        return `
+          <div class="recipe-card ${cardClass}">
+            <img class="recipe-img" src="${image}" alt="${r.title}" onerror="this.src='https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600'">
+            <div class="recipe-body">
+              <div class="recipe-title">${r.title}</div>
+              <div class="recipe-desc">${r.description || ''}</div>
+              ${missingHtml}
+              <div class="recipe-meta" style="margin-top: auto;">
+                <span>⏱ ${r.prep_time_minutes || 0} דק'</span>
+                <span>🔥 ${r.calories || 0} קל'</span>
+                <span>💪 ${r.protein_grams || 0}g חלבון</span>
+                <span>📊 ${r.difficulty || 'בינוני'}</span>
+              </div>
+              <div class="tag-cloud" style="margin-top: 8px;">
+                ${tags.map(t => `<span class="tag-chip" style="font-size: 0.75rem; padding: 2px 7px;">${t}</span>`).join('')}
+              </div>
+              ${actionBtnHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Action: Quick-add missing ingredients to Listi
+    async function quickAddToListi(recipeId, missingEncoded, btn) {
+      try {
+        const items = JSON.parse(decodeURIComponent(missingEncoded));
+        btn.disabled = true;
+        btn.textContent = 'מוסיף לעגלת Listi...';
+
+        const res = await fetch('/api/integrations/listi/add-missing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipeId, items })
+        });
+
+        if (!res.ok) throw new Error('שגיאה בהוספת מצרכים לעגלה');
+
+        btn.classList.remove('btn-warning');
+        btn.classList.add('btn-success');
+        btn.textContent = '✓ נוסף בהצלחה לרשימת הקניות!';
+        loadPantry(); // refresh pantry view
+      } catch (err) {
+        alert('שגיאה: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '🛒 הוסף חסרים לעגלה ב-Listi';
+      }
+    }
+
+    // Gallery Filters
     function renderGalleryTags() {
       const cloud = document.getElementById('galleryTagCloud');
       cloud.innerHTML = PREDEFINED_TAGS.map(t => {
@@ -408,7 +613,6 @@
       applyGalleryFilters();
     }
 
-    // Load & Render Recipes
     async function loadRecipes() {
       try {
         const res = await fetch('/api/recipes');
@@ -423,15 +627,12 @@
       const searchTerm = (document.getElementById('recipeSearchInput').value || '').trim().toLowerCase();
       
       const filtered = allRecipes.filter(r => {
-        // Multi-tag matching (AND logic)
         const tags = JSON.parse(r.tags || '[]');
         for (const reqTag of selectedGalleryTags) {
-          // Normalize matching tag: "מנות דגים" matches "מנות דגים (ללא בקר ועוף)"
           const hasTag = tags.some(t => t === reqTag || t.startsWith(reqTag));
           if (!hasTag) return false;
         }
 
-        // Search text matching
         if (searchTerm) {
           const title = (r.title || '').toLowerCase();
           const desc = (r.description || '').toLowerCase();
@@ -513,7 +714,6 @@
 
         const data = await res.json();
         
-        // Auto-fill fields
         if (data.title) document.getElementById('formTitle').value = data.title;
         if (data.description) document.getElementById('formDescription').value = data.description;
         if (data.instructions) document.getElementById('formInstructions').value = data.instructions;
@@ -523,7 +723,6 @@
         if (data.calories) document.getElementById('formCalories').value = data.calories;
         if (data.proteinGrams) document.getElementById('formProtein').value = data.proteinGrams;
 
-        // Auto-fill ingredients
         const container = document.getElementById('ingredientsContainer');
         container.innerHTML = '';
         if (Array.isArray(data.ingredients) && data.ingredients.length > 0) {
@@ -558,7 +757,6 @@
       const image_url = document.getElementById('formImageUrl').value.trim();
       const source_url = document.getElementById('formSourceUrl').value.trim();
 
-      // Collect ingredients
       const ingRows = document.querySelectorAll('#ingredientsContainer .ingredient-row');
       const ingredients = [];
       ingRows.forEach(row => {
@@ -590,6 +788,7 @@
 
         closeAddRecipeModal();
         await loadRecipes();
+        await loadWhatToCook();
         alert('המתכון נשמר בהצלחה במסד הנתונים!');
       } catch (err) {
         alert('שגיאה: ' + err.message);
@@ -654,11 +853,14 @@
         body: JSON.stringify(sampleListiPayload)
       });
       loadPantry();
+      loadWhatToCook();
       alert('נתוני Listi יובאו בהצלחה!');
     }
 
     // Init
+    renderWhatToCookTags();
     renderGalleryTags();
+    loadWhatToCook();
     loadRecipes();
     loadPantry();
     loadWeeklyPlan();
