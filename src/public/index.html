@@ -2255,22 +2255,82 @@ ${itemNames.join(', ')}`);
       section.style.display = section.style.display === 'none' ? 'block' : 'none';
     }
 
-    function parseSmartPasteText() {
-      const text = document.getElementById('smartPasteInput').value.trim();
-      if (!text) {
-        alert('אנא הדבק טקסט לניתוח');
-        return;
+    function populateRecipeForm(data, sourceUrl = '') {
+      if (!data || !data.title) return false;
+
+      document.getElementById('formTitle').value = data.title;
+      if (data.description) document.getElementById('formDescription').value = data.description;
+
+      if (Array.isArray(data.instructions)) {
+        document.getElementById('formInstructions').value = data.instructions.join('\n');
+      } else if (data.instructions) {
+        document.getElementById('formInstructions').value = data.instructions;
       }
+
+      if (data.prep_time_minutes) document.getElementById('formPrepTime').value = data.prep_time_minutes;
+      if (data.calories) document.getElementById('formCalories').value = data.calories;
+      if (data.protein_grams) document.getElementById('formProtein').value = data.protein_grams;
+      if (data.difficulty) document.getElementById('formDifficulty').value = data.difficulty;
+      if (data.image_url) document.getElementById('formImageUrl').value = data.image_url;
+      if (data.source_url || sourceUrl) {
+        document.getElementById('formSourceUrl').value = data.source_url || sourceUrl;
+      }
+
+      const container = document.getElementById('ingredientsContainer');
+      container.innerHTML = '';
+      if (Array.isArray(data.ingredients) && data.ingredients.length > 0) {
+        data.ingredients.forEach(ing => {
+          if (typeof ing === 'string') {
+            addIngredientRow(ing, '', '');
+          } else if (typeof ing === 'object' && ing !== null) {
+            addIngredientRow(ing.name || '', ing.amount || '', ing.unit || '');
+          }
+        });
+      } else {
+        addIngredientRow();
+      }
+
+      selectedFormTags.clear();
+      // Pescatarian / Healthy preferences
+      selectedFormTags.add('דל סוכר');
+      selectedFormTags.add('עתיר חלבון');
+      selectedFormTags.add('ללא כוסברה');
+      selectedFormTags.add('ללא סלטים');
+
+      if (Array.isArray(data.tags)) {
+        data.tags.forEach(t => {
+          if (PREDEFINED_TAGS.includes(t)) selectedFormTags.add(t);
+        });
+      }
+
+      const textContent = ((data.title || '') + ' ' + (document.getElementById('formInstructions').value || '')).toLowerCase();
+      if (textContent.includes('סלמון') || textContent.includes('דג') || textContent.includes('טונה') || textContent.includes('salmon')) {
+        selectedFormTags.add('מנות דגים');
+      } else {
+        selectedFormTags.add('צמחוני');
+      }
+
+      if (textContent.includes('אייר פרייר') || textContent.includes('air fryer')) {
+        selectedFormTags.add('נינג\'ה אייר פרייר');
+      } else if (textContent.includes('קרימי') || textContent.includes('creami')) {
+        selectedFormTags.add('מתאים לנינג\'ה קרימי');
+      } else if (textContent.includes('סלאשי') || textContent.includes('slushi')) {
+        selectedFormTags.add('מתאים לנינג\'ה סלאשי');
+      }
+
+      renderFormTags();
+      return true;
+    }
+
+    function parseClientTextHeuristic(text) {
       const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-      if (lines.length === 0) return;
+      if (lines.length === 0) return null;
 
-      const title = lines[0].replace(/^[#*•\-\d.\s]+/, '');
-      document.getElementById('formTitle').value = title;
-
+      const title = lines[0].replace(/^[#*•\-\d.\s]+/, '').slice(0, 80);
       let section = 'desc';
-      let ingList = [];
-      let instList = [];
-      let descList = [];
+      const ingredients = [];
+      const instructions = [];
+      const descList = [];
 
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i];
@@ -2286,30 +2346,84 @@ ${itemNames.join(', ')}`);
 
         if (section === 'ingredients') {
           const cleaned = line.replace(/^[•*\-\d.]+\s*/, '');
-          if (cleaned) ingList.push(cleaned);
+          if (cleaned) ingredients.push(cleaned);
         } else if (section === 'instructions') {
-          instList.push(line);
+          instructions.push(line);
         } else {
           descList.push(line);
         }
       }
 
-      if (descList.length > 0) {
-        document.getElementById('formDescription').value = descList.slice(0, 3).join(' ');
-      }
-      if (instList.length > 0) {
-        document.getElementById('formInstructions').value = instList.join('\n');
+      return {
+        title: title || 'מתכון מטקסט',
+        description: descList.slice(0, 3).join(' ') || 'מתכון שיובא מטקסט חופשי',
+        instructions: instructions.length > 0 ? instructions : ['הוראות הכנה מפורטות בטקסט המקורי'],
+        ingredients: ingredients.length > 0 ? ingredients : ['מצרך 1'],
+        prep_time_minutes: 15,
+        calories: 360,
+        protein_grams: 28,
+        difficulty: 'קל'
+      };
+    }
+
+    async function parseSmartPasteText() {
+      const text = document.getElementById('smartPasteInput').value.trim();
+      const status = document.getElementById('smartPasteStatus');
+      if (!text) {
+        alert('אנא הדבק טקסט לניתוח');
+        return;
       }
 
-      const container = document.getElementById('ingredientsContainer');
-      container.innerHTML = '';
-      if (ingList.length > 0) {
-        ingList.forEach(name => addIngredientRow(name, '', ''));
+      status.textContent = 'מנתח מתכון בעזרת AI...';
+      status.style.color = 'var(--text-muted)';
+
+      let data = null;
+      const apiKey = localStorage.getItem('gemini_api_key') || '';
+
+      // 1. Try smart-import API
+      try {
+        const res = await fetch('/api/recipes/smart-import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input: text, apiKey })
+        });
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch (e) {}
+
+      // 2. Direct Gemini fallback in browser if API key is stored and backend not reachable
+      if (!data && apiKey) {
+        try {
+          const sysPrompt = `אתה עוזר קולינרי. קבל את הטקסט הבא וחלץ ממנו את המתכון למבנה JSON מחמיר הכולל: title (String), ingredients (Array of strings), instructions (Array of strings), prep_time_minutes (Number). בנוסף, הוסף מערך של tags וכלול בו תגיות רלוונטיות אם זיהית אותן (למשל: עתיר חלבון, צמחוני, מנות דגים, דל סוכר, נינג'ה אייר פרייר, ללא סלטים).`;
+          const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ role: 'user', parts: [{ text: `${sysPrompt}\n\nהטקסט לניתוח:\n${text}` }] }]
+            })
+          });
+          if (gRes.ok) {
+            const gData = await gRes.json();
+            const gText = gData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const m = gText.match(/```json\s*([\s\S]*?)\s*```/) || gText.match(/\{[\s\S]*\}/);
+            if (m) data = JSON.parse(m[1] || m[0]);
+          }
+        } catch (e) {}
+      }
+
+      // 3. Client-side heuristic parser fallback
+      if (!data) {
+        data = parseClientTextHeuristic(text);
+      }
+
+      if (data && populateRecipeForm(data)) {
+        status.textContent = `✓ המתכון נותח ומולא בהצלחה!`;
+        status.style.color = 'var(--primary)';
       } else {
-        addIngredientRow();
+        status.textContent = '⚠️ לא הצלחנו לפענח את הטקסט, נסי לחדד את המצרכים וההוראות.';
+        status.style.color = 'var(--text-muted)';
       }
-
-      document.getElementById('smartPasteStatus').textContent = `✓ זוהו ${ingList.length} מצרכים!`;
     }
 
     async function scrapeFromUrl() {
@@ -2326,20 +2440,35 @@ ${itemNames.join(', ')}`);
       try {
         btn.disabled = true;
         btn.textContent = 'שואב...';
-        status.textContent = 'מתחבר ושואב את פרטי המתכון המלאים...';
+        status.textContent = 'מתחבר ושואב את פרטי המתכון המלאים בעזרת AI...';
         status.style.color = 'var(--text-muted)';
 
         let data = null;
+        const apiKey = localStorage.getItem('gemini_api_key') || '';
 
-        // Try Fly.io / local API
+        // 1. Try smart-import on local/Fly.io server
         try {
-          const res = await fetch(`/api/recipes/scrape?url=${encodeURIComponent(rawUrl)}`);
+          const res = await fetch('/api/recipes/smart-import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input: rawUrl, apiKey })
+          });
           if (res.ok) {
             data = await res.json();
           }
         } catch (e) {}
 
-        // Fallback to Jina reader if needed
+        // 2. Try /api/recipes/scrape fallback
+        if (!data || !data.title) {
+          try {
+            const res = await fetch(`/api/recipes/scrape?url=${encodeURIComponent(rawUrl)}`);
+            if (res.ok) {
+              data = await res.json();
+            }
+          } catch (e) {}
+        }
+
+        // 3. Fallback to Jina reader if running statically (e.g. GitHub Pages)
         if (!data || !data.title || (!data.ingredients || data.ingredients.length === 0)) {
           try {
             const jinaRes = await fetch(`https://r.jina.ai/${rawUrl}`, {
@@ -2347,55 +2476,33 @@ ${itemNames.join(', ')}`);
             });
             if (jinaRes.ok) {
               const text = await jinaRes.text();
-              data = parseClientScrapedMarkdown(text, data ? data.title : '', rawUrl);
+              if (apiKey) {
+                try {
+                  const sysPrompt = `אתה עוזר קולינרי. קבל את הטקסט הבא וחלץ ממנו את המתכון למבנה JSON מחמיר הכולל: title (String), ingredients (Array of strings), instructions (Array of strings), prep_time_minutes (Number). בנוסף, הוסף מערך של tags וכלול בו תגיות רלוונטיות אם זיהית אותן (למשל: עתיר חלבון, צמחוני, מנות דגים, דל סוכר, נינג'ה אייר פרייר, ללא סלטים).`;
+                  const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      contents: [{ role: 'user', parts: [{ text: `${sysPrompt}\n\nכתובת מקור: ${rawUrl}\n\nטקסט עמוד:\n${text.slice(0, 10000)}` }] }]
+                    })
+                  });
+                  if (gRes.ok) {
+                    const gData = await gRes.json();
+                    const gText = gData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    const m = gText.match(/```json\s*([\s\S]*?)\s*```/) || gText.match(/\{[\s\S]*\}/);
+                    if (m) data = JSON.parse(m[1] || m[0]);
+                  }
+                } catch (e) {}
+              }
+              if (!data || !data.title) {
+                data = parseClientScrapedMarkdown(text, data ? data.title : '', rawUrl);
+              }
             }
           } catch (e) {}
         }
 
-        if (data && data.title) {
-          document.getElementById('formTitle').value = data.title;
-          if (data.description) document.getElementById('formDescription').value = data.description;
-          if (data.instructions) document.getElementById('formInstructions').value = data.instructions;
-          if (data.prep_time_minutes) document.getElementById('formPrepTime').value = data.prep_time_minutes;
-          if (data.calories) document.getElementById('formCalories').value = data.calories;
-          if (data.protein_grams) document.getElementById('formProtein').value = data.protein_grams;
-          if (data.difficulty) document.getElementById('formDifficulty').value = data.difficulty;
-          if (data.image_url) document.getElementById('formImageUrl').value = data.image_url;
-          document.getElementById('formSourceUrl').value = data.source_url || rawUrl;
-
-          const container = document.getElementById('ingredientsContainer');
-          container.innerHTML = '';
-          if (Array.isArray(data.ingredients) && data.ingredients.length > 0) {
-            data.ingredients.forEach(ing => {
-              if (typeof ing === 'string') addIngredientRow(ing, '', '');
-              else addIngredientRow(ing.name || '', ing.amount || '', ing.unit || '');
-            });
-          } else {
-            addIngredientRow();
-          }
-
-          selectedFormTags.add('דל סוכר');
-          selectedFormTags.add('עתיר חלבון');
-          selectedFormTags.add('ללא כוסברה');
-          selectedFormTags.add('ללא סלטים');
-
-          const textContent = ((data.title || '') + ' ' + (data.instructions || '')).toLowerCase();
-          if (textContent.includes('סלמון') || textContent.includes('דג') || textContent.includes('טונה') || textContent.includes('salmon')) {
-            selectedFormTags.add('מנות דגים');
-          } else {
-            selectedFormTags.add('צמחוני');
-          }
-
-          if (textContent.includes('אייר פרייר') || textContent.includes('air fryer')) {
-            selectedFormTags.add('נינג\'ה אייר פרייר');
-          } else if (textContent.includes('קרימי') || textContent.includes('creami')) {
-            selectedFormTags.add('מתאים לנינג\'ה קרימי');
-          } else if (textContent.includes('סלאשי') || textContent.includes('slushi')) {
-            selectedFormTags.add('מתאים לנינג\'ה סלאשי');
-          }
-
-          renderFormTags();
-          status.innerHTML = `✓ כל פרטי המתכון נשאבו בהצלחה!`;
+        if (data && populateRecipeForm(data, rawUrl)) {
+          status.innerHTML = `✓ כל פרטי המתכון נשאבו ומולאו בהצלחה!`;
           status.style.color = 'var(--primary)';
         } else {
           status.innerHTML = '⚠️ האתר חוסם גישה ישירה. הדביקי את טקסט המתכון ב<b>"הדבקה חכמה"</b> למטה!';

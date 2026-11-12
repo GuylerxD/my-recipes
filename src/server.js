@@ -6,6 +6,7 @@ import { getDatabase } from './db.js';
 import { seedData } from './seed.js';
 import { syncFromListi, pushToHealingCabin, addMissingIngredientsToListi } from './integrations.js';
 import { scrapeRecipeFromUrl } from './scraper.js';
+import { importRecipe } from './recipeScraperService.js';
 import { calculateRecipeMatches } from './matching.js';
 import { syncListiCloudToDb } from './listiClient.js';
 
@@ -98,17 +99,41 @@ export function createServer(customDb) {
         return;
       }
 
-      // 3.1 POST /api/recipes/scrape - Scrape and extract recipe data from a URL
-      if (req.method === 'POST' && pathname === '/api/recipes/scrape') {
+      // 3.1 POST /api/recipes/smart-import - Smart recipe importer (URL or free text with LLM)
+      if (req.method === 'POST' && pathname === '/api/recipes/smart-import') {
         const body = await readJsonBody();
-        const { url } = body;
+        const { input, text, url, apiKey } = body;
+        const targetInput = input || text || url;
+        if (!targetInput) {
+          sendJson(400, { error: 'input parameter is required (URL or free text)' });
+          return;
+        }
+
+        try {
+          const imported = await importRecipe(targetInput, { apiKey });
+          sendJson(200, imported);
+        } catch (err) {
+          sendJson(422, { error: 'Failed to import recipe', details: err.message });
+        }
+        return;
+      }
+
+      // 3.2 GET or POST /api/recipes/scrape - Scrape and extract recipe data from a URL
+      if ((req.method === 'POST' || req.method === 'GET') && pathname === '/api/recipes/scrape') {
+        let url = query.url;
+        if (req.method === 'POST') {
+          try {
+            const body = await readJsonBody();
+            url = body.url || url;
+          } catch {}
+        }
         if (!url) {
           sendJson(400, { error: 'url parameter is required' });
           return;
         }
 
         try {
-          const scraped = await scrapeRecipeFromUrl(url);
+          const scraped = await importRecipe(url);
           sendJson(200, scraped);
         } catch (err) {
           sendJson(422, { error: 'Failed to extract recipe from URL', details: err.message });
