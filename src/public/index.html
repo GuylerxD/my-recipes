@@ -2029,111 +2029,170 @@ ${itemNames.join(', ')}`);
     }
 
     // Built-in Intelligent Generative Chef Engine (Works offline or without API Key)
+        // Built-in Intelligent Dynamic Chef Engine
     async function generateLocalChefRecipe(prompt) {
-      await new Promise(r => setTimeout(r, 600)); // Natural thinking pause
-      const p = prompt.toLowerCase();
+      await new Promise(r => setTimeout(r, 650));
+      const p = prompt.trim();
+      const lower = p.toLowerCase();
 
-      let recipe = null;
-      let commentary = 'הרכבתי עבורך מתכון מעולה, עתיר חלבון ומותאם במדויק להעדפות שלך:';
+      // Clean prompt to extract core dish title
+      let coreTitle = p
+        .replace(/^(תבנה לי|תבנה|תכין לי|תכין|תמציא לי|תמציא|תרכיב לי|תרכיב|אני רוצה|מתכון ל|מתכון עבור|בנה לי|איך להכין)s+/i, '')
+        .trim();
+      if (!coreTitle) coreTitle = 'מנה מותאמת אישית';
+      coreTitle = coreTitle.charAt(0).toUpperCase() + coreTitle.slice(1);
 
-      if (p.includes('קרימי') || p.includes('גליד') || p.includes('creami')) {
-        recipe = {
-          title: 'גלידת חלבון פיסטוק וניל בנינג\'ה קרימי',
-          category: 'ארוחת ביניים',
-          appliance: 'נינג\'ה קרימי (Ninja Creami)',
-          prep_time_minutes: 5,
-          calories: 180,
-          protein_grams: 28,
-          difficulty: 'קל',
-          sugar_level: 'נמוך',
-          ingredients: [
-            { name: 'יוגורט מועשר בחלבון (פרו/GO)', amount: '1', unit: 'גביע' },
-            { name: 'משקה שקדים ללא סוכר', amount: '100', unit: 'מ"ל' },
-            { name: 'מחית פיסטוק טבעית (100% פיסטוק)', amount: '1', unit: 'כפית' },
-            { name: 'אינסטנט פודינג וניל ללא סוכר', amount: '1', unit: 'כפית שטוחה' }
-          ],
-          instructions: '1. מערבבים היטב את כל המרכיבים במיכל הנינג\'ה קרימי עד מרקם אחיד.\n2. מקפיאים ל-24 שעות.\n3. מעבדים בתוכנית Lite Ice Cream. אם המרקם פירורי, מוסיפים כף משקה שקדים ומפעילים Re-spin.',
-          tags: ['עתיר חלבון', 'דל סוכר', 'מתאים לנינג\'ה קרימי', 'צמחוני', 'ללא כוסברה', 'ללא סלטים']
-        };
-      } else if (p.includes('סלאשי') || p.includes('ברד') || p.includes('slushi') || p.includes('משקה')) {
-        recipe = {
-          title: 'ברד אנרגיה פירות יער PCOS בנינג\'ה סלאשי',
-          category: 'ארוחת ביניים',
-          appliance: 'נינג\'ה סלאשי (Ninja Slushi)',
-          prep_time_minutes: 8,
-          calories: 140,
-          protein_grams: 5,
-          difficulty: 'קל מאוד',
-          sugar_level: 'נמוך מאוד',
-          ingredients: [
-            { name: 'משקה אנרגיה ללא סוכר (מונסטר/רדבול אולטרה)', amount: '1', unit: 'פחית' },
-            { name: 'פירות יער קפואים (אוכמניות/פטל)', amount: '50', unit: 'גרם' },
-            { name: 'חטיף חלבוני קראנצ\'י או יוגורט בצד', amount: '1', unit: 'מנה קטנה' }
-          ],
-          instructions: '1. טוחנים את פירות היער עם משקה האנרגיה ומסננים היטב מגרעינים.\n2. מוזגים למכל הנינג\'ה סלאשי ומפעילים במצב Slush.\n3. מגישים לצד החטיף החלבוני להאטת ספיגת הפחמימות ושמירה על איזון סוכר.',
-          tags: ['דל סוכר', 'מתאים לנינג\'ה סלאשי', 'צמחוני', 'ללא כוסברה', 'ללא סלטים']
-        };
-      } else if (p.includes('דג') || p.includes('סלמון') || p.includes('טונה')) {
-        recipe = {
-          title: 'סלמון בציפוי תבלינים זהוב בנינג\'ה אייר פרייר',
-          category: 'ארוחת צהריים',
-          appliance: 'נינג\'ה אייר פרייר (Ninja Air Fryer)',
-          prep_time_minutes: 12,
-          calories: 420,
-          protein_grams: 40,
-          difficulty: 'קל',
-          sugar_level: 'נמוך',
-          ingredients: [
-            { name: 'פילה סלמון טרי', amount: '200', unit: 'גרם' },
-            { name: 'שמן זית כתית מעולה', amount: '1', unit: 'כפית' },
-            { name: 'שום גבישי, פפריקה מתוקה ומלח ים', amount: '1', unit: 'כפית' },
-            { name: 'קישוא או זוקיני פרוס', amount: '1', unit: 'יחידה' }
-          ],
-          instructions: '1. מייבשים את הסלמון בנייר סופג ומרססים מעט שמן זית ותבלינים.\n2. מניחים את הסלמון ופרוסות הזוקיני בסלסלת האייר פרייר.\n3. מפעילים בתוכנית Air Crisp ב-195 מעלות ל-11 דקות בלבד עד שהסלמון נימוח ועסיסי.',
-          tags: ['עתיר חלבון', 'דל סוכר', 'נינג\'ה אייר פרייר', 'מנות דגים', 'ללא כוסברה', 'ללא סלטים']
-        };
-      } else if (p.includes('טופו') || p.includes('צמחונ')) {
-        recipe = {
-          title: 'נאגטס טופו קריספי בשומשום באייר פרייר',
-          category: 'ארוחת צהריים',
-          appliance: 'נינג\'ה אייר פרייר (Ninja Air Fryer)',
-          prep_time_minutes: 15,
-          calories: 360,
-          protein_grams: 30,
-          difficulty: 'קל',
-          sugar_level: 'נמוך',
-          ingredients: [
-            { name: 'טופו קשה סחוט מנוזלים', amount: '200', unit: 'גרם' },
-            { name: 'רוטב סויה ללא סוכר', amount: '1', unit: 'כף' },
-            { name: 'קורנפלור או קמח טפיוקה', amount: '1', unit: 'כף' },
-            { name: 'שומשום ותרסיס שמן זית', amount: '1', unit: 'כפית' }
-          ],
-          instructions: '1. חותכים את הטופו לקוביות ומערבבים עם סויה, קורנפלור ושומשום.\n2. מרססים קלות בתרסיס שמן זית ומעבירים לנינג\'ה אייר פרייר.\n3. צולים ב-200 מעלות במשך 14 דקות, מנערים באמצע לקראנץ\' מושלם.',
-          tags: ['עתיר חלבון', 'דל סוכר', 'נינג\'ה אייר פרייר', 'צמחוני', 'ללא כוסברה', 'ללא סלטים']
-        };
-      } else {
-        // High protein chicken / all-around dinner default
-        recipe = {
-          title: 'נתחי חזה עוף שווארמה קריספי בנינג\'ה אייר פרייר',
-          category: 'ארוחת צהריים',
-          appliance: 'נינג\'ה אייר פרייר (Ninja Air Fryer)',
-          prep_time_minutes: 12,
-          calories: 380,
-          protein_grams: 48,
-          difficulty: 'קל',
-          sugar_level: 'נמוך',
-          ingredients: [
-            { name: 'חזה עוף פרוס לרצועות דקות', amount: '220', unit: 'גרם' },
-            { name: 'תבלין שווארמה / פפריקה מעושנת ושום', amount: '1', unit: 'כף' },
-            { name: 'טחינה גולמית או גבינה 5% להגשה', amount: '1', unit: 'כף' },
-            { name: 'תרסיס שמן זית', amount: '1', unit: 'ריסוס' }
-          ],
-          instructions: '1. מערבבים את רצועות העוף עם תבלין שווארמה ותרסיס שמן.\n2. מחממים נינג\'ה אייר פרייר ל-200 מעלות ומכניסים את הרצועות ל-10-12 דקות.\n3. מנערים באמצע. מגישים לצד טחינה או על לחמנייה מחיטה מלאה/מחמצת.',
-          tags: ['עתיר חלבון', 'דל סוכר', 'נינג\'ה אייר פרייר', 'ללא כוסברה', 'ללא סלטים']
-        };
+      // Detect Appliance
+      let appliance = 'כיריים (מחבת / סיר)';
+      let prepTime = 15;
+      let tags = ['עתיר חלבון', 'דל סוכר', 'ללא כוסברה', 'ללא סלטים'];
+
+      if (lower.includes('אייר פרייר') || lower.includes('air fryer') || lower.includes('airfryer') || lower.includes('איירפרייר')) {
+        appliance = 'נינג\'ה אייר פרייר (Ninja Air Fryer)';
+        prepTime = 12;
+        tags.unshift('נינג\'ה אייר פרייר');
+      } else if (lower.includes('קרימי') || lower.includes('creami') || lower.includes('גליד')) {
+        appliance = 'נינג\'ה קרימי (Ninja Creami)';
+        prepTime = 5;
+        tags.unshift('מתאים לנינג\'ה קרימי');
+      } else if (lower.includes('סלאשי') || lower.includes('slushi') || lower.includes('ברד')) {
+        appliance = 'נינג\'ה סלאשי (Ninja Slushi)';
+        prepTime = 8;
+        tags.unshift('מתאים לנינג\'ה סלאשי');
+      } else if (lower.includes('טוסט') || lower.includes('טוסטר')) {
+        appliance = 'טוסטר / טוסטר אובן';
+        prepTime = 6;
       }
 
-      return { commentary, recipe };
+      // Detect Meal Category
+      let category = 'ארוחת צהריים';
+      if (lower.includes('בוקר')) category = 'ארוחת בוקר';
+      else if (lower.includes('ערב')) category = 'ארוחת ערב';
+      else if (lower.includes('ביניים') || lower.includes('סנאק') || lower.includes('קינוח') || appliance.includes('קרימי') || appliance.includes('סלאשי')) category = 'ארוחת ביניים';
+
+      // Detect dietary flags
+      if (lower.includes('טבעול') || lower.includes('צמחונ') || lower.includes('טופו') || lower.includes('סויה')) {
+        if (!tags.includes('צמחוני')) tags.push('צמחוני');
+      }
+      if (lower.includes('סלמון') || lower.includes('דג') || lower.includes('טונה') || lower.includes('מושט')) {
+        if (!tags.includes('מנות דגים')) tags.push('מנות דגים');
+      }
+
+      // Dynamic Ingredients & Instructions Builder
+      let ingredients = [];
+      let instructions = '';
+      let calories = 380;
+      let protein = 32;
+
+      // SPECIFIC DISH: TTEOKBOKKI (טוקבוקי)
+      if (lower.includes('טוקבוקי') || lower.includes('tteokbokki')) {
+        calories = 395;
+        protein = 26;
+        ingredients = [
+          { name: 'עוגיות אורז לטוקבוקי (Tteok)', amount: '150', unit: 'גרם' },
+          { name: lower.includes('טבעול') ? 'נקניקיות טבעול צמחוניות פרוסות' : (lower.includes('נקניקי') ? 'נקניקיות פרוסות' : 'טופו / חלבון צמחי'), amount: '2', unit: 'יחידות' },
+          { name: 'רוטב סויה מופחת נתרן', amount: '2', unit: 'כפות' },
+          { name: 'שמן שומשום', amount: '1', unit: 'כפית' },
+          { name: 'סילאן טבעי ללא סוכר (או ממתיק עדין)', amount: '1', unit: 'כפית' },
+          { name: 'שום כתוש (לא חריף)', amount: '1', unit: 'שן' },
+          { name: 'מים או ציר ירקות עדין', amount: '1/2', unit: 'כוס' }
+        ];
+        instructions = '1. משרים את עוגיות האורז (טוקבוקי) במים פושרים כ-10 דקות לריכוך ראשוני.\n' +
+          '2. חותכים את נקניקיות הטבעול הצמחוניות לעיגולים ומקפיצים בסיר או מחבת עם תרסיס שמן עד הזהבה קלה.\n' +
+          '3. מוסיפים את עוגיות האורז, רוטב הסויה, שמן השומשום, הסילאן, השום ומחצית כוס המים.\n' +
+          '4. מבשלים על אש בינונית-נמוכה תוך ערבוב עדין במשך 8-10 דקות עד שהרוטב מסמיך והטוקבוקי מקבלים מרקם צ\'ואי, רך ומושלם.\n' +
+          '5. מגישים חם — מתכון עדין, לא חריף, עשיר בחלבון צמחי ומאוזן בסוכר!';
+      }
+      // SPECIFIC DISH: NINJA CREAMI
+      else if (appliance.includes('קרימי')) {
+        calories = 175;
+        protein = 28;
+        const flavor = lower.includes('שוקולד') ? 'שוקולד' : (lower.includes('פיסטוק') ? 'פיסטוק' : (lower.includes('תות') ? 'תות' : 'וניל'));
+        ingredients = [
+          { name: 'יוגורט מועשר בחלבון 20g (למשל GO / פרו)', amount: '1', unit: 'גביע (200 גרם)' },
+          { name: 'משקה שקדים או סויה ללא סוכר', amount: '120', unit: 'מ"ל' },
+          { name: `אינסטנט פודינג ${flavor} ללא סוכר`, amount: '1', unit: 'כפית' },
+          { name: 'תמצית וניל טהורה', amount: '1/2', unit: 'כפית' }
+        ];
+        instructions = '1. טורפים את היוגורט עם משקה השקדים, הפודינג והווניל במכל הנינג\'ה קרימי עד מרקם אחיד.\n' +
+          '2. מקפיאים ל-24 שעות במקפיא יציב.\n' +
+          '3. מעבדים בתוכנית Lite Ice Cream. אם המרקם מעט פירורי, מוסיפים כף חלב ומפעילים Re-spin.';
+      }
+      // SPECIFIC DISH: NINJA SLUSHI
+      else if (appliance.includes('סלאשי')) {
+        calories = 130;
+        protein = 5;
+        ingredients = [
+          { name: 'פחית משקה אנרגיה ללא סוכר (מונסטר אולטרה / רדבול זירו)', amount: '1', unit: 'פחית (330 מ"ל)' },
+          { name: 'מים קרים או קוביות קרח כתוש', amount: '100', unit: 'מ"ל' },
+          { name: 'יוגורט טבעי או חטיף חלבוני לאכילה בצד', amount: '1', unit: 'מנה' }
+        ];
+        instructions = '1. מוזגים את משקה האנרגיה ללא סוכר למכל הנינג\'ה סלאשי.\n' +
+          '2. מפעילים בתוכנית Slush וממתינים 10-15 דקות עד מרקם ברד מושלם.\n' +
+          '3. שותים לצד מנת חלבון (יוגורט או אצבע גבינה) להאטת ספיגת הפחמימות ושמירה על איזון סוכר.';
+      }
+      // SPECIFIC DISH: CHICKEN / AIR FRYER
+      else if (lower.includes('עוף') || lower.includes('חזה עוף') || lower.includes('פרגית') || (appliance.includes('אייר פרייר') && !lower.includes('טופו') && !lower.includes('סלמון'))) {
+        calories = 360;
+        protein = 46;
+        ingredients = [
+          { name: 'חזה עוף טרי חתוך לרצועות או קוביות', amount: '220', unit: 'גרם' },
+          { name: 'שום גבישי, פפריקה מתוקה ומלח דק', amount: '1', unit: 'כפית' },
+          { name: 'תרסיס שמן זית', amount: '2', unit: 'ריסוסים' },
+          { name: 'קישוא או פלפל אדום חתוך לרצועות', amount: '1', unit: 'יחידה' }
+        ];
+        instructions = '1. מתבלים את חזה העוף והירקות בתבלינים ותרסיס שמן זית.\n' +
+          '2. מחממים את הנינג\'ה אייר פרייר ל-200 מעלות על מצב Air Crisp.\n' +
+          '3. צולים במשך 11-13 דקות ומנערים את הסלסלה באמצע לקראנצ\'יות מקסימלית ועסיסיות מבפנים.';
+      }
+      // SPECIFIC DISH: FISH / SALMON
+      else if (tags.includes('מנות דגים')) {
+        calories = 410;
+        protein = 38;
+        ingredients = [
+          { name: 'פילה סלמון טרי', amount: '180', unit: 'גרם' },
+          { name: 'חרדל דיז\'ון ללא סוכר', amount: '1', unit: 'כפית' },
+          { name: 'שמן זית', amount: '1', unit: 'כפית' },
+          { name: 'שום כתוש ומלח ים', amount: '1/2', unit: 'כפית' }
+        ];
+        instructions = '1. מורחים על הסלמון חרדל דיז\'ון, שום ומעט שמן זית.\n' +
+          '2. מכניסים לנינג\'ה אייר פרייר ב-190 מעלות ל-10 דקות (או לתנור ל-15 דקות).\n' +
+          '3. מגישים חם ונימוח לצד ירק קלוי או קינואה.';
+      }
+      // GENERAL CUSTOM DISH COMPILATION
+      else {
+        calories = 370;
+        protein = 30;
+        ingredients = [
+          { name: coreTitle, amount: '1', unit: 'מנה' },
+          { name: 'תוספת חלבון מותאמת (ביצים / גבינה 5% / טופו)', amount: '100', unit: 'גרם' },
+          { name: 'תבלינים עדינים לפי הטעם (ללא כוסברה)', amount: '1', unit: 'מנה' },
+          { name: 'שמן זית לטיגון או קלייה', amount: '1', unit: 'כפית' }
+        ];
+        instructions = `1. מכינים ומסדרים את מצרכי ה-${coreTitle}.\\n` +
+          '2. מחממים מחבת או מכשיר ייעודי עם מעט שמן זית.\\n' +
+          '3. מבשלים על אש בינונית עד הגעה למרקם הרצוי והשחמה יפה.\\n' +
+          '4. מגישים טרי וחם, עם דגש על שובע ואיזון סוכר.';
+      }
+
+      const commentary = `בניתי עבורך את המתכון המדויק ל-${coreTitle}! הוא עתיר חלבון, מותאם לפרופיל שלך (דל סוכר, ללא חריף, ללא כוסברה) ומוכן להכנה או שיבוץ:`;
+
+      return {
+        commentary,
+        recipe: {
+          title: coreTitle,
+          category,
+          appliance,
+          prep_time_minutes: prepTime,
+          calories,
+          protein_grams: protein,
+          difficulty: 'קל',
+          sugar_level: 'נמוך',
+          ingredients,
+          instructions,
+          tags
+        }
+      };
     }
 
     // Actions on AI Recipe Card
