@@ -1787,6 +1787,7 @@ ${itemNames.join(', ')}`);
     // ==========================================
     // ✨ GEMINI CHEF AI AGENT
     // ==========================================
+    const aiGeneratedRecipes = {};
     let aiChatMessages = [
       {
         role: 'model',
@@ -1848,7 +1849,8 @@ ${itemNames.join(', ')}`);
         let recipeCardHtml = '';
         if (msg.recipe) {
           const r = msg.recipe;
-          const rJson = encodeURIComponent(JSON.stringify(r));
+          const rId = "ai_rec_" + idx;
+          aiGeneratedRecipes[rId] = r;
           const tags = Array.isArray(r.tags) ? r.tags : [];
           recipeCardHtml = `
             <div style="margin-top: 14px; background: #ffffff; border: 2px solid #818cf8; border-radius: 12px; padding: 16px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.1);">
@@ -1887,13 +1889,13 @@ ${itemNames.join(', ')}`);
               </div>
 
               <div style="display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 12px;">
-                <button class="btn btn-success btn-sm" onclick="saveAiRecipe('${rJson}')" style="font-weight: 700;">
+                <button type="button" class="btn btn-success btn-sm" onclick="saveAiRecipe('${rId}')" style="font-weight: 700;">
                   💾 שמור למאגר המתכונים
                 </button>
-                <button class="btn btn-primary btn-sm" onclick="quickAssignAiRecipe('${rJson}')">
+                <button type="button" class="btn btn-primary btn-sm" onclick="quickAssignAiRecipe('${rId}')">
                   📅 שבץ לתפריט שבועי
                 </button>
-                <button class="btn btn-warning btn-sm" onclick="addAiRecipeIngredientsToListi('${rJson}')">
+                <button type="button" class="btn btn-warning btn-sm" onclick="addAiRecipeIngredientsToListi('${rId}')">
                   🛒 הוסף מצרכים ל-Listi
                 </button>
               </div>
@@ -2195,15 +2197,22 @@ ${itemNames.join(', ')}`);
       };
     }
 
-    // Actions on AI Recipe Card
-    function saveAiRecipe(recipeJsonEncoded) {
-      const recipe = JSON.parse(decodeURIComponent(recipeJsonEncoded));
-      recipe.id = 'ai_' + Date.now();
-      recipe.image_url = recipe.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600';
-      recipe.ingredients = JSON.stringify(recipe.ingredients);
-      recipe.tags = JSON.stringify(recipe.tags);
+        // Actions on AI Recipe Card
+    function saveAiRecipe(rId) {
+      const recipe = aiGeneratedRecipes[rId];
+      if (!recipe) {
+        alert('מתכון לא נמצא');
+        return;
+      }
+      const newRecipe = {
+        ...recipe,
+        id: 'ai_' + Date.now(),
+        image_url: recipe.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600',
+        ingredients: typeof recipe.ingredients === 'string' ? recipe.ingredients : JSON.stringify(recipe.ingredients || []),
+        tags: typeof recipe.tags === 'string' ? recipe.tags : JSON.stringify(recipe.tags || [])
+      };
 
-      allRecipes.unshift(recipe);
+      allRecipes.unshift(newRecipe);
       saveStoredRecipes(allRecipes);
       applyGalleryFilters();
       renderNinjaAirFryerCarousel();
@@ -2212,23 +2221,40 @@ ${itemNames.join(', ')}`);
       alert(`✓ המתכון "${recipe.title}" נשמר בהצלחה במאגר המתכונים שלך!`);
     }
 
-    function quickAssignAiRecipe(recipeJsonEncoded) {
-      const recipe = JSON.parse(decodeURIComponent(recipeJsonEncoded));
-      recipe.id = 'ai_' + Date.now();
-      recipe.image_url = recipe.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600';
-      recipe.ingredients = JSON.stringify(recipe.ingredients);
-      recipe.tags = JSON.stringify(recipe.tags);
+    function quickAssignAiRecipe(rId) {
+      const recipe = aiGeneratedRecipes[rId];
+      if (!recipe) {
+        alert('מתכון לא נמצא');
+        return;
+      }
+      const newRecipe = {
+        ...recipe,
+        id: 'ai_' + Date.now(),
+        image_url: recipe.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600',
+        ingredients: typeof recipe.ingredients === 'string' ? recipe.ingredients : JSON.stringify(recipe.ingredients || []),
+        tags: typeof recipe.tags === 'string' ? recipe.tags : JSON.stringify(recipe.tags || [])
+      };
 
-      allRecipes.unshift(recipe);
-      saveStoredRecipes(allRecipes);
+      if (!allRecipes.some(r => r.title === newRecipe.title)) {
+        allRecipes.unshift(newRecipe);
+        saveStoredRecipes(allRecipes);
+      }
 
-      currentDetailRecipe = recipe;
+      currentDetailRecipe = newRecipe;
       quickAssignCurrentRecipe();
     }
 
-    async function addAiRecipeIngredientsToListi(recipeJsonEncoded) {
-      const recipe = JSON.parse(decodeURIComponent(recipeJsonEncoded));
-      const items = (recipe.ingredients || []).map(i => (typeof i === 'string' ? i : i.name).trim()).filter(Boolean);
+    async function addAiRecipeIngredientsToListi(rId) {
+      const recipe = aiGeneratedRecipes[rId];
+      if (!recipe) {
+        alert('מתכון לא נמצא');
+        return;
+      }
+      let rawIngs = recipe.ingredients || [];
+      if (typeof rawIngs === 'string') {
+        try { rawIngs = JSON.parse(rawIngs); } catch { rawIngs = []; }
+      }
+      const items = rawIngs.map(i => (typeof i === 'string' ? i : i.name).trim()).filter(Boolean);
       if (items.length === 0) return alert('אין מצרכים להוספה');
 
       try {
@@ -2244,15 +2270,13 @@ ${itemNames.join(', ')}`);
           alert(`✓ ${items.length} מצרכים נוספו ישירות ל-Listi!`);
         } else {
           navigator.clipboard.writeText(items.join(', '));
-          alert('המצרכים הועתקו ללוח.');
+          alert(`המצרכים הועתקו ללוח (${items.length} פריטים).`);
         }
       } catch {
         navigator.clipboard.writeText(items.join(', '));
-        alert(`✓ ${items.length} מצרכים הועתקו ללוח:
-${items.join(', ')}`);
+        alert(`✓ ${items.length} מצרכים הועתקו ללוח:\n${items.join(', ')}`);
       }
     }
-
 
     // Init App
     allRecipes = getStoredRecipes();
