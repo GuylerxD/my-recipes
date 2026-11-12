@@ -1,8 +1,9 @@
 {
+  "id": "my-recipes-pwa-v2",
   "name": "MY RECIPES - מאגר מתכונים ותפריט שבועי",
   "short_name": "My Recipes",
   "description": "אפליקציית מתכונים סולידית, תפריט שבועי, רשימת קניות ושף חכם",
-  "start_url": "./index.html",
+  "start_url": "./index.html?source=pwa",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

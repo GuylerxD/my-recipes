@@ -805,7 +805,10 @@
         <h1>MY RECIPES</h1>
         <p>תפריט שבועי סולידי, שף AI וסנכרון Listi</p>
       </div>
-      <div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button id="btnInstallApp" class="btn btn-primary btn-sm" style="display: none; padding: 4px 10px; font-size: 0.8rem;" onclick="triggerPwaInstall()">
+          📲 התקן אפליקציה
+        </button>
         <span class="badge badge-mint">✓ ענן מסונכרן</span>
       </div>
     </header>
@@ -3730,6 +3733,32 @@ ${itemNames.join(', ')}`);
           const cleanUrl = window.location.pathname + (window.location.hash || '');
           window.history.replaceState({}, document.title, cleanUrl);
         } catch (e) {}
+      }
+    }
+
+    // =========================================================
+    // PWA INSTALL PROMPT
+    // =========================================================
+    let deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      const btn = document.getElementById('btnInstallApp');
+      if (btn) btn.style.display = 'inline-flex';
+    });
+
+    function triggerPwaInstall() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        deferredInstallPrompt.userChoice.then((choice) => {
+          if (choice.outcome === 'accepted') {
+            const btn = document.getElementById('btnInstallApp');
+            if (btn) btn.style.display = 'none';
+          }
+          deferredInstallPrompt = null;
+        });
+      } else {
+        alert('כדי להתקין: לחצי על 3 הנקודות בדפדפן (כרום) ובחרי "התקן אפליקציה" או "הוסף למסך הבית".');
       }
     }
 
