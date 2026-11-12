@@ -250,8 +250,15 @@ export function createServer(customDb) {
         const body = await readJsonBody();
         const { day_of_week, meal_type, recipe_id, notes = '' } = body;
 
-        if (!day_of_week || !meal_type || !recipe_id) {
-          sendJson(400, { error: 'day_of_week, meal_type, and recipe_id are required' });
+        if (!day_of_week || !meal_type) {
+          sendJson(400, { error: 'day_of_week and meal_type are required' });
+          return;
+        }
+
+        if (!recipe_id) {
+          // Clear slot
+          db.prepare('DELETE FROM weekly_plan WHERE day_of_week = ? AND meal_type = ?').run(day_of_week, meal_type);
+          sendJson(200, { success: true, message: 'Slot cleared' });
           return;
         }
 
@@ -269,14 +276,31 @@ export function createServer(customDb) {
         return;
       }
 
+      // 8.1 DELETE /api/weekly-plan - Remove slot
+      if (req.method === 'DELETE' && pathname === '/api/weekly-plan') {
+        const body = await readJsonBody();
+        const { day_of_week, meal_type } = body;
+        db.prepare('DELETE FROM weekly_plan WHERE day_of_week = ? AND meal_type = ?').run(day_of_week, meal_type);
+        sendJson(200, { success: true, message: 'Slot removed' });
+        return;
+      }
+
       // 9. POST /api/weekly-plan/approve-and-push - Approves plan & pushes to The Healing Cabin
       if (req.method === 'POST' && pathname === '/api/weekly-plan/approve-and-push') {
-        // Query distinct recipes in the approved weekly plan
-        const selectedRecipes = db.prepare(`
-          SELECT DISTINCT r.id, r.title, r.description, r.calories, r.protein_grams
-          FROM weekly_plan wp
-          INNER JOIN recipes r ON wp.recipe_id = r.id
-        `).all();
+        const body = await readJsonBody();
+        let selectedRecipes = [];
+
+        if (Array.isArray(body.recipes) && body.recipes.length > 0) {
+          selectedRecipes = body.recipes;
+        } else {
+          // Query distinct recipes in the approved weekly plan with day and meal metadata
+          selectedRecipes = db.prepare(`
+            SELECT wp.day_of_week, wp.meal_type, r.id, r.title, r.description, r.calories, r.protein_grams
+            FROM weekly_plan wp
+            INNER JOIN recipes r ON wp.recipe_id = r.id
+            ORDER BY wp.id ASC
+          `).all();
+        }
 
         const pushResult = await pushToHealingCabin(selectedRecipes);
         sendJson(200, {

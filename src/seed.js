@@ -62,6 +62,40 @@ export function seedData(db) {
           { name: 'מים קרים', amount: '100', unit: 'מ"ל' }
         ]),
         tags: JSON.stringify(['דל סוכר', 'מתאים לנינג\'ה סלאשי', 'צמחוני', 'ללא כוסברה', 'ללא סלטים'])
+      },
+      {
+        title: 'קוביות חזה עוף קריספי בנינג\'ה אייר פרייר',
+        description: 'נתחי חזה עוף זהובים וקראנצ\'יים במיוחד ללא צורך בטיגון עמוק, מוכנים ב-12 דקות.',
+        instructions: '1. חותכים חזה עוף לקוביות שוות.\n2. מתבלים בפפריקה מעושנת, שום גבישי, מלח ומעט תרסיס שמן זית.\n3. מפעילים נינג\'ה אייר פרייר על תוכנית Air Crisp ב-200 מעלות ל-12 דקות ומנערים באמצע.',
+        source_url: 'https://recipes.local/ninja-airfryer-chicken',
+        image_url: 'https://images.unsplash.com/photo-1562967914-608f82629710?w=600',
+        prep_time_minutes: 12,
+        calories: 310,
+        protein_grams: 48,
+        difficulty: 'קל',
+        ingredients: JSON.stringify([
+          { name: 'חזה עוף טרי', amount: '250', unit: 'גרם' },
+          { name: 'פפריקה מעושנת', amount: '1', unit: 'כפית' },
+          { name: 'שום גבישי', amount: '1/2', unit: 'כפית' }
+        ]),
+        tags: JSON.stringify(['עתיר חלבון', 'דל סוכר', 'נינג\'ה אייר פרייר', 'ללא כוסברה', 'ללא סלטים'])
+      },
+      {
+        title: 'פילה סלמון פריך בנינג\'ה אייר פרייר',
+        description: 'סלמון עם עור סופר פריך ובשר עסיסי ונמס בפה ב-10 דקות בלבד.',
+        instructions: '1. מייבשים את פילה הסלמון בנייר סופג היטב.\n2. מרססים מעט שמן זית, מלח ים ופלפל שחור גרוס.\n3. מניחים בסלסלת האייר פרייר עם העור כלפי מעלה. 10 דקות ב-200 מעלות.',
+        source_url: 'https://recipes.local/ninja-airfryer-salmon',
+        image_url: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=600',
+        prep_time_minutes: 10,
+        calories: 340,
+        protein_grams: 39,
+        difficulty: 'קל',
+        ingredients: JSON.stringify([
+          { name: 'פילה סלמון', amount: '200', unit: 'גרם' },
+          { name: 'שמן זית', amount: '1', unit: 'כפית' },
+          { name: 'מלח ים אטלנטי', amount: '1/2', unit: 'כפית' }
+        ]),
+        tags: JSON.stringify(['עתיר חלבון', 'דל סוכר', 'נינג\'ה אייר פרייר', 'מנות דגים (ללא בקר ועוף)', 'ללא כוסברה', 'ללא סלטים'])
       }
     ];
 

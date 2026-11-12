@@ -15,8 +15,8 @@ const tagsInDb = db.prepare('SELECT name FROM tags').all().map(r => r.name);
 for (const expectedTag of PREDEFINED_TAGS) {
   assert(tagsInDb.includes(expectedTag), `Missing tag: ${expectedTag}`);
 }
-assert.strictEqual(tagsInDb.length, 8, 'Expected 8 predefined tags');
-console.log('✓ All 8 predefined tags initialized properly.');
+assert.strictEqual(tagsInDb.length, PREDEFINED_TAGS.length, `Expected ${PREDEFINED_TAGS.length} predefined tags`);
+console.log(`✓ All ${PREDEFINED_TAGS.length} predefined tags initialized properly.`);
 
 // Test 2: Recipe Insertion with All Fields
 console.log('Test 2: Recipe Insertion with Metadata & Tags...');
