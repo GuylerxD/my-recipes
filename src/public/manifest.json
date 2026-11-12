@@ -10,6 +10,15 @@
   "dir": "rtl",
   "background_color": "#f7f6f2",
   "theme_color": "#10b981",
+  "share_target": {
+    "action": "./add-recipe",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "icons": [
     {
       "src": "icons/icon-192.png",

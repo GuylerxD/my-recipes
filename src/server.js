@@ -53,8 +53,8 @@ export function createServer(customDb) {
     };
 
     try {
-      // 1. Static UI Dashboard
-      if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
+      // 1. Static UI Dashboard & Add Recipe route
+      if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html' || pathname === '/add-recipe')) {
         const filePath = path.join(__dirname, 'public', 'index.html');
         const content = fs.readFileSync(filePath, 'utf-8');
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });

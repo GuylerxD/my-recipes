@@ -3379,6 +3379,72 @@ ${itemNames.join(', ')}`);
     }
 
     // =========================================================
+    // WEB SHARE TARGET RECEIVER (ANDROID / PWA)
+    // =========================================================
+    function handleIncomingShareData({ title = '', text = '', url = '' }) {
+      const sharedTitle = (title || '').trim();
+      const sharedText = (text || '').trim();
+      const sharedUrl = (url || '').trim();
+
+      if (!sharedTitle && !sharedText && !sharedUrl) return;
+
+      // 1. Open the Add Recipe modal
+      openAddRecipeModal();
+
+      // 2. Identify if input is a direct URL or recipe text
+      let targetUrl = '';
+      let targetText = '';
+
+      if (sharedUrl && (sharedUrl.startsWith('http://') || sharedUrl.startsWith('https://'))) {
+        targetUrl = sharedUrl;
+      } else if (sharedText && (sharedText.startsWith('http://') || sharedText.startsWith('https://'))) {
+        targetUrl = sharedText;
+      } else {
+        const urlMatch = sharedText.match(/https?:\/\/[^\s]+/i);
+        if (urlMatch && sharedText.length < 250) {
+          targetUrl = urlMatch[0];
+        } else {
+          const parts = [];
+          if (sharedTitle) parts.push(sharedTitle);
+          if (sharedText && sharedText !== sharedTitle) parts.push(sharedText);
+          targetText = parts.join('\n\n').trim();
+        }
+      }
+
+      // 3. Inject into form field and automatically trigger AI parsing
+      if (targetUrl) {
+        const urlInput = document.getElementById('importUrlInput');
+        if (urlInput) {
+          urlInput.value = targetUrl;
+          scrapeFromUrl();
+        }
+      } else if (targetText) {
+        const pasteSection = document.getElementById('smartPasteSection');
+        const pasteInput = document.getElementById('smartPasteInput');
+        if (pasteSection) pasteSection.style.display = 'block';
+        if (pasteInput) {
+          pasteInput.value = targetText;
+          parseSmartPasteText();
+        }
+      }
+    }
+
+    function checkWebShareTarget() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const title = urlParams.get('title');
+      const text = urlParams.get('text');
+      const url = urlParams.get('url');
+
+      if (title || text || url) {
+        handleIncomingShareData({ title, text, url });
+        try {
+          const cleanUrl = window.location.pathname + (window.location.hash || '');
+          window.history.replaceState({}, document.title, cleanUrl);
+        } catch (e) {}
+      }
+    }
+
+    // =========================================================
     // SERVICE WORKER & APP INITIALIZATION
     // =========================================================
     if ('serviceWorker' in navigator) {
@@ -3386,6 +3452,11 @@ ${itemNames.join(', ')}`);
         navigator.serviceWorker.register('./sw.js')
           .then(reg => console.log('PWA ServiceWorker registered:', reg.scope))
           .catch(err => console.warn('PWA registration failed:', err));
+      });
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'SHARED_TARGET_DATA') {
+          handleIncomingShareData(event.data.payload);
+        }
       });
     }
 
@@ -3398,6 +3469,7 @@ ${itemNames.join(', ')}`);
     loadWhatToCook();
     loadPantry();
     renderAiChat();
+    checkWebShareTarget();
   </script>
 </body>
 </html>
