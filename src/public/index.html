@@ -7,69 +7,78 @@
   
   <!-- PWA Settings -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#10b981">
-  <meta name="background-color" content="#f7f6f2">
+  <meta name="theme-color" content="#181412">
+  <meta name="background-color" content="#181412">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="My Recipes">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
     /* =========================================================
-       SOLID FLAT DESIGN PALETTE (STRICT RULES)
-       - No gradients
-       - No heavy drop shadows (box-shadow: none)
+       WARM DARK SOLID FLAT DESIGN PALETTE
+       - No gradients, no heavy drop shadows (box-shadow: none)
        - Border radius: 8px - 12px
-       - Background: Cream White (#f7f6f2)
-       - Cards/Blocks: Solid Khaki / Off-white (#ffffff / #edebe3)
-       - Primary Actions: Solid Mint Green (#10b981)
-       - STRICT PROHIBITION: NO PINK, NO TURQUOISE, NO GOLD
+       - Background: Deep Espresso (#181412)
+       - Cards/Blocks: Warm Umber (#231E1B) & Warm Cocoa (#2D2622)
+       - Primary Actions: Warm Terracotta (#C85A32)
+       - In-Stock / Completed: Earthy Olive (#6B8E4E)
+       - STRICT PROHIBITION: NO TURQUOISE, NO MINT, NO PINK, NO GOLD
        ========================================================= */
     :root {
-      --bg: #f7f6f2;
-      --surface: #ffffff;
-      --card-bg: #edebe3;
-      --card-border: #dcd7ca;
-      --text: #1f2937;
-      --text-muted: #52525b;
-      --primary: #10b981;
-      --primary-hover: #059669;
-      --primary-active: #047857;
-      --secondary: #334155;
-      --secondary-bg: #e2dfd5;
-      --border: #dcd7ca;
-      --danger: #dc2626;
-      --danger-bg: #fef2f2;
-      --danger-border: #fecaca;
-      --tag-bg: #e5e2d8;
-      --tag-border: #d4cfbf;
-      --tag-text: #27272a;
-      --tag-active-bg: #10b981;
-      --tag-active-text: #ffffff;
+      --bg: #181412;
+      --surface: #231E1B;
+      --card-bg: #2D2622;
+      --card-border: #3F3630;
+      --text: #F5EFE6;
+      --text-muted: #B5A99F;
+      --primary: #C85A32;
+      --primary-hover: #B34B26;
+      --primary-active: #9A3E1D;
+      --olive: #6B8E4E;
+      --olive-bg: #242E1D;
+      --olive-border: #3F5432;
+      --olive-text: #C9E2B3;
+      --secondary: #3A312C;
+      --secondary-bg: #2D2622;
+      --border: #3F3630;
+      --danger: #E87A7A;
+      --danger-bg: #331D1D;
+      --danger-border: #5C2B2B;
+      --tag-bg: #2D2622;
+      --tag-border: #4A3F38;
+      --tag-text: #E6DDD3;
+      --tag-active-bg: #C85A32;
+      --tag-active-text: #F5EFE6;
       --radius-sm: 8px;
       --radius-md: 10px;
       --radius-lg: 12px;
-      --bottom-nav-height: 64px;
+      --bottom-nav-height: 66px;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Heebo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       box-shadow: none !important;
       text-shadow: none !important;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
       background-color: var(--bg);
       color: var(--text);
-      padding: 16px 16px calc(var(--bottom-nav-height) + 24px) 16px;
+      padding: 14px 14px calc(var(--bottom-nav-height) + 28px + env(safe-area-inset-bottom, 0px)) 14px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
       user-select: auto;
+      overflow-x: hidden;
     }
 
     .container {
@@ -82,42 +91,61 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      gap: 10px;
+      margin-bottom: 14px;
       background: var(--surface);
-      padding: 14px 18px;
+      padding: 12px 16px;
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
     }
+    .app-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .app-brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
     .app-title-group h1 {
-      font-size: 1.35rem;
+      font-size: 1.25rem;
       font-weight: 800;
       color: var(--text);
-      letter-spacing: -0.3px;
+      letter-spacing: -0.2px;
+      line-height: 1.15;
     }
     .app-title-group p {
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: var(--text-muted);
       margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: var(--tag-bg);
+      background: var(--card-bg);
       color: var(--text);
       border: 1px solid var(--border);
-      padding: 4px 10px;
+      padding: 5px 10px;
       border-radius: var(--radius-sm);
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       font-weight: 700;
+      white-space: nowrap;
     }
     .badge-mint {
-      background: #ecfdf5;
-      color: #065f46;
-      border-color: #a7f3d0;
+      background: var(--olive-bg);
+      color: var(--olive-text);
+      border-color: var(--olive-border);
     }
 
-    /* Top Desktop Tabs (Optional on desktop, cleanly synced with bottom bar) */
+    /* Top Desktop Tabs */
     .tabs-desktop {
       display: flex;
       gap: 8px;
@@ -127,7 +155,7 @@
       white-space: nowrap;
     }
     .tab-btn {
-      padding: 9px 16px;
+      padding: 10px 16px;
       border: 1px solid var(--border);
       background: var(--surface);
       border-radius: var(--radius-md);
@@ -135,10 +163,11 @@
       font-size: 0.88rem;
       cursor: pointer;
       color: var(--text-muted);
-      transition: background 0.12s ease, color 0.12s ease;
+      transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      min-height: 44px;
     }
     .tab-btn:hover {
       background: var(--card-bg);
@@ -146,7 +175,7 @@
     }
     .tab-btn.active {
       background: var(--primary);
-      color: #ffffff;
+      color: var(--text);
       border-color: var(--primary);
     }
 
@@ -155,8 +184,8 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 18px;
-      margin-bottom: 18px;
+      padding: 16px;
+      margin-bottom: 16px;
     }
     .card-solid-khaki {
       background: var(--card-bg);
@@ -171,21 +200,20 @@
       padding: 4px 2px 8px 2px;
       white-space: nowrap;
       -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
+      scroll-snap-type: x proximity;
+      scrollbar-width: none;
     }
     .tag-cloud::-webkit-scrollbar {
-      height: 4px;
-    }
-    .tag-cloud::-webkit-scrollbar-thumb {
-      background: #d4cfbf;
-      border-radius: 4px;
+      display: none;
     }
     .tag-chip {
       flex-shrink: 0;
+      scroll-snap-align: start;
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 6px 14px;
+      padding: 8px 14px;
+      min-height: 38px;
       border-radius: 999px;
       background: var(--tag-bg);
       color: var(--tag-text);
@@ -197,17 +225,17 @@
       transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
     .tag-chip:hover {
-      background: #dad5c7;
-      border-color: #c7c1b0;
+      background: #382F2A;
+      border-color: #574B43;
     }
     .tag-chip.active {
       background: var(--primary) !important;
-      color: #ffffff !important;
+      color: var(--text) !important;
       border-color: var(--primary-hover) !important;
     }
     .tag-chip.form-chip.selected {
       background: var(--primary);
-      color: #ffffff;
+      color: var(--text);
       border-color: var(--primary-hover);
     }
 
@@ -216,7 +244,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
     .filter-row {
       display: flex;
@@ -226,14 +254,18 @@
     }
     .search-input {
       flex: 1;
-      min-width: 220px;
-      padding: 9px 14px;
+      min-width: 200px;
+      min-height: 44px;
+      padding: 10px 14px;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      font-size: 0.9rem;
-      background: #ffffff;
+      font-size: 0.92rem;
+      background: var(--bg);
       color: var(--text);
       outline: none;
+    }
+    .search-input::placeholder {
+      color: var(--text-muted);
     }
     .search-input:focus {
       border-color: var(--primary);
@@ -249,23 +281,23 @@
       .grid {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 14px;
       }
     }
     .recipe-card {
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       overflow: hidden;
-      background: #ffffff;
+      background: var(--surface);
       display: flex;
       flex-direction: column;
       width: 100%;
     }
     .recipe-img {
       width: 100%;
-      height: 180px;
+      height: 196px;
       object-fit: cover;
-      background: #ded9cd;
+      background: var(--card-bg);
       border-bottom: 1px solid var(--border);
       display: block;
     }
@@ -274,7 +306,7 @@
       flex-grow: 1;
       display: flex;
       flex-direction: column;
-      background: #ffffff;
+      background: var(--surface);
     }
     .recipe-title {
       font-size: 1.12rem;
@@ -296,10 +328,10 @@
       flex-wrap: wrap;
       gap: 6px;
       font-size: 0.82rem;
-      color: var(--text-muted);
+      color: var(--text);
       margin-bottom: 12px;
       background: var(--card-bg);
-      padding: 8px 12px;
+      padding: 9px 12px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--card-border);
     }
@@ -312,7 +344,7 @@
 
     /* Match Specific Solid Styles */
     .card-match-100 {
-      border: 2px solid var(--primary) !important;
+      border: 2px solid var(--olive) !important;
     }
     .card-match-missing {
       border: 1px solid var(--border) !important;
@@ -330,17 +362,17 @@
       border: 1px solid transparent;
     }
     .match-badge-100 {
-      background: #ecfdf5;
-      color: #065f46;
-      border-color: #a7f3d0;
+      background: var(--olive-bg);
+      color: var(--olive-text);
+      border-color: var(--olive-border);
     }
     .match-badge-missing {
-      background: var(--tag-bg);
-      color: #3f3f46;
-      border-color: #d4cfbf;
+      background: var(--card-bg);
+      color: var(--text-muted);
+      border-color: var(--border);
     }
     .missing-items-box {
-      background: #faf9f6;
+      background: var(--bg);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       padding: 10px;
@@ -352,7 +384,7 @@
       background: var(--danger-bg);
       color: var(--danger);
       border: 1px solid var(--danger-border);
-      padding: 2px 7px;
+      padding: 3px 8px;
       border-radius: 6px;
       font-size: 0.78rem;
       margin: 2px;
@@ -360,10 +392,10 @@
     }
     .matched-item-chip {
       display: inline-block;
-      background: #ecfdf5;
-      color: #065f46;
-      border: 1px solid #a7f3d0;
-      padding: 2px 7px;
+      background: var(--olive-bg);
+      color: var(--olive-text);
+      border: 1px solid var(--olive-border);
+      padding: 3px 8px;
       border-radius: 6px;
       font-size: 0.78rem;
       margin: 2px;
@@ -372,22 +404,23 @@
 
     /* Carousel for Ninja Air Fryer */
     .carousel-section {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 16px;
-      margin-bottom: 20px;
+      padding: 14px;
+      margin-bottom: 16px;
     }
     .carousel-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 12px;
+      gap: 8px;
     }
     .carousel-badge {
-      background: var(--text);
-      color: #ffffff;
-      padding: 4px 12px;
+      background: var(--primary);
+      color: var(--text);
+      padding: 5px 12px;
       border-radius: var(--radius-sm);
       font-size: 0.82rem;
       font-weight: 700;
@@ -397,15 +430,20 @@
     }
     .carousel-scroll {
       display: flex;
-      gap: 14px;
+      gap: 12px;
       overflow-x: auto;
-      padding: 4px 2px 10px 2px;
-      scrollbar-width: thin;
-      scrollbar-color: #d4cfbf var(--card-bg);
+      padding: 4px 2px 8px 2px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .carousel-scroll::-webkit-scrollbar {
+      display: none;
     }
     .carousel-card {
-      flex: 0 0 240px;
-      background: #ffffff;
+      flex: 0 0 245px;
+      scroll-snap-align: start;
+      background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
       overflow: hidden;
@@ -438,14 +476,14 @@
       gap: 6px;
     }
 
-    /* Meal Prep Weekly Grid */
+    /* Meal Prep Weekly Grid & Weekend Preps */
     .weekend-preps-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 12px;
     }
     .weekend-prep-card {
-      background: #ffffff;
+      background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       padding: 12px;
@@ -454,13 +492,13 @@
       gap: 8px;
     }
     .weekend-prep-card.completed {
-      background: #f0fdf4;
-      border-color: var(--primary);
+      background: var(--olive-bg);
+      border-color: var(--olive);
     }
     .planner-days-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 16px;
+      gap: 14px;
     }
     .day-column {
       background: var(--surface);
@@ -491,18 +529,18 @@
       border-radius: var(--radius-sm);
     }
     .meal-slot {
-      background: #ffffff;
+      background: var(--bg);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       padding: 10px;
-      min-height: 80px;
+      min-height: 78px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       position: relative;
     }
     .meal-slot.empty {
-      border: 1px dashed #c4bfb0;
+      border: 1px dashed #4E433B;
       background: var(--card-bg);
       align-items: center;
       cursor: pointer;
@@ -510,7 +548,7 @@
     }
     .meal-slot.empty:hover {
       border-color: var(--primary);
-      background: #ffffff;
+      background: var(--surface);
     }
     .meal-slot.filled {
       border-right: 4px solid var(--primary);
@@ -561,9 +599,10 @@
       justify-content: flex-end;
     }
 
-    /* Buttons: Solid Flat */
+    /* Buttons: Solid Flat (44px+ Mobile Friendly) */
     .btn {
-      padding: 8px 16px;
+      padding: 10px 16px;
+      min-height: 42px;
       border-radius: var(--radius-sm);
       border: 1px solid transparent;
       cursor: pointer;
@@ -578,7 +617,7 @@
     }
     .btn-primary {
       background: var(--primary);
-      color: #ffffff;
+      color: var(--text);
       border-color: var(--primary-hover);
     }
     .btn-primary:hover {
@@ -588,20 +627,20 @@
       background: var(--primary-active);
     }
     .btn-success {
-      background: var(--primary);
-      color: #ffffff;
-      border-color: var(--primary-hover);
+      background: var(--olive);
+      color: var(--text);
+      border-color: var(--olive-border);
     }
     .btn-success:hover {
-      background: var(--primary-hover);
+      background: #5B7B42;
     }
     .btn-warning {
-      background: var(--text);
-      color: #ffffff;
-      border-color: #0f172a;
+      background: var(--card-bg);
+      color: var(--text);
+      border-color: var(--border);
     }
     .btn-outline {
-      background: #ffffff;
+      background: var(--surface);
       border: 1px solid var(--border);
       color: var(--text);
     }
@@ -610,29 +649,31 @@
     }
     .btn-outline.active {
       background: var(--primary);
-      color: #ffffff;
+      color: var(--text);
       border-color: var(--primary-hover);
     }
     .btn-danger {
       background: var(--danger-bg);
       color: var(--danger);
       border: 1px solid var(--danger-border);
-      padding: 4px 8px;
-      font-size: 0.8rem;
+      padding: 6px 10px;
+      min-height: 36px;
+      font-size: 0.82rem;
     }
     .btn-danger:hover {
-      background: #fee2e2;
+      background: #472525;
     }
     .btn-sm {
-      padding: 5px 10px;
+      padding: 6px 12px;
+      min-height: 36px;
       font-size: 0.82rem;
     }
 
-    /* Modal: Solid Flat */
+    /* Modal: Solid Flat & Mobile Bottom Sheet */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.6);
+      background: rgba(12, 10, 9, 0.78);
       display: none;
       justify-content: center;
       align-items: center;
@@ -643,14 +684,27 @@
       display: flex;
     }
     .modal-content {
-      background: #ffffff;
+      background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       width: 100%;
       max-width: 680px;
       max-height: 90vh;
       overflow-y: auto;
-      padding: 22px;
+      padding: 20px;
+      color: var(--text);
+    }
+    @media (max-width: 640px) {
+      .modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+      }
+      .modal-content {
+        border-radius: 16px 16px 0 0;
+        border-bottom: none;
+        max-height: 92vh;
+        padding: 18px 16px calc(20px + env(safe-area-inset-bottom, 0px)) 16px;
+      }
     }
     .modal-header {
       display: flex;
@@ -661,11 +715,17 @@
       padding-bottom: 12px;
     }
     .close-btn {
-      background: transparent;
-      border: none;
-      font-size: 1.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
       cursor: pointer;
-      color: var(--text-muted);
+      color: var(--text);
       line-height: 1;
     }
 
@@ -680,18 +740,22 @@
     }
     .form-control {
       width: 100%;
-      padding: 8px 12px;
+      min-height: 42px;
+      padding: 9px 12px;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      font-size: 0.88rem;
-      background: #ffffff;
+      font-size: 0.9rem;
+      background: var(--bg);
       color: var(--text);
       outline: none;
+    }
+    .form-control::placeholder {
+      color: var(--text-muted);
     }
     .form-control:focus {
       border-color: var(--primary);
     }
-    textarea.form-control { min-height: 80px; resize: vertical; }
+    textarea.form-control { min-height: 84px; resize: vertical; }
     .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
 
     /* Import Box */
@@ -710,17 +774,23 @@
     .ingredient-row input:nth-child(2) { flex: 1; }
     .ingredient-row input:nth-child(3) { flex: 1; }
 
-    /* Tables */
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { text-align: right; padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+    /* Tables (Responsive Scroll Wrapper) */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 420px; }
+    th, td { text-align: right; padding: 10px 8px; border-bottom: 1px solid var(--border); font-size: 0.86rem; color: var(--text); }
     th { color: var(--text-muted); font-weight: 700; background: var(--card-bg); }
-    .status-badge { padding: 3px 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; border: 1px solid transparent; }
-    .status-in_pantry { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+    .status-badge { padding: 3px 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; border: 1px solid transparent; white-space: nowrap; }
+    .status-in_pantry { background: var(--olive-bg); color: var(--olive-text); border-color: var(--olive-border); }
     .status-missing { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
     .status-grocery { background: var(--card-bg); color: var(--text); border-color: var(--card-border); }
     pre {
-      background: #1e293b;
-      color: #a7f3d0;
+      background: #120F0D;
+      color: var(--olive-text);
+      border: 1px solid var(--border);
       padding: 12px;
       border-radius: var(--radius-sm);
       font-size: 0.82rem;
@@ -730,16 +800,15 @@
     }
 
     /* =========================================================
-       BOTTOM NAVIGATION BAR (SOLID OPAQUE, MOBILE FIRST)
-       Thumb-accessible on Xiaomi 13 Pro and large devices
+       BOTTOM NAVIGATION BAR (SOLID OPAQUE WARM DARK, MOBILE FIRST)
        ========================================================= */
     .bottom-nav {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      height: var(--bottom-nav-height);
-      background: #ffffff;
+      height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+      background: var(--surface);
       border-top: 1px solid var(--border);
       display: flex;
       align-items: stretch;
@@ -753,23 +822,36 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 3px;
+      gap: 4px;
       background: transparent;
       border: none;
+      border-top: 3px solid transparent;
       color: var(--text-muted);
       cursor: pointer;
       padding: 6px 2px;
       text-decoration: none;
       user-select: none;
-      transition: color 0.15s ease, background 0.15s ease;
+      transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
       min-width: 0;
     }
     .bottom-nav-item:active {
       background: var(--card-bg);
     }
     .bottom-nav-icon {
-      font-size: 1.25rem;
-      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+    }
+    .bottom-nav-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
     .bottom-nav-label {
       font-size: 0.72rem;
@@ -781,19 +863,26 @@
     }
     .bottom-nav-item.active {
       color: var(--primary);
+      border-top-color: var(--primary);
+      background: #28211D;
     }
     .bottom-nav-item.active .bottom-nav-label {
       color: var(--primary);
       font-weight: 800;
     }
 
-    /* Hide desktop tabs bar on small mobile screens to prevent clutter */
     @media (max-width: 768px) {
       .tabs-desktop {
         display: none;
       }
       body {
-        padding: 12px 12px calc(var(--bottom-nav-height) + 20px) 12px;
+        padding: 10px 10px calc(var(--bottom-nav-height) + 22px + env(safe-area-inset-bottom, 0px)) 10px;
+      }
+      header {
+        padding: 10px 14px;
+      }
+      .app-title-group p {
+        display: none;
       }
     }
   </style>
@@ -801,9 +890,12 @@
 <body>
   <div class="container">
     <header>
-      <div class="app-title-group">
-        <h1>MY RECIPES</h1>
-        <p>תפריט שבועי סולידי, שף AI וסנכרון Listi</p>
+      <div class="app-brand">
+        <img src="icons/icon.svg" alt="MY RECIPES" class="app-brand-icon">
+        <div class="app-title-group">
+          <h1>MY RECIPES</h1>
+          <p>תפריט שבועי חם, שף AI וסנכרון Listi</p>
+        </div>
       </div>
       <div style="display: flex; gap: 8px; align-items: center;">
         <button id="btnInstallApp" class="btn btn-primary btn-sm" style="display: none; padding: 4px 10px; font-size: 0.8rem;" onclick="triggerPwaInstall()">
@@ -967,8 +1059,8 @@
           </div>
         </div>
 
-        <!-- Context Ribbon: Solid Neutral -->
-        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; font-size: 0.8rem; color: var(--text); background: #ffffff; border: 1px solid var(--border); padding: 8px 12px; border-radius: var(--radius-sm);">
+        <!-- Context Ribbon: Solid Warm Cocoa -->
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; font-size: 0.8rem; color: var(--text); background: var(--card-bg); border: 1px solid var(--border); padding: 10px 12px; border-radius: var(--radius-sm);">
           <span>🎯 <b>פרופיל תזונה:</b> צמחונית-פסקיטריאנית בלבד (דגים, ביצים, מוצרי חלב, טופו) | ללא עוף וללא בשר | דל סוכר (PCOS) | ללא כוסברה</span>
           <span>•</span>
           <span>⚡ <b>מכשירים מועדפים:</b> נינג'ה אייר פרייר, נינג'ה קרימי, נינג'ה סלאשי</span>
@@ -989,7 +1081,7 @@
         </div>
 
         <!-- Chat Container -->
-        <div id="aiChatBox" style="min-height: 380px; max-height: 520px; overflow-y: auto; background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 14px;">
+        <div id="aiChatBox" style="min-height: 360px; max-height: 500px; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 14px;">
           <!-- Chat messages rendered dynamically -->
         </div>
 
@@ -1011,22 +1103,24 @@
             <h3 style="font-size: 1.25rem; font-weight: 800;">מזווה ורשימת קניות (Listi Cloud Sync)</h3>
             <p style="color: var(--text-muted); font-size: 0.85rem;">סנכרון מלא מול ענן Fly.io של Listi (Pin: 1201)</p>
           </div>
-          <div style="display: flex; gap: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <button class="btn btn-primary" onclick="syncFromListiCloud()">🔄 סנכרן עכשיו מ-Listi בענן</button>
             <button class="btn btn-outline" onclick="simulateListiSync()">סימולציה מקומית</button>
           </div>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>מצרך</th>
-              <th>כמות</th>
-              <th>סטטוס</th>
-              <th>עודכן לאחרונה</th>
-            </tr>
-          </thead>
-          <tbody id="pantryTableBody"></tbody>
-        </table>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>מצרך</th>
+                <th>כמות</th>
+                <th>סטטוס</th>
+                <th>עודכן לאחרונה</th>
+              </tr>
+            </thead>
+            <tbody id="pantryTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -1040,7 +1134,7 @@
             <strong>1. סנכרון Listi Cloud (Fly.io):</strong> <code>https://project-1-listi-checklist-app.fly.dev</code><br>
             שליפת מזווה פעיל (<code>/api/pantry</code>), רשימת קניות (<code>/api/shopping-list</code>), והוספה לעגלה (<code>/api/cabin/shopping</code>).
           </div>
-          <div style="background: #ecfdf5; padding: 12px; border-radius: var(--radius-sm); border: 1px solid #a7f3d0; color: #065f46;">
+          <div style="background: var(--olive-bg); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--olive-border); color: var(--olive-text);">
             <strong>2. דחיפה מאובטחת ל-The Healing Cabin:</strong> <code>POST /api/weekly-plan/approve-and-push</code><br>
             מופעל בעת אישור התפריט השבועי ושולח <strong>אך ורק</strong>: שם מנה, תיאור, קלוריות, וכמות חלבון (מצרכים ואופן הכנה מוסרים לחלוטין!).
           </div>
@@ -1052,27 +1146,37 @@
   </div>
 
   <!-- =========================================================
-       BOTTOM NAVIGATION BAR (SOLID OPAQUE, MOBILE FIRST)
+       BOTTOM NAVIGATION BAR (SOLID OPAQUE WARM DARK, MOBILE FIRST)
        ========================================================= -->
   <nav class="bottom-nav" aria-label="Mobile Navigation">
     <button class="bottom-nav-item active" data-tab="planner" onclick="showTab('planner')">
-      <span class="bottom-nav-icon">📅</span>
+      <span class="bottom-nav-icon">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </span>
       <span class="bottom-nav-label">תכנון</span>
     </button>
     <button class="bottom-nav-item" data-tab="whatToCook" onclick="showTab('whatToCook')">
-      <span class="bottom-nav-icon">🍳</span>
+      <span class="bottom-nav-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M19.07 4.93l-2.83 2.83"/><path d="M3 13h18"/><path d="M5 13a7 7 0 0 0 14 0"/><path d="M9 21h6"/></svg>
+      </span>
       <span class="bottom-nav-label">מה להכין</span>
     </button>
     <button class="bottom-nav-item" data-tab="recipes" onclick="showTab('recipes')">
-      <span class="bottom-nav-icon">📖</span>
+      <span class="bottom-nav-icon">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      </span>
       <span class="bottom-nav-label">מתכונים</span>
     </button>
     <button class="bottom-nav-item" data-tab="aiChef" onclick="showTab('aiChef')">
-      <span class="bottom-nav-icon">✨</span>
+      <span class="bottom-nav-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.8L20 10.5l-5.2 3.8L16.5 20 12 16.6 7.5 20l1.7-5.7L4 10.5l6.1-1.7L12 3z"/></svg>
+      </span>
       <span class="bottom-nav-label">שף AI</span>
     </button>
     <button class="bottom-nav-item" data-tab="pantry" onclick="showTab('pantry')">
-      <span class="bottom-nav-icon">🛒</span>
+      <span class="bottom-nav-icon">
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      </span>
       <span class="bottom-nav-label">מזווה</span>
     </button>
   </nav>
@@ -1088,7 +1192,7 @@
       <div class="import-box">
         <label class="form-label">🌐 ייבוא מקישור (Import from URL)</label>
         <div class="import-row">
-          <input type="url" id="importUrlInput" class="form-control" placeholder="הדבק כאן קישור למתכון (למשל: Mako, עוגיונט, Recipe Schema...)" style="background: white;">
+          <input type="url" id="importUrlInput" class="form-control" placeholder="הדבק כאן קישור למתכון (למשל: Mako, עוגיונט, Recipe Schema...)">
           <button type="button" class="btn btn-primary" id="btnScrape" onclick="scrapeFromUrl()">ייבא</button>
         </div>
         <div id="importStatus" style="font-size: 0.8rem; margin-top: 4px; color: var(--text-muted); font-weight: 600;"></div>
@@ -1214,7 +1318,7 @@
   <div id="syncResultModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 style="font-size: 1.25rem; color: #065f46; font-weight: 800;">✓ התפריט סונכרן ל-The Healing Cabin!</h2>
+        <h2 style="font-size: 1.25rem; color: var(--olive-text); font-weight: 800;">✓ התפריט סונכרן ל-The Healing Cabin!</h2>
         <button class="close-btn" onclick="document.getElementById('syncResultModal').classList.remove('open')">&times;</button>
       </div>
       <p style="font-size: 0.9rem; color: var(--text); margin-bottom: 12px;">
@@ -1261,7 +1365,7 @@
 
         <div style="margin-bottom: 16px;">
           <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text); margin-bottom: 8px;">👩‍🍳 אופן ההכנה</h3>
-          <div id="detailInstructions" style="white-space: pre-line; line-height: 1.6; color: var(--text); background: #ffffff; padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.92rem;"></div>
+          <div id="detailInstructions" style="white-space: pre-line; line-height: 1.6; color: var(--text); background: var(--card-bg); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.92rem;"></div>
         </div>
 
         <div style="margin-bottom: 10px;">
@@ -2112,7 +2216,7 @@
       container.innerHTML = recipes.map(r => {
         const img = getSmartRecipeImage(r);
         return `
-        <div style="display: flex; gap: 12px; align-items: center; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; background: white;">
+        <div style="display: flex; gap: 12px; align-items: center; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px; background: var(--card-bg);">
           <img src="${img}" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border);" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'">
           <div style="flex-grow: 1; min-width: 0;">
             <div style="font-weight: 700; font-size: 0.92rem; color: var(--text);">${r.title}</div>
@@ -3071,7 +3175,7 @@ ${itemNames.join(', ')}`);
         if (isFullMatch) {
           missingHtml = `
             <div class="match-badge match-badge-100">✓ 100% התאמה — כל המצרכים במזווה!</div>
-            <div style="font-size: 0.82rem; color: #065f46; margin-bottom: 8px;">
+            <div style="font-size: 0.82rem; color: var(--olive-text); margin-bottom: 8px;">
               ${(r.matched_ingredients || []).map(m => `<span class="matched-item-chip">✓ ${m.name || m}</span>`).join('')}
             </div>
           `;
@@ -3248,7 +3352,7 @@ ${itemNames.join(', ')}`);
           const tags = Array.isArray(r.tags) ? r.tags : [];
 
           recipeCardHtml = `
-            <div style="margin-top: 14px; background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
+            <div style="margin-top: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
               <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
                 <div>
                   <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--text);">${r.title}</h4>
