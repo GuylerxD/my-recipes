@@ -8,7 +8,11 @@
  * 4. Returns strict JSON ready for the 'Add Recipe' modal.
  */
 
-const SYSTEM_PROMPT = `אתה עוזר קולינרי. קבל את הטקסט הבא וחלץ ממנו את המתכון למבנה JSON מחמיר הכולל: title (String), ingredients (Array of strings), instructions (Array of strings), prep_time_minutes (Number). בנוסף, הוסף מערך של tags וכלול בו תגיות רלוונטיות אם זיהית אותן (למשל: עתיר חלבון, צמחוני, מנות דגים, דל סוכר, נינג'ה אייר פרייר, ללא סלטים).`;
+import './public/recipe-tags.js';
+import './public/gemini-client.js';
+
+// Shared with the browser so every import path uses the same prompt and tag rules.
+const { IMPORT_PROMPT: SYSTEM_PROMPT, inferTags, optionalNumber, isBlockedPage, extractJsonLdRecipe } = globalThis.RecipeTags;
 
 /**
  * Checks whether an input string is a valid HTTP/HTTPS URL.
@@ -103,64 +107,56 @@ export async function fetchRawTextFromUrl(targetUrl) {
     } catch {}
   }
 
-  // Standard Website fetch
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Language': 'he,en-US,en;q=0.9'
-  };
-
-  let response;
+  // Standard website fetch. Many recipe sites sit behind anti-bot services that answer with a
+  // challenge page (sometimes with status 200), so fall back to the Jina reader, asking it for
+  // the raw HTML: that keeps the schema.org Recipe data, which is far more reliable than page text.
+  let html = '';
+  let directError = null;
   try {
-    response = await fetch(targetUrl, { headers });
+    const response = await fetch(targetUrl, { headers: BROWSER_HEADERS });
+    const body = await response.text();
+    if (response.ok && !isBlockedPage(body)) html = body;
+    else directError = new Error(`האתר חסם את הבקשה (${response.status})`);
   } catch (err) {
-    // Fallback: Jina Reader Proxy for sites with SSL or network blocks
-    const jinaRes = await fetch(`https://r.jina.ai/${targetUrl}`, {
-      headers: { 'Accept': 'text/plain' }
-    });
-    if (jinaRes.ok) {
-      const jinaText = await jinaRes.text();
-      return {
-        rawText: jinaText.slice(0, 12000),
-        imageUrl: '',
-        titleHint: ''
-      };
-    }
-    throw new Error(`Failed to fetch URL: ${err.message}`);
+    directError = new Error(`לא הצלחתי להתחבר לאתר: ${err.message}`);
   }
 
-  // If website responds with anti-bot challenge (403/429), try reader proxy
-  if (!response.ok && (response.status === 403 || response.status === 429)) {
+  if (!html) {
     try {
-      const jinaRes = await fetch(`https://r.jina.ai/${targetUrl}`, {
-        headers: { 'Accept': 'text/plain' }
-      });
-      if (jinaRes.ok) {
-        const jinaText = await jinaRes.text();
-        return {
-          rawText: jinaText.slice(0, 12000),
-          imageUrl: '',
-          titleHint: ''
-        };
-      }
-    } catch {}
-    throw new Error(`Website blocked request (${response.status} ${response.statusText})`);
+      html = await fetchViaReader(targetUrl);
+    } catch (err) {
+      throw directError || err;
+    }
   }
 
-  const html = await response.text();
+  return parsePageHtml(html);
+}
 
-  // Extract metadata hints
-  let imageUrl = '';
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'he,en-US,en;q=0.9'
+};
+
+/** Fetches a page's HTML through the Jina reader (gets past most anti-bot pages). */
+export async function fetchViaReader(targetUrl) {
+  const res = await fetch(`https://r.jina.ai/${targetUrl}`, { headers: { 'X-Return-Format': 'html' } });
+  const body = res.ok ? await res.text() : '';
+  if (!body || isBlockedPage(body)) throw new Error('גם דרך שירות הקריאה האתר חסם את הגישה');
+  return body;
+}
+
+/** Splits a page into structured recipe data (if present) plus text and hints for the AI. */
+export function parsePageHtml(html) {
   const ogImgMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
                      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
-  if (ogImgMatch) imageUrl = ogImgMatch[1];
-
-  let titleHint = '';
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  if (titleMatch) titleHint = titleMatch[1].split('|')[0].split('-')[0].trim();
-
-  const rawText = extractTextFromHtml(html);
-  return { rawText, imageUrl, titleHint };
+  return {
+    structured: extractJsonLdRecipe(html),
+    rawText: extractTextFromHtml(html),
+    imageUrl: ogImgMatch ? ogImgMatch[1] : '',
+    titleHint: titleMatch ? titleMatch[1].split('|')[0].split(' - ')[0].trim() : ''
+  };
 }
 
 /**
@@ -171,7 +167,9 @@ export async function fetchRawTextFromUrl(targetUrl) {
  */
 export async function parseRecipeWithLlm(rawText, options = {}) {
   const providedKey = (options.apiKey || '').trim();
-  const isGeminiKey = providedKey.startsWith('AIza');
+  // The browser says which provider the key is for; the prefix check only covers older callers
+  // (newer Google keys don't start with "AIza").
+  const isGeminiKey = options.provider === 'gemini' || providedKey.startsWith('AIza');
   const openaiApiKey = (!isGeminiKey ? providedKey : '') || options.openaiApiKey || process.env.OPENAI_API_KEY;
   const geminiApiKey = (isGeminiKey ? providedKey : '') || options.geminiApiKey || process.env.GEMINI_API_KEY;
 
@@ -211,31 +209,17 @@ export async function parseRecipeWithLlm(rawText, options = {}) {
 
   // 2. Try Gemini API fallback if Gemini key available
   if (geminiApiKey) {
-    for (const model of ['gemini-2.5-flash', 'gemini-2.0-flash']) {
-      try {
-        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              role: 'user',
-              parts: [{ text: `${SYSTEM_PROMPT}\n\nהטקסט לניתוח:\n${rawText}` }]
-            }]
-          })
-        });
-
-        if (geminiRes.ok) {
-          const data = await geminiRes.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-            return sanitizeRecipeOutput(parsed);
-          }
-        }
-      } catch (e) {
-        console.warn(`Gemini parser (${model}) error, attempting fallback:`, e.message);
-      }
+    try {
+      // GeminiClient picks a model the key can actually use (hardcoded names get retired).
+      const text = await globalThis.GeminiClient.generate(geminiApiKey, {
+        systemInstruction: SYSTEM_PROMPT,
+        contents: [{ role: 'user', parts: [{ text: `הטקסט לניתוח:\n${rawText}` }] }],
+        json: true,
+        temperature: 0.1
+      });
+      return sanitizeRecipeOutput(globalThis.GeminiClient.parseJson(text));
+    } catch (e) {
+      console.warn('Gemini parser error, using text-only fallback:', e.message);
     }
   }
 
@@ -271,32 +255,15 @@ function sanitizeRecipeOutput(parsed) {
     instructions = parsed.instructions.split('\n').map(s => s.trim()).filter(Boolean);
   }
 
-  // Prep time
-  const prep_time_minutes = parseInt(parsed.prep_time_minutes, 10) || 15;
+  // Unknown values stay null so the form shows them as empty instead of inventing numbers.
+  const prep_time_minutes = optionalNumber(parsed.prep_time_minutes, v => parseInt(v, 10));
+  const calories = optionalNumber(parsed.calories, v => parseInt(v, 10));
+  const protein_grams = optionalNumber(parsed.protein_grams);
 
-  // Tags
-  let tags = [];
-  if (Array.isArray(parsed.tags)) {
-    tags = parsed.tags.map(t => String(t).trim()).filter(Boolean);
-  }
-
-  // Auto-detect nutritional tags if not present
-  const fullText = (title + ' ' + ingredients.join(' ') + ' ' + instructions.join(' ')).toLowerCase();
-  const ensureTag = (tag) => { if (!tags.includes(tag)) tags.push(tag); };
-
-  if (fullText.includes('סלמון') || fullText.includes('טונה') || fullText.includes('דג') || fullText.includes('salmon')) {
-    ensureTag('מנות דגים (ללא בקר ועוף)');
-  } else if (!fullText.includes('בשר') && !fullText.includes('עוף')) {
-    ensureTag('צמחוני');
-  }
-
-  if (fullText.includes('אייר פרייר') || fullText.includes('air fryer')) ensureTag('נינג\'ה אייר פרייר');
-  if (fullText.includes('קרימי') || fullText.includes('creami')) ensureTag('מתאים לנינג\'ה קרימי');
-  if (fullText.includes('סלאשי') || fullText.includes('slushi')) ensureTag('מתאים לנינג\'ה סלאשי');
-  if (!fullText.includes('סוכר')) ensureTag('דל סוכר');
-  if (fullText.includes('חלבון') || fullText.includes('protein')) ensureTag('עתיר חלבון');
-  if (!fullText.includes('כוסברה')) ensureTag('ללא כוסברה');
-  if (!fullText.includes('סלט')) ensureTag('ללא סלטים');
+  const tags = inferTags(
+    { title, ingredients, instructions, protein_grams },
+    Array.isArray(parsed.tags) ? parsed.tags : []
+  );
 
   return {
     title,
@@ -304,12 +271,14 @@ function sanitizeRecipeOutput(parsed) {
     instructions,
     prep_time_minutes,
     tags,
-    description: parsed.description || `מתכון יובא בהצלחה עבור ${title}`,
-    calories: parseInt(parsed.calories, 10) || 350,
-    protein_grams: parseFloat(parsed.protein_grams) || 25,
-    difficulty: parsed.difficulty || 'בינוני'
+    description: String(parsed.description || '').trim(),
+    calories,
+    protein_grams,
+    difficulty: ['קל', 'בינוני', 'קשה'].includes(parsed.difficulty) ? parsed.difficulty : 'בינוני'
   };
 }
+
+export { sanitizeRecipeOutput };
 
 /**
  * Heuristic parser used when no external LLM API key is present.
@@ -338,33 +307,29 @@ function heuristicFallbackParser(rawText) {
       continue;
     }
 
+    // Strip bullets and "1." / "1)" numbering, but keep quantities like "2 ביצים".
     if (section === 'ing') {
-      const cleanIng = l.replace(/^[-*•\d.]+\s*/, '').trim();
+      const cleanIng = l.replace(/^([-*•]+|\d+[.)])\s*/, '').trim();
       if (cleanIng.length > 1) ingredients.push(cleanIng);
     } else if (section === 'inst') {
-      const cleanInst = l.replace(/^[-*•\d.]+\s*/, '').trim();
+      const cleanInst = l.replace(/^([-*•]+|\d+[.)])\s*/, '').trim();
       if (cleanInst.length > 2) instructions.push(cleanInst);
     } else {
       desc.push(l);
     }
   }
 
-  const tags = ['דל סוכר', 'עתיר חלבון', 'ללא כוסברה'];
-  const full = (title + ' ' + rawText).toLowerCase();
-  if (full.includes('סלמון') || full.includes('דג') || full.includes('טונה')) tags.push('מנות דגים (ללא בקר ועוף)');
-  else tags.push('צמחוני');
-  if (full.includes('אייר פרייר')) tags.push('נינג\'ה אייר פרייר');
-
+  // No AI available: keep only what the text actually says; leave nutrition blank for the user.
   return {
     title,
-    ingredients: ingredients.length > 0 ? ingredients : ['מצרך 1'],
-    instructions: instructions.length > 0 ? instructions : ['אופן הכנה מפורט בטקסט המקורי'],
-    prep_time_minutes: 15,
-    tags,
-    description: desc.slice(0, 2).join(' ') || 'מתכון שיובא מטקסט חופשי',
-    calories: 360,
-    protein_grams: 28,
-    difficulty: 'קל'
+    ingredients,
+    instructions,
+    prep_time_minutes: null,
+    tags: inferTags({ title, ingredients, instructions }),
+    description: desc.slice(0, 2).join(' '),
+    calories: null,
+    protein_grams: null,
+    difficulty: 'בינוני'
   };
 }
 
@@ -386,17 +351,67 @@ export async function importRecipe(input, options = {}) {
 
   if (isUrl(trimmed)) {
     sourceUrl = trimmed;
-    const { rawText, imageUrl, titleHint } = await fetchRawTextFromUrl(trimmed);
-    textToParse = `מקור URL: ${trimmed}\nכותרת עמוד: ${titleHint}\n\nתוכן העמוד:\n${rawText}`;
-    detectedImageUrl = imageUrl;
+    const page = await fetchRawTextFromUrl(trimmed);
+    if (page.structured) {
+      return buildFromStructuredRecipe(page.structured, { sourceUrl, ogImage: page.imageUrl, options });
+    }
+    if (!page.rawText || page.rawText.length < 200) {
+      throw new Error('לא נמצא תוכן מתכון בעמוד');
+    }
+    textToParse = `מקור URL: ${trimmed}\nכותרת עמוד: ${page.titleHint}\n\nתוכן העמוד:\n${page.rawText}`;
+    detectedImageUrl = page.imageUrl;
   }
 
   const recipe = await parseRecipeWithLlm(textToParse, options);
 
+  if (sourceUrl && recipe.ingredients.length === 0) {
+    // Better a clear error than a form full of navigation-menu junk.
+    throw new Error('לא הצלחתי למצוא מצרכים בעמוד');
+  }
   if (sourceUrl) recipe.source_url = sourceUrl;
   if (detectedImageUrl) recipe.image_url = detectedImageUrl;
 
   return recipe;
+}
+
+/**
+ * Builds the recipe from the site's own schema.org data (exact ingredients and steps).
+ * The AI, when available, only fills what sites rarely include: calorie/protein estimates,
+ * difficulty and tags.
+ */
+export async function buildFromStructuredRecipe(s, { sourceUrl = '', ogImage = '', options = {} } = {}) {
+  const summary = [
+    `שם: ${s.title}`,
+    s.servings ? `כמות: ${s.servings}` : '',
+    'מצרכים:',
+    ...s.ingredients.map(i => `- ${i}`),
+    'אופן הכנה:',
+    ...s.instructions.map((step, n) => `${n + 1}. ${step}`)
+  ].filter(Boolean).join('\n');
+
+  let ai = {};
+  try {
+    ai = await parseRecipeWithLlm(summary, options);
+  } catch {
+    ai = {};
+  }
+
+  const title = s.title || ai.title || 'מתכון מיובא';
+  const protein_grams = s.protein_grams ?? ai.protein_grams ?? null;
+  return {
+    title,
+    description: s.description || ai.description || '',
+    ingredients: s.ingredients,
+    instructions: s.instructions,
+    prep_time_minutes: s.prep_time_minutes ?? ai.prep_time_minutes ?? null,
+    calories: s.calories ?? ai.calories ?? null,
+    protein_grams,
+    difficulty: ai.difficulty || 'בינוני',
+    tags: inferTags({ title, ingredients: s.ingredients, instructions: s.instructions, protein_grams }, ai.tags || []),
+    image_url: s.image_url || ogImage || '',
+    source_url: sourceUrl,
+    fromStructuredData: true
+  };
 }
 
 export default {

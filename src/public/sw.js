@@ -1,7 +1,9 @@
-const CACHE_NAME = 'my-recipes-v4';
+const CACHE_NAME = 'my-recipes-v9';
 const CORE_ASSETS = [
   './',
   './index.html',
+  './recipe-tags.js?v=3',
+  './gemini-client.js?v=4',
   './manifest.json',
   './add-recipe',
   './icons/icon-192.png',
@@ -66,7 +68,9 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         })
-        .catch(() => caches.match(event.request, { ignoreSearch: true }) || caches.match('./index.html'))
+        // caches.match() returns a Promise (always truthy), so the fallback must be chained, not ||'d.
+        .catch(() => caches.match(event.request, { ignoreSearch: true })
+          .then((cached) => cached || caches.match('./index.html')))
     );
     return;
   }

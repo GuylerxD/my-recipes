@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node test/test_api.js",
+    "test": "node test/test_api.js && node test/test_import.js",
     "seed": "node src/seed.js"
   },
   "keywords": [

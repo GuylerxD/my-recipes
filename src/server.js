@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url';
 import { getDatabase } from './db.js';
 import { seedData } from './seed.js';
 import { syncFromListi, pushToHealingCabin, addMissingIngredientsToListi } from './integrations.js';
-import { scrapeRecipeFromUrl } from './scraper.js';
 import { importRecipe } from './recipeScraperService.js';
 import { calculateRecipeMatches } from './matching.js';
 import { syncListiCloudToDb, addItemToListiPantry } from './listiClient.js';
@@ -22,24 +21,35 @@ export function createServer(customDb) {
   seedData(db);
 
   const server = http.createServer(async (req, res) => {
-    // Enable CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-    if (req.method === 'OPTIONS') {
-      res.writeHead(204);
-      res.end();
-      return;
+    // The UI is served from this same server, so no CORS headers are sent. Browsers therefore
+    // block other websites from reading responses; additionally reject state-changing requests
+    // that a browser tags as coming from another site (simple form/text POSTs skip CORS preflight).
+    // Requests without an Origin header (curl, server-to-server webhooks) are unaffected.
+    const origin = req.headers.origin;
+    if (req.method !== 'GET' && req.method !== 'HEAD' && origin) {
+      let originHost = null;
+      try { originHost = new URL(origin).host; } catch {}
+      if (originHost !== req.headers.host) {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Cross-origin request blocked' }));
+        return;
+      }
     }
 
     const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const pathname = parsedUrl.pathname;
 
-    // Helper to read JSON request body
+    // Helper to read JSON request body (capped so a huge upload can't exhaust memory)
+    const MAX_BODY_BYTES = 2 * 1024 * 1024;
     const readJsonBody = () => new Promise((resolve, reject) => {
       let data = '';
-      req.on('data', chunk => { data += chunk; });
+      req.on('data', chunk => {
+        data += chunk;
+        if (data.length > MAX_BODY_BYTES) {
+          reject(new Error('Request body too large'));
+          req.destroy();
+        }
+      });
       req.on('end', () => {
         try {
           resolve(data ? JSON.parse(data) : {});
@@ -134,7 +144,7 @@ export function createServer(customDb) {
       // 3.1 POST /api/recipes/smart-import - Smart recipe importer (URL or free text with LLM)
       if (req.method === 'POST' && pathname === '/api/recipes/smart-import') {
         const body = await readJsonBody();
-        const { input, text, url, apiKey } = body;
+        const { input, text, url, apiKey, provider } = body;
         const targetInput = input || text || url;
         if (!targetInput) {
           sendJson(400, { error: 'input parameter is required (URL or free text)' });
@@ -142,7 +152,7 @@ export function createServer(customDb) {
         }
 
         try {
-          const imported = await importRecipe(targetInput, { apiKey });
+          const imported = await importRecipe(targetInput, { apiKey, provider });
           sendJson(200, imported);
         } catch (err) {
           sendJson(422, { error: 'Failed to import recipe', details: err.message });
@@ -229,7 +239,7 @@ export function createServer(customDb) {
           }
 
           const body = await readJsonBody();
-          const title = (body.title !== undefined ? body.title : existing.title).trim();
+          const title = String(body.title ?? existing.title ?? '').trim();
           if (!title) {
             sendJson(400, { error: 'Missing title field' });
             return;
