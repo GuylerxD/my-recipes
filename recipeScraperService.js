@@ -170,8 +170,10 @@ export async function fetchRawTextFromUrl(targetUrl) {
  * @returns {Promise<object>}
  */
 export async function parseRecipeWithLlm(rawText, options = {}) {
-  const openaiApiKey = options.apiKey || options.openaiApiKey || process.env.OPENAI_API_KEY;
-  const geminiApiKey = options.geminiApiKey || process.env.GEMINI_API_KEY;
+  const providedKey = (options.apiKey || '').trim();
+  const isGeminiKey = providedKey.startsWith('AIza');
+  const openaiApiKey = (!isGeminiKey ? providedKey : '') || options.openaiApiKey || process.env.OPENAI_API_KEY;
+  const geminiApiKey = (isGeminiKey ? providedKey : '') || options.geminiApiKey || process.env.GEMINI_API_KEY;
 
   // 1. Try OpenAI if API key available
   if (openaiApiKey) {
@@ -209,29 +211,31 @@ export async function parseRecipeWithLlm(rawText, options = {}) {
 
   // 2. Try Gemini API fallback if Gemini key available
   if (geminiApiKey) {
-    try {
-      const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            role: 'user',
-            parts: [{ text: `${SYSTEM_PROMPT}\n\nהטקסט לניתוח:\n${rawText}` }]
-          }]
-        })
-      });
+    for (const model of ['gemini-2.5-flash', 'gemini-2.0-flash']) {
+      try {
+        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              role: 'user',
+              parts: [{ text: `${SYSTEM_PROMPT}\n\nהטקסט לניתוח:\n${rawText}` }]
+            }]
+          })
+        });
 
-      if (geminiRes.ok) {
-        const data = await geminiRes.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-          return sanitizeRecipeOutput(parsed);
+        if (geminiRes.ok) {
+          const data = await geminiRes.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+            return sanitizeRecipeOutput(parsed);
+          }
         }
+      } catch (e) {
+        console.warn(`Gemini parser (${model}) error, attempting fallback:`, e.message);
       }
-    } catch (e) {
-      console.warn('Gemini parser error, attempting heuristic fallback:', e.message);
     }
   }
 
@@ -281,7 +285,7 @@ function sanitizeRecipeOutput(parsed) {
   const ensureTag = (tag) => { if (!tags.includes(tag)) tags.push(tag); };
 
   if (fullText.includes('סלמון') || fullText.includes('טונה') || fullText.includes('דג') || fullText.includes('salmon')) {
-    ensureTag('מנות דגים');
+    ensureTag('מנות דגים (ללא בקר ועוף)');
   } else if (!fullText.includes('בשר') && !fullText.includes('עוף')) {
     ensureTag('צמחוני');
   }
@@ -347,7 +351,7 @@ function heuristicFallbackParser(rawText) {
 
   const tags = ['דל סוכר', 'עתיר חלבון', 'ללא כוסברה'];
   const full = (title + ' ' + rawText).toLowerCase();
-  if (full.includes('סלמון') || full.includes('דג') || full.includes('טונה')) tags.push('מנות דגים');
+  if (full.includes('סלמון') || full.includes('דג') || full.includes('טונה')) tags.push('מנות דגים (ללא בקר ועוף)');
   else tags.push('צמחוני');
   if (full.includes('אייר פרייר')) tags.push('נינג\'ה אייר פרייר');
 

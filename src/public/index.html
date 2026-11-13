@@ -1185,7 +1185,7 @@
   <div id="addRecipeModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 style="font-size: 1.25rem; font-weight: 800;">הוספת מתכון חדש</h2>
+        <h2 id="addRecipeModalTitle" style="font-size: 1.25rem; font-weight: 800;">הוספת מתכון חדש</h2>
         <button class="close-btn" onclick="closeAddRecipeModal()">&times;</button>
       </div>
 
@@ -1318,10 +1318,10 @@
   <div id="syncResultModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 style="font-size: 1.25rem; color: var(--olive-text); font-weight: 800;">✓ התפריט סונכרן ל-The Healing Cabin!</h2>
+        <h2 id="syncResultTitle" style="font-size: 1.25rem; color: var(--olive-text); font-weight: 800;">✓ התפריט סונכרן ל-The Healing Cabin!</h2>
         <button class="close-btn" onclick="document.getElementById('syncResultModal').classList.remove('open')">&times;</button>
       </div>
-      <p style="font-size: 0.9rem; color: var(--text); margin-bottom: 12px;">
+      <p id="syncResultMessage" style="font-size: 0.9rem; color: var(--text); margin-bottom: 12px;">
         הנתונים נדחפו בהצלחה. <strong>אימות אבטחה:</strong> מצרכים ואופן הכנה סוננו והוסרו לחלוטין כדי לשמור על תצוגת Checkboxes נקייה.
       </p>
       <div style="font-size: 0.85rem; font-weight: 700; margin-bottom: 6px;">Payload שנשלח החוצה:</div>
@@ -1374,8 +1374,11 @@
       </div>
 
       <div style="display: flex; justify-content: space-between; gap: 8px; border-top: 1px solid var(--border); padding-top: 14px; flex-wrap: wrap;">
-        <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger-border);" onclick="deleteCurrentRecipe()">🗑️ מחק מתכון</button>
         <div style="display: flex; gap: 8px;">
+          <button class="btn btn-outline" style="color: var(--danger); border-color: var(--danger-border);" onclick="deleteCurrentRecipe()">🗑️ מחק</button>
+          <button class="btn btn-outline" onclick="editCurrentRecipe()">✏️ ערוך</button>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
           <button class="btn btn-outline" onclick="quickAddCurrentRecipeToListi()">🛒 הוסף מצרכים ל-Listi</button>
           <button class="btn btn-primary" onclick="quickAssignCurrentRecipe()">📅 שיבוץ לתפריט שבועי</button>
         </div>
@@ -1411,6 +1414,7 @@
           <option value="בוקר">בוקר</option>
           <option value="ביניים בוקר">ביניים בוקר</option>
           <option value="צהריים">צהריים</option>
+          <option value="ביניים אחה&quot;צ">ביניים אחה"צ</option>
           <option value="ארוחת ערב">ארוחת ערב</option>
         </select>
       </div>
@@ -1451,7 +1455,7 @@
     // CORE CONSTANTS & SEEDS
     // =========================================================
     const DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
-    const MEALS = ['בוקר', 'ביניים בוקר', 'צהריים', 'ארוחת ערב'];
+    const MEALS = ['בוקר', 'ביניים בוקר', 'צהריים', 'ביניים אחה"צ', 'ארוחת ערב'];
 
     const PREDEFINED_TAGS = [
       'עתיר חלבון',
@@ -1464,6 +1468,26 @@
       'ללא כוסברה',
       'ללא סלטים'
     ];
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function normalizeTagName(tag) {
+      const t = String(tag || '').trim();
+      if (t.startsWith('מנות דגים')) return 'מנות דגים';
+      return t;
+    }
+
+    function recipeMatchesTag(recipeTags, reqTag) {
+      const normReq = normalizeTagName(reqTag);
+      return recipeTags.some(t => normalizeTagName(t) === normReq || t === reqTag || t.startsWith(reqTag));
+    }
 
     // =========================================================
     // SMART RECIPE IMAGE ENGINE & CURATED MAP
@@ -1774,6 +1798,8 @@
     let activeSlotTarget = null;
     let currentDetailRecipe = null;
     let pendingAssignRecipeId = null;
+    let editingRecipeId = null;
+    let backendAvailable = false;
     let currentPantryStock = ['סלמון', 'יוגורט', 'טופו', 'לחם מחמצת', 'ביצים', 'טונה', 'גבינה צהובה', 'קוטג'];
     let aiGeneratedRecipes = {};
 
@@ -1878,8 +1904,23 @@
       } catch (e) {}
     }
 
-    function resetRecipesToDefault() {
-      if (confirm('האם לשחזר את כל 8 המתכונים המקוריים של המאגר עם התמונות החדשות?')) {
+    async function resetRecipesToDefault() {
+      if (confirm('האם לשחזר את מתכוני הבסיס המקוריים של המאגר?')) {
+        if (backendAvailable) {
+          try {
+            const res = await fetch('/api/recipes/reset-defaults', { method: 'POST' });
+            if (res.ok) {
+              const serverRecipes = await res.json();
+              allRecipes = serverRecipes.map(r => ({ ...r, image_url: getSmartRecipeImage(r) }));
+              saveStoredRecipes(allRecipes);
+              applyGalleryFilters();
+              renderNinjaAirFryerCarousel();
+              loadWhatToCook();
+              alert('✓ מאגר המתכונים שוחזר מהשרת בהצלחה!');
+              return;
+            }
+          } catch {}
+        }
         saveStoredRecipes(DEFAULT_RECIPES);
         allRecipes = [...DEFAULT_RECIPES];
         applyGalleryFilters();
@@ -1887,6 +1928,21 @@
         loadWhatToCook();
         alert('✓ מאגר המתכונים שוחזר בהצלחה!');
       }
+    }
+
+    async function persistSlotToBackend(day, meal, recipeId) {
+      if (!backendAvailable) return;
+      try {
+        await fetch('/api/weekly-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            day_of_week: day,
+            meal_type: meal,
+            recipe_id: recipeId
+          })
+        });
+      } catch {}
     }
 
     function getStoredPlan() {
@@ -2032,27 +2088,33 @@
             totalCal += cal;
             totalProt += prot;
             const img = getSmartRecipeImage(recipe);
+            const safeTitle = escapeHtml(recipe.title);
+            const safeDay = escapeHtml(day);
+            const safeMeal = escapeHtml(meal);
+            const safeId = escapeHtml(recipe.id || recipe.recipeId || '');
 
             return `
-              <div class="meal-slot filled">
-                <div class="slot-label">${meal}</div>
+              <div class="meal-slot filled" style="cursor: pointer;" onclick="openRecipeDetails('${safeId}')">
+                <div class="slot-label">${safeMeal}</div>
                 <div class="slot-content">
                   <img class="slot-thumb" src="${img}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'">
                   <div class="slot-info">
-                    <div class="slot-title" title="${recipe.title}">${recipe.title}</div>
+                    <div class="slot-title" title="${safeTitle}">${safeTitle}</div>
                     <div class="slot-meta">🔥 ${cal} קל' | 💪 ${prot}g חלבון</div>
                   </div>
                 </div>
                 <div class="slot-actions">
-                  <button class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 0.75rem;" onclick="openRecipeChooser('${day}', '${meal}')">החלף</button>
-                  <button class="btn btn-sm btn-danger" style="padding: 2px 8px; font-size: 0.75rem;" onclick="removeSlot('${day}', '${meal}')">&times;</button>
+                  <button class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 0.75rem;" onclick="event.stopPropagation(); openRecipeChooser('${safeDay}', '${safeMeal}')">החלף</button>
+                  <button class="btn btn-sm btn-danger" style="padding: 2px 8px; font-size: 0.75rem;" onclick="event.stopPropagation(); removeSlot('${safeDay}', '${safeMeal}')">&times;</button>
                 </div>
               </div>
             `;
           } else {
+            const safeDay = escapeHtml(day);
+            const safeMeal = escapeHtml(meal);
             return `
-              <div class="meal-slot empty" onclick="openRecipeChooser('${day}', '${meal}')">
-                <div class="slot-label">${meal}</div>
+              <div class="meal-slot empty" onclick="openRecipeChooser('${safeDay}', '${safeMeal}')">
+                <div class="slot-label">${safeMeal}</div>
                 <div style="font-size: 0.85rem; color: var(--primary); font-weight: 700;">+ שיבוץ מתכון</div>
               </div>
             `;
@@ -2243,16 +2305,7 @@
       const key = `${activeSlotTarget.day}_${activeSlotTarget.meal}`;
       weeklyPlan[key] = recipe;
       saveStoredPlan(weeklyPlan);
-
-      fetch('/api/weekly-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          day_of_week: activeSlotTarget.day,
-          meal_type: activeSlotTarget.meal,
-          recipe_id: recipe.id
-        })
-      }).catch(() => {});
+      persistSlotToBackend(activeSlotTarget.day, activeSlotTarget.meal, recipe.id);
 
       closeChooseRecipeModal();
       renderWeeklyPlanner();
@@ -2276,17 +2329,9 @@
       const recipe = allRecipes.find(r => String(r.id) === String(recipeId));
       if (!recipe) return;
 
-      const chosenDay = prompt('בחר יום לשיבוץ (ראשון, שני, שלישי, רביעי, חמישי, שישי, שבת):', 'ראשון');
-      if (!chosenDay || !DAYS.includes(chosenDay.trim())) return;
-
-      const chosenMeal = prompt('בחר סוג ארוחה (בוקר, ביניים בוקר, צהריים, ארוחת ערב):', 'צהריים');
-      if (!chosenMeal || !MEALS.includes(chosenMeal.trim())) return;
-
-      const key = `${chosenDay.trim()}_${chosenMeal.trim()}`;
-      weeklyPlan[key] = recipe;
-      saveStoredPlan(weeklyPlan);
-      renderWeeklyPlanner();
-      alert(`המתכון "${recipe.title}" שובץ בהצלחה ליום ${chosenDay} בארוחת ${chosenMeal}!`);
+      pendingAssignRecipeId = recipe.id;
+      document.getElementById('quickAssignRecipeName').textContent = recipe.title;
+      document.getElementById('quickAssignSlotModal').classList.add('open');
     }
 
     async function approveAndSyncPlan() {
@@ -2322,18 +2367,41 @@
         meals: filledSlots
       };
 
+      let titleText = '❌ הסנכרון ל-The Healing Cabin נכשל';
+      let titleColor = '#b91c1c';
+      let messageHtml = 'לא ניתן היה ליצור קשר עם השרת המקומי (<code>/api/weekly-plan/approve-and-push</code>). הנתונים נשמרו מקומית בדפדפן בלבד.';
+
       try {
-        await fetch('/api/weekly-plan/approve-and-push', {
+        const res = await fetch('/api/weekly-plan/approve-and-push', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ recipes: filledSlots })
-        }).catch(() => {});
+        });
+        const data = await res.json().catch(() => null);
+        const pushStatus = data?.push_result?.status;
+
+        if (res.ok && pushStatus === 'success') {
+          titleText = '✓ התפריט סונכרן ל-The Healing Cabin!';
+          titleColor = 'var(--olive-text)';
+          messageHtml = 'הנתונים נדחפו בהצלחה. <strong>אימות אבטחה:</strong> מצרכים ואופן הכנה סוננו והוסרו לחלוטין כדי לשמור על תצוגת Checkboxes נקייה.';
+        } else if (res.ok && pushStatus === 'simulated_success') {
+          titleText = '⚠️ הדחיפה לא נשלחה החוצה (מצב סימולציה)';
+          titleColor = '#b45309';
+          messageHtml = 'התפריט נבדק ונשמר מקומית בלבד, אך <strong>לא נשלח ל-The Healing Cabin</strong> כי משתנה הסביבה <code>THE_HEALING_CABIN_URL</code> אינו מוגדר בשרת.';
+        } else {
+          const errDetail = data?.push_result?.statusCode ? `HTTP ${data.push_result.statusCode}` : (data?.error || `HTTP ${res.status}`);
+          messageHtml = `השרת החזיר שגיאה בעת הדחיפה ל-The Healing Cabin (${errDetail}). התפריט לא התעדכן באפליקציה החיצונית.`;
+        }
       } catch {}
 
       try {
         localStorage.setItem('healing_cabin_approved_plan', JSON.stringify(payload));
       } catch {}
 
+      const titleEl = document.getElementById('syncResultTitle');
+      titleEl.textContent = titleText;
+      titleEl.style.color = titleColor;
+      document.getElementById('syncResultMessage').innerHTML = messageHtml;
       document.getElementById('modalPayloadPreview').textContent = JSON.stringify(payload, null, 2);
       document.getElementById('payloadPreview').textContent = JSON.stringify(payload, null, 2);
       document.getElementById('syncResultModal').classList.add('open');
@@ -2381,8 +2449,7 @@
       let filtered = allRecipes.filter(r => {
         const tags = getRecipeTags(r);
         for (const reqTag of selectedGalleryTags) {
-          const hasTag = tags.some(t => t === reqTag || t.startsWith(reqTag));
-          if (!hasTag) return false;
+          if (!recipeMatchesTag(tags, reqTag)) return false;
         }
 
         if (searchTerm) {
@@ -2423,31 +2490,35 @@
       gallery.innerHTML = recipes.map(r => {
         const tags = getRecipeTags(r);
         const image = getSmartRecipeImage(r);
+        const safeId = escapeHtml(r.id);
+        const safeTitle = escapeHtml(r.title);
+        const safeDesc = escapeHtml(r.description || '');
+        const safeDiff = escapeHtml(r.difficulty || 'קל');
         return `
-          <div class="recipe-card" onclick="openRecipeDetails('${r.id}')" style="cursor: pointer;">
-            <img class="recipe-img" src="${image}" alt="${r.title}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'">
+          <div class="recipe-card" onclick="openRecipeDetails('${safeId}')" style="cursor: pointer;">
+            <img class="recipe-img" src="${image}" alt="${safeTitle}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'">
             <div class="recipe-body">
               <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
-                <div class="recipe-title">${r.title}</div>
-                <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger-border); padding: 2px 7px; font-size: 0.78rem;" title="מחק מתכון" onclick="event.stopPropagation(); deleteRecipe('${r.id}')">
+                <div class="recipe-title">${safeTitle}</div>
+                <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger-border); padding: 2px 7px; font-size: 0.78rem;" title="מחק מתכון" onclick="event.stopPropagation(); deleteRecipe('${safeId}')">
                   🗑️
                 </button>
               </div>
-              <div class="recipe-desc">${r.description || ''}</div>
+              <div class="recipe-desc">${safeDesc}</div>
               <div class="recipe-meta">
                 <span>⏱ ${r.prep_time_minutes || 0} דק'</span>
                 <span>🔥 ${r.calories || 0} קל'</span>
                 <span>💪 ${r.protein_grams || 0}g חלבון</span>
-                <span>📊 ${r.difficulty || 'קל'}</span>
+                <span>📊 ${safeDiff}</span>
               </div>
               <div class="tag-cloud" style="margin-top: auto; padding-bottom: 2px;">
-                ${tags.map(t => `<span class="tag-chip" style="font-size: 0.75rem; padding: 2px 8px;">${t}</span>`).join('')}
+                ${tags.map(t => `<span class="tag-chip" style="font-size: 0.75rem; padding: 2px 8px;">${escapeHtml(t)}</span>`).join('')}
               </div>
               <div style="display: flex; gap: 8px; margin-top: 12px;">
-                <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="event.stopPropagation(); openRecipeDetails('${r.id}')">
+                <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="event.stopPropagation(); openRecipeDetails('${safeId}')">
                   👁️ מתכון מלא
                 </button>
-                <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger-border);" onclick="event.stopPropagation(); deleteRecipe('${r.id}')">
+                <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger-border);" onclick="event.stopPropagation(); deleteRecipe('${safeId}')">
                   מחק
                 </button>
               </div>
@@ -2516,17 +2587,20 @@
       document.getElementById('quickAssignSlotModal').classList.add('open');
     }
 
-    function confirmQuickAssign() {
+    async function confirmQuickAssign() {
       if (!pendingAssignRecipeId) return;
       const day = document.getElementById('quickAssignDay').value;
       const meal = document.getElementById('quickAssignMeal').value;
       const key = `${day}_${meal}`;
+      const targetRecipe = allRecipes.find(r => String(r.id) === String(pendingAssignRecipeId));
+      if (!targetRecipe) return;
 
       weeklyPlan[key] = {
-        ...allRecipes.find(r => String(r.id) === String(pendingAssignRecipeId)),
-        recipeId: pendingAssignRecipeId
+        ...targetRecipe,
+        recipeId: targetRecipe.id
       };
       saveStoredPlan(weeklyPlan);
+      await persistSlotToBackend(day, meal, targetRecipe.id);
       renderWeeklyPlanner();
       document.getElementById('quickAssignSlotModal').classList.remove('open');
       showTab('planner');
@@ -2543,31 +2617,57 @@
       }
 
       try {
-        const res = await fetch('https://project-1-listi-checklist-app.fly.dev/api/cabin/shopping', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer 1201'
-          },
-          body: JSON.stringify({ items: itemNames, list_id: 1 })
-        });
-        if (res.ok) {
-          alert(`✓ ${itemNames.length} מצרכים נוספו ישירות לעגלת הקניות ב-Listi!`);
+        let addedOk = false;
+        if (backendAvailable) {
+          try {
+            const localRes = await fetch('/api/integrations/listi/add-missing', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ items: itemNames })
+            });
+            if (localRes.ok) addedOk = true;
+          } catch {}
+        }
+
+        if (!addedOk) {
+          const res = await fetch('https://project-1-listi-checklist-app.fly.dev/api/cabin/shopping', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer 1201'
+            },
+            body: JSON.stringify({ items: itemNames, list_id: 1 })
+          });
+          addedOk = res.ok;
+        }
+
+        if (addedOk) {
+          alert(`✓ ${itemNames.length} מצרכים נוספו בהצלחה לעגלת הקניות ב-Listi!`);
+          loadPantry();
         } else {
-          alert('המצרכים הועתקו ללוח.');
-          navigator.clipboard.writeText(itemNames.join(', '));
+          alert('השליחה לענן Listi נכשלה; המצרכים הועתקו ללוח.');
+          navigator.clipboard?.writeText(itemNames.join(', ')).catch(() => {});
         }
       } catch {
-        alert(`✓ ${itemNames.length} מצרכים הועתקו ללוח (מצב אופליין):
-${itemNames.join(', ')}`);
-        navigator.clipboard.writeText(itemNames.join(', '));
+        alert(`✓ ${itemNames.length} מצרכים הועתקו ללוח (מצב אופליין):\n${itemNames.join(', ')}`);
+        navigator.clipboard?.writeText(itemNames.join(', ')).catch(() => {});
       }
     }
 
-    function deleteRecipe(id) {
+    async function deleteRecipe(id) {
       const r = allRecipes.find(item => String(item.id) === String(id));
       const title = r ? r.title : 'מתכון זה';
       if (confirm(`האם את בטוחה שברצונך להסיר את "${title}" ממאגר המתכונים?`)) {
+        if (backendAvailable && /^\d+$/.test(String(id))) {
+          try {
+            const res = await fetch(`/api/recipes/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            if (!res.ok && res.status !== 404) {
+              alert('שגיאה במחיקת המתכון מהשרת.');
+              return;
+            }
+          } catch {}
+        }
+
         allRecipes = allRecipes.filter(item => String(item.id) !== String(id));
         saveStoredRecipes(allRecipes);
 
@@ -2594,21 +2694,51 @@ ${itemNames.join(', ')}`);
       if (currentDetailRecipe) deleteRecipe(currentDetailRecipe.id);
     }
 
-    // Modal: Add Recipe Form
-    function openAddRecipeModal() {
-      document.getElementById('addRecipeModal').classList.add('open');
-      selectedFormTags.clear();
-      renderFormTags();
-      if (document.getElementById('formIsBasePrep')) document.getElementById('formIsBasePrep').checked = false;
-      const container = document.getElementById('ingredientsContainer');
-      if (container.children.length === 0) addIngredientRow();
+    function editCurrentRecipe() {
+      if (!currentDetailRecipe) return;
+      const r = currentDetailRecipe;
+      closeRecipeDetailsModal();
+      openAddRecipeModal(r);
     }
 
-    function closeAddRecipeModal() {
-      document.getElementById('addRecipeModal').classList.remove('open');
+    // Modal: Add / Edit Recipe Form
+    function openAddRecipeModal(recipeToEdit = null) {
       document.getElementById('addRecipeForm').reset();
       document.getElementById('ingredientsContainer').innerHTML = '';
       document.getElementById('importStatus').textContent = '';
+      document.getElementById('smartPasteStatus').textContent = '';
+      selectedFormTags.clear();
+
+      if (recipeToEdit) {
+        editingRecipeId = recipeToEdit.id;
+        document.getElementById('addRecipeModalTitle').textContent = 'עריכת מתכון';
+        document.getElementById('btnSubmitRecipe').textContent = 'עדכן מתכון';
+        populateRecipeForm({
+          ...recipeToEdit,
+          ingredients: getRecipeIngredients(recipeToEdit),
+          tags: getRecipeTags(recipeToEdit)
+        }, recipeToEdit.source_url || '', true);
+      } else {
+        editingRecipeId = null;
+        document.getElementById('addRecipeModalTitle').textContent = 'הוספת מתכון חדש';
+        document.getElementById('btnSubmitRecipe').textContent = 'שמור מתכון';
+        renderFormTags();
+        if (document.getElementById('formIsBasePrep')) document.getElementById('formIsBasePrep').checked = false;
+        addIngredientRow();
+      }
+
+      document.getElementById('addRecipeModal').classList.add('open');
+    }
+
+    function closeAddRecipeModal() {
+      editingRecipeId = null;
+      document.getElementById('addRecipeModal').classList.remove('open');
+      document.getElementById('addRecipeModalTitle').textContent = 'הוספת מתכון חדש';
+      document.getElementById('btnSubmitRecipe').textContent = 'שמור מתכון';
+      document.getElementById('addRecipeForm').reset();
+      document.getElementById('ingredientsContainer').innerHTML = '';
+      document.getElementById('importStatus').textContent = '';
+      document.getElementById('smartPasteStatus').textContent = '';
       if (document.getElementById('formIsBasePrep')) document.getElementById('formIsBasePrep').checked = false;
       selectedFormTags.clear();
     }
@@ -2618,9 +2748,9 @@ ${itemNames.join(', ')}`);
       const row = document.createElement('div');
       row.className = 'ingredient-row';
       row.innerHTML = `
-        <input type="text" class="form-control ing-name" placeholder="שם מצרך (למשל: סלמון)" value="${name}">
-        <input type="text" class="form-control ing-amount" placeholder="כמות (למשל: 200)" value="${amount}">
-        <input type="text" class="form-control ing-unit" placeholder="יחידה (למשל: גרם)" value="${unit}">
+        <input type="text" class="form-control ing-name" placeholder="שם מצרך (למשל: סלמון)" value="${escapeHtml(name)}">
+        <input type="text" class="form-control ing-amount" placeholder="כמות (למשל: 200)" value="${escapeHtml(amount)}">
+        <input type="text" class="form-control ing-unit" placeholder="יחידה (למשל: גרם)" value="${escapeHtml(unit)}">
         <button type="button" class="btn btn-danger" onclick="this.parentElement.remove()">&times;</button>
       `;
       container.appendChild(row);
@@ -2645,28 +2775,34 @@ ${itemNames.join(', ')}`);
       section.style.display = section.style.display === 'none' ? 'block' : 'none';
     }
 
-    function populateRecipeForm(data, sourceUrl = '') {
+    function populateRecipeForm(data, sourceUrl = '', exactEdit = false) {
       if (!data || !data.title) return false;
 
       document.getElementById('formTitle').value = data.title;
-      if (data.description) document.getElementById('formDescription').value = data.description;
+      document.getElementById('formDescription').value = data.description || '';
 
       if (Array.isArray(data.instructions)) {
         document.getElementById('formInstructions').value = data.instructions.join('\n');
-      } else if (data.instructions) {
-        document.getElementById('formInstructions').value = data.instructions;
+      } else {
+        document.getElementById('formInstructions').value = data.instructions || '';
       }
 
-      if (data.prep_time_minutes) document.getElementById('formPrepTime').value = data.prep_time_minutes;
-      if (data.calories) document.getElementById('formCalories').value = data.calories;
-      if (data.protein_grams) document.getElementById('formProtein').value = data.protein_grams;
-      if (data.difficulty) document.getElementById('formDifficulty').value = data.difficulty;
-      if (data.image_url) document.getElementById('formImageUrl').value = data.image_url;
-      if (data.source_url || sourceUrl) {
-        document.getElementById('formSourceUrl').value = data.source_url || sourceUrl;
+      document.getElementById('formPrepTime').value = data.prep_time_minutes ?? 15;
+      document.getElementById('formCalories').value = data.calories ?? 250;
+      document.getElementById('formProtein').value = data.protein_grams ?? 25;
+      const diffSelect = document.getElementById('formDifficulty');
+      const diffVal = data.difficulty || 'בינוני';
+      if ([...diffSelect.options].some(o => o.value === diffVal)) {
+        diffSelect.value = diffVal;
+      } else {
+        diffSelect.value = 'בינוני';
       }
+      document.getElementById('formImageUrl').value = data.image_url || '';
+      document.getElementById('formSourceUrl').value = data.source_url || sourceUrl || '';
       if (document.getElementById('formIsBasePrep')) {
-        const isBase = Boolean(data.is_base_prep) || /טחינה|קונפי|רוטב|ממרח|לחמניות|פסטו|מטבל/i.test(data.title || '');
+        const isBase = exactEdit
+          ? Boolean(data.is_base_prep)
+          : (Boolean(data.is_base_prep) || /טחינה|קונפי|רוטב|ממרח|לחמניות|פסטו|מטבל/i.test(data.title || ''));
         document.getElementById('formIsBasePrep').checked = isBase;
       }
 
@@ -2685,31 +2821,32 @@ ${itemNames.join(', ')}`);
       }
 
       selectedFormTags.clear();
-      // Pescatarian / Healthy preferences
-      selectedFormTags.add('דל סוכר');
-      selectedFormTags.add('עתיר חלבון');
-      selectedFormTags.add('ללא כוסברה');
-      selectedFormTags.add('ללא סלטים');
 
       if (Array.isArray(data.tags)) {
         data.tags.forEach(t => {
-          if (PREDEFINED_TAGS.includes(t)) selectedFormTags.add(t);
+          const norm = normalizeTagName(t);
+          if (PREDEFINED_TAGS.includes(norm)) selectedFormTags.add(norm);
         });
       }
 
-      const textContent = ((data.title || '') + ' ' + (document.getElementById('formInstructions').value || '')).toLowerCase();
-      if (textContent.includes('סלמון') || textContent.includes('דג') || textContent.includes('טונה') || textContent.includes('salmon')) {
-        selectedFormTags.add('מנות דגים');
-      } else {
-        selectedFormTags.add('צמחוני');
-      }
-
-      if (textContent.includes('אייר פרייר') || textContent.includes('air fryer')) {
-        selectedFormTags.add('נינג\'ה אייר פרייר');
-      } else if (textContent.includes('קרימי') || textContent.includes('creami')) {
-        selectedFormTags.add('מתאים לנינג\'ה קרימי');
-      } else if (textContent.includes('סלאשי') || textContent.includes('slushi')) {
-        selectedFormTags.add('מתאים לנינג\'ה סלאשי');
+      if (!exactEdit) {
+        const textContent = ((data.title || '') + ' ' + (document.getElementById('formInstructions').value || '')).toLowerCase();
+        if (!textContent.includes('סוכר')) selectedFormTags.add('דל סוכר');
+        if (!textContent.includes('כוסברה')) selectedFormTags.add('ללא כוסברה');
+        if (!textContent.includes('סלט')) selectedFormTags.add('ללא סלטים');
+        if (textContent.includes('חלבון') || Number(data.protein_grams) >= 20) selectedFormTags.add('עתיר חלבון');
+        if (textContent.includes('סלמון') || textContent.includes('דג') || textContent.includes('טונה') || textContent.includes('salmon')) {
+          selectedFormTags.add('מנות דגים');
+        } else if (!textContent.includes('בשר') && !textContent.includes('עוף') && !textContent.includes('בקר')) {
+          selectedFormTags.add('צמחוני');
+        }
+        if (textContent.includes('אייר פרייר') || textContent.includes('air fryer')) {
+          selectedFormTags.add('נינג\'ה אייר פרייר');
+        } else if (textContent.includes('קרימי') || textContent.includes('creami')) {
+          selectedFormTags.add('מתאים לנינג\'ה קרימי');
+        } else if (textContent.includes('סלאשי') || textContent.includes('slushi')) {
+          selectedFormTags.add('מתאים לנינג\'ה סלאשי');
+        }
       }
 
       renderFormTags();
@@ -2790,18 +2927,23 @@ ${itemNames.join(', ')}`);
       if (!data && apiKey) {
         try {
           const sysPrompt = `אתה עוזר קולינרי. קבל את הטקסט הבא וחלץ ממנו את המתכון למבנה JSON מחמיר הכולל: title (String), ingredients (Array of strings), instructions (Array of strings), prep_time_minutes (Number). בנוסף, הוסף מערך של tags וכלול בו תגיות רלוונטיות אם זיהית אותן (למשל: עתיר חלבון, צמחוני, מנות דגים, דל סוכר, נינג'ה אייר פרייר, ללא סלטים).`;
-          const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ role: 'user', parts: [{ text: `${sysPrompt}\n\nהטקסט לניתוח:\n${text}` }] }]
-            })
-          });
-          if (gRes.ok) {
-            const gData = await gRes.json();
-            const gText = gData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            const m = gText.match(/```json\s*([\s\S]*?)\s*```/) || gText.match(/\{[\s\S]*\}/);
-            if (m) data = JSON.parse(m[1] || m[0]);
+          for (const model of ['gemini-2.5-flash', 'gemini-2.0-flash']) {
+            const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ role: 'user', parts: [{ text: `${sysPrompt}\n\nהטקסט לניתוח:\n${text}` }] }]
+              })
+            });
+            if (gRes.ok) {
+              const gData = await gRes.json();
+              const gText = gData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+              const m = gText.match(/```json\s*([\s\S]*?)\s*```/) || gText.match(/\{[\s\S]*\}/);
+              if (m) {
+                data = JSON.parse(m[1] || m[0]);
+                break;
+              }
+            }
           }
         } catch (e) {}
       }
@@ -2873,18 +3015,23 @@ ${itemNames.join(', ')}`);
               if (apiKey) {
                 try {
                   const sysPrompt = `אתה עוזר קולינרי. קבל את הטקסט הבא וחלץ ממנו את המתכון למבנה JSON מחמיר הכולל: title (String), ingredients (Array of strings), instructions (Array of strings), prep_time_minutes (Number). בנוסף, הוסף מערך של tags וכלול בו תגיות רלוונטיות אם זיהית אותן (למשל: עתיר חלבון, צמחוני, מנות דגים, דל סוכר, נינג'ה אייר פרייר, ללא סלטים).`;
-                  const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      contents: [{ role: 'user', parts: [{ text: `${sysPrompt}\n\nכתובת מקור: ${rawUrl}\n\nטקסט עמוד:\n${text.slice(0, 10000)}` }] }]
-                    })
-                  });
-                  if (gRes.ok) {
-                    const gData = await gRes.json();
-                    const gText = gData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                    const m = gText.match(/```json\s*([\s\S]*?)\s*```/) || gText.match(/\{[\s\S]*\}/);
-                    if (m) data = JSON.parse(m[1] || m[0]);
+                  for (const model of ['gemini-2.5-flash', 'gemini-2.0-flash']) {
+                    const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        contents: [{ role: 'user', parts: [{ text: `${sysPrompt}\n\nכתובת מקור: ${rawUrl}\n\nטקסט עמוד:\n${text.slice(0, 10000)}` }] }]
+                      })
+                    });
+                    if (gRes.ok) {
+                      const gData = await gRes.json();
+                      const gText = gData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                      const m = gText.match(/```json\s*([\s\S]*?)\s*```/) || gText.match(/\{[\s\S]*\}/);
+                      if (m) {
+                        data = JSON.parse(m[1] || m[0]);
+                        break;
+                      }
+                    }
                   }
                 } catch (e) {}
               }
@@ -3015,42 +3162,88 @@ ${itemNames.join(', ')}`);
 
       const tags = Array.from(selectedFormTags);
       const finalImageUrl = image_url || getSmartRecipeImage({ title, description, instructions, tags, ingredients });
-      const newRecipe = {
-        id: Date.now(),
-        title, description, instructions, source_url, 
+      const payload = {
+        title, description, instructions, source_url,
         image_url: finalImageUrl,
         prep_time_minutes, calories, protein_grams, difficulty,
-        is_base_prep,
-        ingredients: JSON.stringify(ingredients),
-        tags: JSON.stringify(tags)
+        ingredients, tags, is_base_prep
       };
+
+      const isEditing = editingRecipeId !== null && editingRecipeId !== undefined;
 
       try {
         submitBtn.disabled = true;
         submitBtn.textContent = 'שומר...';
 
-        allRecipes.unshift(newRecipe);
-        saveStoredRecipes(allRecipes);
+        if (isEditing) {
+          let updatedRecipe = {
+            ...allRecipes.find(r => String(r.id) === String(editingRecipeId)),
+            ...payload,
+            id: editingRecipeId,
+            ingredients: JSON.stringify(ingredients),
+            tags: JSON.stringify(tags)
+          };
 
-        fetch('/api/recipes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title, description, instructions, source_url, image_url,
-            prep_time_minutes, calories, protein_grams, difficulty,
-            ingredients, tags, is_base_prep
-          })
-        }).catch(() => {});
+          if (backendAvailable && /^\d+$/.test(String(editingRecipeId))) {
+            const res = await fetch(`/api/recipes/${encodeURIComponent(editingRecipeId)}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+              const serverUpdated = await res.json();
+              updatedRecipe = { ...serverUpdated, image_url: getSmartRecipeImage(serverUpdated) };
+            }
+          }
 
-        closeAddRecipeModal();
-        renderWeeklyPlanner();
-        applyGalleryFilters();
-        alert('✓ המתכון נשמר בהצלחה במסד הנתונים!');
+          allRecipes = allRecipes.map(r => String(r.id) === String(editingRecipeId) ? updatedRecipe : r);
+          for (const k in weeklyPlan) {
+            if (weeklyPlan[k] && (String(weeklyPlan[k].id) === String(editingRecipeId) || String(weeklyPlan[k].recipeId) === String(editingRecipeId))) {
+              weeklyPlan[k] = { ...updatedRecipe, recipeId: updatedRecipe.id };
+            }
+          }
+          saveStoredPlan(weeklyPlan);
+          saveStoredRecipes(allRecipes);
+          closeAddRecipeModal();
+          renderWeeklyPlanner();
+          applyGalleryFilters();
+          loadWhatToCook();
+          alert('✓ המתכון עודכן בהצלחה!');
+        } else {
+          let newRecipe = {
+            id: Date.now(),
+            ...payload,
+            ingredients: JSON.stringify(ingredients),
+            tags: JSON.stringify(tags)
+          };
+
+          if (backendAvailable) {
+            try {
+              const res = await fetch('/api/recipes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              if (res.ok) {
+                const created = await res.json();
+                newRecipe = { ...created, image_url: getSmartRecipeImage(created) };
+              }
+            } catch {}
+          }
+
+          allRecipes.unshift(newRecipe);
+          saveStoredRecipes(allRecipes);
+          closeAddRecipeModal();
+          renderWeeklyPlanner();
+          applyGalleryFilters();
+          loadWhatToCook();
+          alert('✓ המתכון נשמר בהצלחה במסד הנתונים!');
+        }
       } catch (err) {
         alert('שגיאה: ' + err.message);
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'שמור מתכון';
+        submitBtn.textContent = editingRecipeId ? 'עדכן מתכון' : 'שמור מתכון';
       }
     }
 
@@ -3081,17 +3274,61 @@ ${itemNames.join(', ')}`);
       applyWhatToCookFilters();
     }
 
-    async function loadWhatToCook() {
-      try {
-        const res = await fetch('https://project-1-listi-checklist-app.fly.dev/api/pantry?list_id=1&pin=1201');
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.stock_names) && data.stock_names.length > 0) {
-            currentPantryStock = data.stock_names;
-          }
-        }
-      } catch (e) {}
+    function updateAiPantryBadge() {
+      const badge = document.getElementById('aiPantryStatusBadge');
+      if (!badge) return;
+      if (currentPantryStock.length > 0) {
+        badge.textContent = `מחובר למזווה (${currentPantryStock.length} פריטים)`;
+        badge.style.display = 'inline-flex';
+      } else {
+        badge.textContent = 'מזווה מקומי ריק';
+      }
+    }
 
+    async function loadWhatToCook() {
+      let stock = [];
+
+      if (backendAvailable !== false) {
+        try {
+          const res = await fetch('/api/pantry');
+          if (res.ok) {
+            const rows = await res.json();
+            if (Array.isArray(rows) && rows.length > 0) {
+              stock = rows
+                .filter(r => !r.status || r.status === 'in_pantry')
+                .map(r => String(r.item_name || '').trim())
+                .filter(Boolean);
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (stock.length === 0) {
+        try {
+          const res = await fetch('https://project-1-listi-checklist-app.fly.dev/api/pantry?list_id=1&pin=1201');
+          if (res.ok) {
+            const data = await res.json();
+            const rawList = Array.isArray(data.stock_names) && data.stock_names.length > 0
+              ? data.stock_names
+              : (Array.isArray(data.pantry) ? data.pantry.map(p => p.text || p.name) : []);
+            stock = rawList.map(s => String(s || '').trim()).filter(Boolean);
+          }
+        } catch (e) {}
+      }
+
+      if (stock.length === 0) {
+        try {
+          const cached = JSON.parse(localStorage.getItem('my_pantry_items') || '[]');
+          if (Array.isArray(cached) && cached.length > 0) {
+            stock = cached.map(c => String(c.item_name || c || '').trim()).filter(Boolean);
+          }
+        } catch (e) {}
+      }
+
+      if (stock.length > 0) {
+        currentPantryStock = [...new Set(stock)];
+      }
+      updateAiPantryBadge();
       applyWhatToCookFilters();
     }
 
@@ -3099,7 +3336,7 @@ ${itemNames.join(', ')}`);
       let recipes = allRecipes.filter(r => {
         const tags = getRecipeTags(r);
         for (const reqTag of selectedWhatToCookTags) {
-          if (!tags.some(t => t === reqTag || t.startsWith(reqTag))) return false;
+          if (!recipeMatchesTag(tags, reqTag)) return false;
         }
         return true;
       });
@@ -3122,9 +3359,11 @@ ${itemNames.join(', ')}`);
         const missing = [];
 
         ingNames.forEach(ing => {
-          const ingLower = ing.toLowerCase();
+          const ingLower = String(ing || '').trim().toLowerCase();
+          if (!ingLower) return;
           const inPantry = currentPantryStock.some(stockItem => {
-            const stockLower = String(stockItem).toLowerCase();
+            const stockLower = String(stockItem || '').trim().toLowerCase();
+            if (stockLower.length < 2) return false;
             return ingLower.includes(stockLower) || stockLower.includes(ingLower);
           });
           if (inPantry) matched.push({ name: ing });
@@ -3166,7 +3405,7 @@ ${itemNames.join(', ')}`);
       grid.innerHTML = recipes.map(r => {
         const isFullMatch = r.match_percentage === 100;
         const cardClass = isFullMatch ? 'card-match-100' : 'card-match-missing';
-        const image = getSmartRecipeImage(r);
+        const image = escapeHtml(getSmartRecipeImage(r));
         const tags = getRecipeTags(r);
 
         let missingHtml = '';
@@ -3176,7 +3415,7 @@ ${itemNames.join(', ')}`);
           missingHtml = `
             <div class="match-badge match-badge-100">✓ 100% התאמה — כל המצרכים במזווה!</div>
             <div style="font-size: 0.82rem; color: var(--olive-text); margin-bottom: 8px;">
-              ${(r.matched_ingredients || []).map(m => `<span class="matched-item-chip">✓ ${m.name || m}</span>`).join('')}
+              ${(r.matched_ingredients || []).map(m => `<span class="matched-item-chip">✓ ${escapeHtml(m.name || m)}</span>`).join('')}
             </div>
           `;
         } else {
@@ -3186,34 +3425,34 @@ ${itemNames.join(', ')}`);
             <div class="missing-items-box">
               <div style="font-weight: 700; margin-bottom: 4px; color: var(--text);">מצרכים חסרים להכנה:</div>
               <div>
-                ${(r.missing_ingredients || []).map(m => `<span class="missing-item-chip">✗ ${m.name || m}</span>`).join('')}
+                ${(r.missing_ingredients || []).map(m => `<span class="missing-item-chip">✗ ${escapeHtml(m.name || m)}</span>`).join('')}
               </div>
             </div>
           `;
 
           const missingEncoded = encodeURIComponent(JSON.stringify(r.missing_ingredients || []));
           actionBtnHtml = `
-            <button class="btn btn-primary btn-sm" style="margin-top: 10px; width: 100%; justify-content: center;" onclick="quickAddToListi('${r.id}', '${missingEncoded}', this)">
+            <button class="btn btn-primary btn-sm" style="margin-top: 10px; width: 100%; justify-content: center;" onclick="event.stopPropagation(); quickAddToListi('${escapeHtml(r.id)}', '${missingEncoded}', this)">
               🛒 הוסף חסרים לעגלה ב-Listi
             </button>
           `;
         }
 
         return `
-          <div class="recipe-card ${cardClass}">
-            <img class="recipe-img" src="${image}" alt="${r.title}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'">
+          <div class="recipe-card ${cardClass}" style="cursor: pointer;" onclick="openRecipeDetails('${escapeHtml(r.id)}')">
+            <img class="recipe-img" src="${image}" alt="${escapeHtml(r.title)}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'">
             <div class="recipe-body">
-              <div class="recipe-title">${r.title}</div>
-              <div class="recipe-desc">${r.description || ''}</div>
+              <div class="recipe-title">${escapeHtml(r.title)}</div>
+              <div class="recipe-desc">${escapeHtml(r.description || '')}</div>
               ${missingHtml}
               <div class="recipe-meta" style="margin-top: auto;">
                 <span>⏱ ${r.prep_time_minutes || 0} דק'</span>
                 <span>🔥 ${r.calories || 0} קל'</span>
                 <span>💪 ${r.protein_grams || 0}g חלבון</span>
-                <span>📊 ${r.difficulty || 'בינוני'}</span>
+                <span>📊 ${escapeHtml(r.difficulty || 'בינוני')}</span>
               </div>
               <div class="tag-cloud" style="margin-top: 8px; padding-bottom: 2px;">
-                ${tags.map(t => `<span class="tag-chip" style="font-size: 0.75rem; padding: 2px 8px;">${t}</span>`).join('')}
+                ${tags.map(t => `<span class="tag-chip" style="font-size: 0.75rem; padding: 2px 8px;">${escapeHtml(t)}</span>`).join('')}
               </div>
               ${actionBtnHtml}
             </div>
@@ -3222,23 +3461,49 @@ ${itemNames.join(', ')}`);
       }).join('');
     }
 
+    async function pushMissingItemsToListiBackendOrCloud(itemNames) {
+      if (backendAvailable !== false) {
+        try {
+          const res = await fetch('/api/integrations/listi/add-missing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: itemNames })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            return data;
+          }
+        } catch {}
+      }
+
+      const res = await fetch('https://project-1-listi-checklist-app.fly.dev/api/cabin/shopping', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer 1201', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: itemNames, list_id: 1 })
+      });
+      if (!res.ok) {
+        throw new Error(`Listi HTTP ${res.status}`);
+      }
+      return { status: 'success' };
+    }
+
     async function quickAddToListi(recipeId, missingEncoded, btn) {
       try {
-        const items = JSON.parse(decodeURIComponent(missingEncoded));
+        const items = JSON.parse(decodeURIComponent(missingEncoded))
+          .map(i => (typeof i === 'string' ? i : i.name || '').trim())
+          .filter(Boolean);
+        if (items.length === 0) return;
+
         btn.disabled = true;
         btn.textContent = 'מוסיף לעגלת Listi...';
 
-        await fetch('https://project-1-listi-checklist-app.fly.dev/api/cabin/shopping', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer 1201', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: items.map(i => i.name || i), list_id: 1 })
-        }).catch(() => {});
+        await pushMissingItemsToListiBackendOrCloud(items);
 
         btn.classList.add('btn-primary');
-        btn.textContent = '✓ נוסף בהצלחה לרשימת הקניות!';
+        btn.textContent = `✓ ${items.length} מצרכים נוספו לרשימת הקניות!`;
         loadPantry();
       } catch (err) {
-        alert('שגיאה: ' + err.message);
+        alert('שגיאה בשליחה ל-Listi: ' + err.message);
         btn.disabled = false;
         btn.textContent = '🛒 הוסף חסרים לעגלה ב-Listi';
       }
@@ -3246,15 +3511,34 @@ ${itemNames.join(', ')}`);
 
     async function syncFromListiCloud() {
       try {
+        let pantryRows = [];
+        if (backendAvailable !== false) {
+          try {
+            const res = await fetch('/api/integrations/listi/sync-now', { method: 'POST' });
+            if (res.ok) {
+              const data = await res.json();
+              pantryRows = await (await fetch('/api/pantry')).json();
+              localStorage.setItem('my_pantry_items', JSON.stringify(pantryRows));
+              renderPantryTable(pantryRows);
+              await loadWhatToCook();
+              alert(`סנכרון עבר בהצלחה! נמשכו ${data.pantryCount ?? pantryRows.length} מוצרים במזווה.`);
+              return;
+            }
+          } catch {}
+        }
+
         const res = await fetch('https://project-1-listi-checklist-app.fly.dev/api/pantry?list_id=1&pin=1201');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        const pantryItems = data.pantry || [];
-        renderPantryTable(pantryItems.map(p => ({
+        const pantryItems = (data.pantry || []).map(p => ({
           item_name: p.text || p.name,
           quantity: String(p.stock_qty || 1),
-          status: 'במזווה',
+          status: 'in_pantry',
           updated_at: new Date().toISOString()
-        })));
+        }));
+        localStorage.setItem('my_pantry_items', JSON.stringify(pantryItems));
+        renderPantryTable(pantryItems);
+        await loadWhatToCook();
         alert(`סנכרון עבר בהצלחה! נמשכו ${pantryItems.length} מוצרים במזווה.`);
       } catch (err) {
         alert('שגיאה בסנכרון מ-Listi: ' + err.message);
@@ -3263,27 +3547,74 @@ ${itemNames.join(', ')}`);
 
     function renderPantryTable(items) {
       const tbody = document.getElementById('pantryTableBody');
-      tbody.innerHTML = items.map(i => `
-        <tr>
-          <td><strong>${i.item_name}</strong></td>
-          <td>${i.quantity}</td>
-          <td><span class="status-badge status-in_pantry">${i.status}</span></td>
-          <td>${new Date(i.updated_at).toLocaleString('he-IL')}</td>
-        </tr>
-      `).join('');
+      if (!tbody) return;
+      if (!items || items.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" style="text-align:center; color: var(--muted); padding: 20px;">אין פריטים במזווה עדיין — לחצי על "סנכרן מ-Listi עכשיו" כדי למשוך נתונים.</td>
+          </tr>
+        `;
+        return;
+      }
+      const statusLabels = {
+        in_pantry: { text: 'במזווה', cls: 'status-in_pantry' },
+        missing: { text: 'חסר', cls: 'status-missing' },
+        in_grocery_list: { text: 'בעגלת קניות', cls: 'status-grocery' }
+      };
+      tbody.innerHTML = items.map(i => {
+        const key = i.status || 'in_pantry';
+        const st = statusLabels[key] || { text: key, cls: 'status-in_pantry' };
+        const dateStr = i.updated_at ? new Date(i.updated_at).toLocaleString('he-IL') : '-';
+        return `
+          <tr>
+            <td><strong>${escapeHtml(i.item_name)}</strong></td>
+            <td>${escapeHtml(i.quantity || '1')}</td>
+            <td><span class="status-badge ${st.cls}">${escapeHtml(st.text)}</span></td>
+            <td>${escapeHtml(dateStr)}</td>
+          </tr>
+        `;
+      }).join('');
     }
 
     async function loadPantry() {
+      if (backendAvailable !== false) {
+        try {
+          const res = await fetch('/api/pantry');
+          if (res.ok) {
+            const rows = await res.json();
+            if (Array.isArray(rows) && rows.length > 0) {
+              localStorage.setItem('my_pantry_items', JSON.stringify(rows));
+              renderPantryTable(rows);
+              return;
+            }
+          }
+        } catch {}
+      }
+
       try {
         const res = await fetch('https://project-1-listi-checklist-app.fly.dev/api/pantry?list_id=1&pin=1201');
-        const data = await res.json();
-        renderPantryTable((data.pantry || []).map(p => ({
-          item_name: p.text,
-          quantity: String(p.stock_qty || 1),
-          status: 'במזווה',
-          updated_at: new Date().toISOString()
-        })));
+        if (res.ok) {
+          const data = await res.json();
+          const mapped = (data.pantry || []).map(p => ({
+            item_name: p.text || p.name,
+            quantity: String(p.stock_qty || 1),
+            status: 'in_pantry',
+            updated_at: new Date().toISOString()
+          }));
+          if (mapped.length > 0) {
+            localStorage.setItem('my_pantry_items', JSON.stringify(mapped));
+          }
+          renderPantryTable(mapped);
+          return;
+        }
       } catch {}
+
+      try {
+        const cached = JSON.parse(localStorage.getItem('my_pantry_items') || '[]');
+        renderPantryTable(cached);
+      } catch {
+        renderPantryTable([]);
+      }
     }
 
     function simulateListiSync() {
@@ -3341,7 +3672,7 @@ ${itemNames.join(', ')}`);
         const isUser = msg.role === 'user';
         const avatar = isUser ? '👤' : '✨';
         const sender = isUser ? 'את' : 'Gemini Chef';
-        const bg = isUser ? 'var(--card-bg)' : '#ffffff';
+        const bg = isUser ? 'var(--card-bg)' : 'var(--surface)';
         const border = isUser ? 'var(--card-border)' : 'var(--border)';
 
         let recipeCardHtml = '';
@@ -3355,8 +3686,8 @@ ${itemNames.join(', ')}`);
             <div style="margin-top: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
               <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
                 <div>
-                  <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--text);">${r.title}</h4>
-                  <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;">${r.category || ''} • ${r.appliance || ''}</div>
+                  <h4 style="font-size: 1.15rem; font-weight: 800; color: var(--text);">${escapeHtml(r.title)}</h4>
+                  <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;">${escapeHtml(r.category || '')} • ${escapeHtml(r.appliance || '')}</div>
                 </div>
                 <span class="badge badge-mint">שף AI</span>
               </div>
@@ -3365,7 +3696,7 @@ ${itemNames.join(', ')}`);
                 <span>⏱ ${r.prep_time_minutes || 15} דק'</span>
                 <span>🔥 ${r.calories || 0} קלוריות</span>
                 <span>💪 ${r.protein_grams || 0}g חלבון</span>
-                <span>📊 ${r.difficulty || 'קל'}</span>
+                <span>📊 ${escapeHtml(r.difficulty || 'קל')}</span>
               </div>
 
               <div style="margin-bottom: 12px;">
@@ -3373,18 +3704,18 @@ ${itemNames.join(', ')}`);
                 <ul style="list-style: disc; margin-right: 18px; font-size: 0.85rem; color: var(--text); display: grid; gap: 3px;">
                   ${(r.ingredients || []).map(i => {
                     const text = typeof i === 'string' ? i : `${i.amount || ''} ${i.unit || ''} ${i.name || ''}`.trim();
-                    return `<li>${text}</li>`;
+                    return `<li>${escapeHtml(text)}</li>`;
                   }).join('')}
                 </ul>
               </div>
 
               <div style="margin-bottom: 14px;">
                 <div style="font-size: 0.88rem; font-weight: 700; color: var(--text); margin-bottom: 4px;">👩‍🍳 אופן הכנה:</div>
-                <div style="font-size: 0.85rem; line-height: 1.6; color: var(--text); white-space: pre-line; background: var(--card-bg); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border);">${r.instructions || ''}</div>
+                <div style="font-size: 0.85rem; line-height: 1.6; color: var(--text); white-space: pre-line; background: var(--card-bg); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border);">${escapeHtml(r.instructions || '')}</div>
               </div>
 
               <div class="tag-cloud" style="margin-bottom: 12px; padding-bottom: 2px;">
-                ${tags.map(t => `<span class="tag-chip active" style="font-size: 0.75rem; padding: 2px 8px;">${t}</span>`).join('')}
+                ${tags.map(t => `<span class="tag-chip active" style="font-size: 0.75rem; padding: 2px 8px;">${escapeHtml(t)}</span>`).join('')}
               </div>
 
               <div style="display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 12px;">
@@ -3409,7 +3740,7 @@ ${itemNames.join(', ')}`);
             </div>
             <div style="max-width: 85%; background: ${bg}; border: 1px solid ${border}; border-radius: var(--radius-md); padding: 12px 14px;">
               <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">${sender}</div>
-              <div style="font-size: 0.9rem; line-height: 1.6; white-space: pre-line; color: var(--text);">${msg.text}</div>
+              <div style="font-size: 0.9rem; line-height: 1.6; white-space: pre-line; color: var(--text);">${escapeHtml(msg.text)}</div>
               ${recipeCardHtml}
             </div>
           </div>
@@ -3475,10 +3806,14 @@ ${itemNames.join(', ')}`);
     }
 
     async function callGeminiApi(prompt, apiKey) {
+      const pantryContext = currentPantryStock.length > 0
+        ? `\nמצרכים זמינים כרגע במזווה:\n- ${currentPantryStock.slice(0, 40).join('\n- ')}`
+        : '';
+
       const systemInstruction = `
 אתה Gemini Chef - שף מקצועי ומומחה תזונה אישי.
 המשתמשת דורשת תזונה צמחונית-פסקיטריאנית בלבד (דגים, ביצים, מוצרי חלב, טופו). ללא עוף וללא בשר כלל!
-עתירת חלבון, מתונה בסוכר ופחמימות (PCOS-friendly), מחוברת למכשירי נינג'ה (נינג'ה אייר פרייר, נינג'ה קרימי, נינג'ה סלאשי), נמנעת לחלוטין מכוסברה ומסלטים חיים עמוסים.
+עתירת חלבון, מתונה בסוכר ופחמימות (PCOS-friendly), מחוברת למכשירי נינג'ה (נינג'ה אייר פרייר, נינג'ה קרימי, נינג'ה סלאשי), נמנעת לחלוטין מכוסברה ומסלטים חיים עמוסים.${pantryContext}
 בכל תשובה עם מתכון, עליך לכתוב הסבר קצר וידידותי בעברית, ולספק בלוק JSON תקני בלבד בעל המבנה הבא:
 {
   "title": "שם המתכון",
@@ -3492,17 +3827,50 @@ ${itemNames.join(', ')}`);
     { "name": "שם המצרך", "amount": "100", "unit": "גרם" }
   ],
   "instructions": "1. שלב ראשון\\n2. שלב שני",
-  "tags": ["עתיר חלבון", "דל סוכר", "צמחוני / מנות דגים", "ללא כוסברה", "ללא סלטים"]
+  "tags": ["עתיר חלבון", "דל סוכר", "צמחוני", "ללא כוסברה", "ללא סלטים"]
 }
 `;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: `${systemInstruction}\n\nבקשת המשתמשת: ${prompt}` }] }]
-        })
-      });
+      const historyContents = aiChatMessages
+        .filter(m => m && m.text && !String(m.text).startsWith('✨ Gemini Chef חושב'))
+        .slice(-8)
+        .map(m => ({
+          role: m.role === 'user' ? 'user' : 'model',
+          parts: [{ text: String(m.text) }]
+        }));
+
+      while (historyContents.length > 0 && historyContents[0].role !== 'user') {
+        historyContents.shift();
+      }
+
+      const contents = historyContents.length > 0 && historyContents[historyContents.length - 1].role === 'user'
+        ? historyContents
+        : [{ role: 'user', parts: [{ text: prompt }] }];
+
+      const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+      let lastError = null;
+      let response = null;
+
+      for (const modelName of models) {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            contents
+          })
+        });
+        if (res.ok) {
+          response = res;
+          break;
+        }
+        const errData = await res.json().catch(() => ({}));
+        lastError = new Error(errData?.error?.message || `Gemini HTTP ${res.status}`);
+      }
+
+      if (!response) {
+        throw lastError || new Error('קריאת Gemini API נכשלה');
+      }
 
       if (!response.ok) {
         throw new Error(`Gemini API error: ${response.status}`);
@@ -3689,13 +4057,20 @@ ${itemNames.join(', ')}`);
       };
     }
 
-    function saveAiRecipe(rId) {
+    async function saveAiRecipe(rId, options = {}) {
       const r = aiGeneratedRecipes[rId];
-      if (!r) return;
+      if (!r) return null;
+
+      if (r._savedRecipeId) {
+        const existing = allRecipes.find(item => String(item.id) === String(r._savedRecipeId));
+        if (existing) {
+          if (!options.silent) alert(`המתכון "${r.title}" כבר שמור במאגר המתכונים שלך.`);
+          return existing;
+        }
+      }
 
       const smartImg = r.image_url || getSmartRecipeImage(r);
-      const newRecipe = {
-        id: Date.now(),
+      const payload = {
         title: r.title,
         description: `${r.category || 'מנה אישית'} • ${r.appliance || ''} (נוצר ע"י שף AI)`,
         instructions: r.instructions || '',
@@ -3706,71 +4081,68 @@ ${itemNames.join(', ')}`);
         protein_grams: r.protein_grams || 25,
         difficulty: r.difficulty || 'קל',
         appliance: r.appliance || '',
-        ingredients: JSON.stringify(r.ingredients || []),
-        tags: JSON.stringify(r.tags || ['עתיר חלבון', 'דל סוכר', 'צמחוני'])
+        ingredients: r.ingredients || [],
+        tags: r.tags || ['עתיר חלבון', 'דל סוכר', 'צמחוני']
       };
 
-      allRecipes.unshift(newRecipe);
+      let savedRecipe = null;
+      if (backendAvailable !== false) {
+        try {
+          const res = await fetch('/api/recipes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (res.ok) {
+            savedRecipe = await res.json();
+          }
+        } catch {}
+      }
+
+      if (!savedRecipe) {
+        savedRecipe = {
+          id: Date.now(),
+          ...payload,
+          ingredients: JSON.stringify(payload.ingredients),
+          tags: JSON.stringify(payload.tags)
+        };
+      }
+
+      r._savedRecipeId = savedRecipe.id;
+      allRecipes.unshift(savedRecipe);
       saveStoredRecipes(allRecipes);
       applyGalleryFilters();
       renderNinjaAirFryerCarousel();
-      loadWhatToCook();
+      applyWhatToCookFilters();
 
-      alert(`✓ המתכון "${r.title}" נשמר בהצלחה למאגר המתכונים שלך!`);
+      if (!options.silent) {
+        alert(`✓ המתכון "${r.title}" נשמר בהצלחה למאגר המתכונים שלך!`);
+      }
+      return savedRecipe;
     }
 
-    function quickAssignAiRecipe(rId) {
-      const r = aiGeneratedRecipes[rId];
-      if (!r) return;
-
-      const chosenDay = prompt('בחר יום לשיבוץ (ראשון, שני, שלישי, רביעי, חמישי, שישי, שבת):', 'ראשון');
-      if (!chosenDay || !DAYS.includes(chosenDay.trim())) return;
-
-      const chosenMeal = prompt('בחר סוג ארוחה (בוקר, ביניים בוקר, צהריים, ארוחת ערב):', 'צהריים');
-      if (!chosenMeal || !MEALS.includes(chosenMeal.trim())) return;
-
-      const smartImg = r.image_url || getSmartRecipeImage(r);
-      const key = `${chosenDay.trim()}_${chosenMeal.trim()}`;
-      weeklyPlan[key] = {
-        id: 'ai_' + Date.now(),
-        title: r.title,
-        description: r.appliance || '',
-        calories: r.calories || 350,
-        protein_grams: r.protein_grams || 25,
-        image_url: smartImg
-      };
-      saveStoredPlan(weeklyPlan);
-      renderWeeklyPlanner();
-      showTab('planner');
-      alert(`✓ המתכון "${r.title}" שובץ בהצלחה ליום ${chosenDay} (${chosenMeal})!`);
+    async function quickAssignAiRecipe(rId) {
+      const saved = await saveAiRecipe(rId, { silent: true });
+      if (!saved) return;
+      openChooseSlotForRecipe(saved.id);
     }
 
     async function addAiRecipeIngredientsToListi(rId) {
       const r = aiGeneratedRecipes[rId];
       if (!r || !r.ingredients) return;
 
-      const itemNames = r.ingredients.map(i => (typeof i === 'string' ? i : i.name).trim()).filter(Boolean);
+      const itemNames = r.ingredients.map(i => (typeof i === 'string' ? i : i.name || '').trim()).filter(Boolean);
       if (itemNames.length === 0) {
         alert('לא נמצאו מצרכים.');
         return;
       }
 
       try {
-        const res = await fetch('https://project-1-listi-checklist-app.fly.dev/api/cabin/shopping', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer 1201', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items: itemNames, list_id: 1 })
-        });
-        if (res.ok) {
-          alert(`✓ ${itemNames.length} מצרכים נוספו ישירות לעגלת הקניות ב-Listi!`);
-        } else {
-          alert('המצרכים הועתקו ללוח.');
-          navigator.clipboard.writeText(itemNames.join(', '));
-        }
+        await pushMissingItemsToListiBackendOrCloud(itemNames);
+        alert(`✓ ${itemNames.length} מצרכים נוספו ישירות לעגלת הקניות ב-Listi!`);
       } catch {
-        alert(`✓ ${itemNames.length} מצרכים הועתקו ללוח (מצב אופליין):
-${itemNames.join(', ')}`);
-        navigator.clipboard.writeText(itemNames.join(', '));
+        navigator.clipboard?.writeText(itemNames.join(', ')).catch(() => {});
+        alert(`⚠️ לא הצלחתי להתחבר ל-Listi. המצרכים הועתקו ללוח:\n${itemNames.join(', ')}`);
       }
     }
 
@@ -3882,17 +4254,79 @@ ${itemNames.join(', ')}`);
       });
     }
 
-    allRecipes = getStoredRecipes();
-    weeklyPlan = getStoredPlan();
-    weekendPreps = getStoredWeekendPreps();
-    renderGalleryTags();
-    renderWhatToCookTags();
-    renderWeeklyPlanner();
-    applyGalleryFilters();
-    loadWhatToCook();
-    loadPantry();
-    renderAiChat();
-    checkWebShareTarget();
+    async function initApp() {
+      allRecipes = getStoredRecipes();
+      weeklyPlan = getStoredPlan();
+      weekendPreps = getStoredWeekendPreps();
+
+      try {
+        const recipesRes = await fetch('/api/recipes');
+        if (recipesRes.ok) {
+          const dbRecipes = await recipesRes.json();
+          if (Array.isArray(dbRecipes)) {
+            backendAvailable = true;
+            allRecipes = dbRecipes;
+            saveStoredRecipes(allRecipes);
+          }
+        } else {
+          backendAvailable = false;
+        }
+      } catch {
+        backendAvailable = false;
+      }
+
+      if (backendAvailable) {
+        try {
+          const planRes = await fetch('/api/weekly-plan');
+          if (planRes.ok) {
+            const dbSlots = await planRes.json();
+            if (Array.isArray(dbSlots)) {
+              const syncedPlan = {};
+              dbSlots.forEach(s => {
+                syncedPlan[`${s.day_of_week}_${s.meal_type}`] = {
+                  id: s.recipe_id,
+                  title: s.title || s.recipe_title || '',
+                  description: s.description || s.recipe_description || '',
+                  calories: s.calories || 0,
+                  protein_grams: s.protein_grams || 0,
+                  image_url: s.image_url || ''
+                };
+              });
+              weeklyPlan = syncedPlan;
+              saveStoredPlan(weeklyPlan);
+            }
+          }
+        } catch {}
+      }
+
+      try {
+        const savedPayload = localStorage.getItem('healing_cabin_approved_plan');
+        const previewEl = document.getElementById('payloadPreview');
+        if (savedPayload && previewEl) {
+          previewEl.textContent = JSON.stringify(JSON.parse(savedPayload), null, 2);
+        }
+      } catch {}
+
+      const aiInput = document.getElementById('aiUserInput');
+      if (aiInput) {
+        aiInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendAiMessage();
+          }
+        });
+      }
+
+      renderGalleryTags();
+      renderWhatToCookTags();
+      renderWeeklyPlanner();
+      applyGalleryFilters();
+      await Promise.all([loadWhatToCook(), loadPantry()]);
+      renderAiChat();
+      checkWebShareTarget();
+    }
+
+    initApp();
   </script>
 </body>
 </html>

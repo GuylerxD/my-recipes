@@ -149,25 +149,29 @@ export const USER_CUSTOM_RECIPES = [
   }
 ];
 
-export function seedData(db) {
-  const insertRecipeStmt = db.prepare(`
-    INSERT INTO recipes (
-      title, description, instructions, source_url, image_url,
-      prep_time_minutes, calories, protein_grams, difficulty, ingredients, tags
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+export function seedData(db, force = false) {
+  const recipeCount = db.prepare('SELECT COUNT(*) as count FROM recipes').get().count;
+  if (recipeCount === 0 || force) {
+    const insertRecipeStmt = db.prepare(`
+      INSERT INTO recipes (
+        title, description, instructions, source_url, image_url,
+        prep_time_minutes, calories, protein_grams, difficulty, ingredients, tags, is_base_prep
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
 
-  const existingTitles = new Set(
-    db.prepare('SELECT title FROM recipes').all().map(r => r.title)
-  );
+    const existingTitles = new Set(
+      db.prepare('SELECT title FROM recipes').all().map(r => r.title)
+    );
 
-  for (const r of USER_CUSTOM_RECIPES) {
-    if (!existingTitles.has(r.title)) {
-      insertRecipeStmt.run(
-        r.title, r.description, r.instructions, r.source_url, r.image_url,
-        r.prep_time_minutes, r.calories, r.protein_grams, r.difficulty, r.ingredients, r.tags
-      );
-      existingTitles.add(r.title);
+    for (const r of USER_CUSTOM_RECIPES) {
+      if (!existingTitles.has(r.title)) {
+        insertRecipeStmt.run(
+          r.title, r.description, r.instructions, r.source_url, r.image_url,
+          r.prep_time_minutes, r.calories, r.protein_grams, r.difficulty, r.ingredients, r.tags,
+          r.is_base_prep ? 1 : 0
+        );
+        existingTitles.add(r.title);
+      }
     }
   }
 

@@ -1,6 +1,20 @@
 /**
  * Integration services for Listi and The Healing Cabin
  */
+import fs from 'node:fs';
+
+const MEAL_TYPE_TO_CABIN_KEY = {
+  'בוקר': 'breakfast',
+  'ארוחת בוקר': 'breakfast',
+  'ביניים בוקר': 'morningSnack',
+  'צהריים': 'lunch',
+  'ארוחת צהריים': 'lunch',
+  'ביניים אחה"צ': 'afternoonSnack',
+  'ביניים אחה״צ': 'afternoonSnack',
+  'ביניים ערב': 'afternoonSnack',
+  'ארוחת ערב': 'dinner',
+  'ערב': 'dinner'
+};
 
 /**
  * Normalizes input status to one of the 3 allowed values:
@@ -77,7 +91,11 @@ export function sanitizeWeeklyPlanForHealingCabin(recipes) {
 /**
  * Pushes approved weekly plan recipes to The Healing Cabin
  */
-export async function pushToHealingCabin(recipes, destinationUrl = process.env.THE_HEALING_CABIN_URL) {
+export async function pushToHealingCabin(
+  recipes,
+  destinationUrl = process.env.THE_HEALING_CABIN_URL,
+  plansFilePath = process.env.THE_HEALING_CABIN_PLANS_PATH
+) {
   const sanitizedRecipes = sanitizeWeeklyPlanForHealingCabin(recipes);
   const payload = {
     source: 'NutritionRecipePlanner',
@@ -85,6 +103,52 @@ export async function pushToHealingCabin(recipes, destinationUrl = process.env.T
     timestamp: new Date().toISOString(),
     recipes: sanitizedRecipes
   };
+
+  if (plansFilePath) {
+    if (!fs.existsSync(plansFilePath)) {
+      return {
+        status: 'failed',
+        message: `Healing Cabin plans file not found: ${plansFilePath}`,
+        payload
+      };
+    }
+
+    const plansDb = JSON.parse(fs.readFileSync(plansFilePath, 'utf-8'));
+    const updatedDays = new Set();
+    const updatedSlots = [];
+
+    for (const item of sanitizedRecipes) {
+      const mealKey = MEAL_TYPE_TO_CABIN_KEY[item.meal_type];
+      if (!item.day_of_week || !mealKey) continue;
+
+      const dayEntry = (plansDb.weeklyPlan || []).find(d => d.dayName === item.day_of_week);
+      if (!dayEntry?.nutrition?.meals) continue;
+
+      dayEntry.nutrition.meals[mealKey] = {
+        name: item.title,
+        calories: item.calories,
+        proteinGrams: item.protein_grams,
+        notes: item.description || ''
+      };
+      updatedDays.add(dayEntry);
+      updatedSlots.push(`${item.day_of_week} - ${item.meal_type}`);
+    }
+
+    for (const dayEntry of updatedDays) {
+      const meals = Object.values(dayEntry.nutrition.meals);
+      dayEntry.nutrition.targetCalories = meals.reduce((sum, m) => sum + (Number(m?.calories) || 0), 0);
+      dayEntry.nutrition.targetProteinGrams = meals.reduce((sum, m) => sum + (Number(m?.proteinGrams) || 0), 0);
+    }
+
+    fs.writeFileSync(plansFilePath, JSON.stringify(plansDb, null, 2) + '\n', 'utf-8');
+    return {
+      status: 'success',
+      mode: 'local_plans_db',
+      updatedMeals: updatedSlots.length,
+      updatedSlots,
+      payload
+    };
+  }
 
   if (!destinationUrl) {
     // Simulated successful push when external URL is not yet bound

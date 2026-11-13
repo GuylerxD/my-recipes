@@ -12,6 +12,9 @@ import { syncListiCloudToDb, addItemToListiPantry } from './listiClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+if (fs.existsSync('.env')) {
+  process.loadEnvFile?.();
+}
 const PORT = process.env.PORT || 3000;
 
 export function createServer(customDb) {
@@ -53,13 +56,36 @@ export function createServer(customDb) {
     };
 
     try {
-      // 1. Static UI Dashboard & Add Recipe route
-      if (req.method === 'GET' && (pathname === '/' || pathname === '/index.html' || pathname === '/add-recipe')) {
-        const filePath = path.join(__dirname, 'public', 'index.html');
-        const content = fs.readFileSync(filePath, 'utf-8');
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(content);
-        return;
+      // 1. Static UI Dashboard, PWA assets & Add Recipe route
+      if (req.method === 'GET' && !pathname.startsWith('/api/')) {
+        const publicDir = path.resolve(__dirname, 'public');
+        const mimeTypes = {
+          '.html': 'text/html; charset=utf-8',
+          '.js': 'application/javascript; charset=utf-8',
+          '.json': 'application/json; charset=utf-8',
+          '.svg': 'image/svg+xml',
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.css': 'text/css; charset=utf-8'
+        };
+
+        let targetRel = pathname === '/' || pathname === '/index.html'
+          ? 'index.html'
+          : pathname.replace(/^\/+/, '');
+        if (targetRel === 'add-recipe' || targetRel === 'add-recipe/') {
+          targetRel = path.join('add-recipe', 'index.html');
+        }
+
+        const resolvedPath = path.resolve(publicDir, targetRel);
+        if (resolvedPath.startsWith(publicDir + path.sep) && fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isFile()) {
+          const ext = path.extname(resolvedPath).toLowerCase();
+          const contentType = resolvedPath.endsWith('manifest.json')
+            ? 'application/manifest+json; charset=utf-8'
+            : (mimeTypes[ext] || 'application/octet-stream');
+          res.writeHead(200, { 'Content-Type': contentType });
+          res.end(fs.readFileSync(resolvedPath));
+          return;
+        }
       }
 
       // 2. GET /api/tags - Predefined and custom tags
@@ -126,7 +152,7 @@ export function createServer(customDb) {
 
       // 3.2 GET or POST /api/recipes/scrape - Scrape and extract recipe data from a URL
       if ((req.method === 'POST' || req.method === 'GET') && pathname === '/api/recipes/scrape') {
-        let url = query.url;
+        let url = parsedUrl.searchParams.get('url') || '';
         if (req.method === 'POST') {
           try {
             const body = await readJsonBody();
@@ -180,6 +206,79 @@ export function createServer(customDb) {
         const created = db.prepare('SELECT * FROM recipes WHERE id = ?').get(newId);
         sendJson(201, created);
         return;
+      }
+
+      // 4.1 POST /api/recipes/reset-defaults - Restore built-in seed recipes
+      if (req.method === 'POST' && pathname === '/api/recipes/reset-defaults') {
+        seedData(db, true);
+        const all = db.prepare('SELECT * FROM recipes ORDER BY id DESC').all();
+        sendJson(200, all);
+        return;
+      }
+
+      // 4.2 PUT / DELETE /api/recipes/:id - Update or delete recipe
+      const recipeIdMatch = pathname.match(/^\/api\/recipes\/(\d+)$/);
+      if (recipeIdMatch) {
+        const recipeId = parseInt(recipeIdMatch[1], 10);
+
+        if (req.method === 'PUT') {
+          const existing = db.prepare('SELECT * FROM recipes WHERE id = ?').get(recipeId);
+          if (!existing) {
+            sendJson(404, { error: 'Recipe not found' });
+            return;
+          }
+
+          const body = await readJsonBody();
+          const title = (body.title !== undefined ? body.title : existing.title).trim();
+          if (!title) {
+            sendJson(400, { error: 'Missing title field' });
+            return;
+          }
+
+          const description = body.description !== undefined ? body.description : existing.description;
+          const instructions = body.instructions !== undefined ? body.instructions : existing.instructions;
+          const source_url = body.source_url !== undefined ? body.source_url : existing.source_url;
+          const image_url = body.image_url !== undefined ? body.image_url : existing.image_url;
+          const prep_time_minutes = body.prep_time_minutes !== undefined ? body.prep_time_minutes : existing.prep_time_minutes;
+          const calories = body.calories !== undefined ? body.calories : existing.calories;
+          const protein_grams = body.protein_grams !== undefined ? body.protein_grams : existing.protein_grams;
+          const difficulty = body.difficulty !== undefined ? body.difficulty : existing.difficulty;
+          const ingredients = body.ingredients !== undefined
+            ? (typeof body.ingredients === 'string' ? body.ingredients : JSON.stringify(body.ingredients))
+            : existing.ingredients;
+          const tags = body.tags !== undefined
+            ? (typeof body.tags === 'string' ? body.tags : JSON.stringify(body.tags))
+            : existing.tags;
+          const is_base_prep = body.is_base_prep !== undefined
+            ? (body.is_base_prep ? 1 : 0)
+            : existing.is_base_prep;
+
+          db.prepare(`
+            UPDATE recipes SET
+              title = ?, description = ?, instructions = ?, source_url = ?, image_url = ?,
+              prep_time_minutes = ?, calories = ?, protein_grams = ?, difficulty = ?,
+              ingredients = ?, tags = ?, is_base_prep = ?
+            WHERE id = ?
+          `).run(
+            title, description, instructions, source_url, image_url,
+            prep_time_minutes, calories, protein_grams, difficulty,
+            ingredients, tags, is_base_prep, recipeId
+          );
+
+          const updated = db.prepare('SELECT * FROM recipes WHERE id = ?').get(recipeId);
+          sendJson(200, updated);
+          return;
+        }
+
+        if (req.method === 'DELETE') {
+          const result = db.prepare('DELETE FROM recipes WHERE id = ?').run(recipeId);
+          if (result.changes === 0) {
+            sendJson(404, { error: 'Recipe not found' });
+            return;
+          }
+          sendJson(200, { success: true, deleted_id: recipeId });
+          return;
+        }
       }
 
       // 5. GET /api/pantry - List pantry and grocery items
@@ -298,9 +397,11 @@ export function createServer(customDb) {
         const rows = db.prepare(`
           SELECT 
             wp.id, wp.day_of_week, wp.meal_type, wp.recipe_id, wp.notes, wp.updated_at,
-            r.title AS recipe_title, r.calories, r.protein_grams, r.description AS recipe_description
+            r.title AS title, r.title AS recipe_title, r.calories, r.protein_grams,
+            r.description AS description, r.description AS recipe_description,
+            r.image_url, r.is_base_prep
           FROM weekly_plan wp
-          LEFT JOIN recipes r ON wp.recipe_id = r.id
+          INNER JOIN recipes r ON wp.recipe_id = r.id
           ORDER BY wp.id ASC
         `).all();
         sendJson(200, rows);
@@ -321,6 +422,12 @@ export function createServer(customDb) {
           // Clear slot
           db.prepare('DELETE FROM weekly_plan WHERE day_of_week = ? AND meal_type = ?').run(day_of_week, meal_type);
           sendJson(200, { success: true, message: 'Slot cleared' });
+          return;
+        }
+
+        const recipeExists = db.prepare('SELECT id FROM recipes WHERE id = ?').get(recipe_id);
+        if (!recipeExists) {
+          sendJson(404, { error: 'Recipe not found for weekly plan slot' });
           return;
         }
 
@@ -366,7 +473,7 @@ export function createServer(customDb) {
 
         const pushResult = await pushToHealingCabin(selectedRecipes);
         sendJson(200, {
-          success: true,
+          success: pushResult.status === 'success',
           action: 'WEEKLY_PLAN_APPROVED',
           recipes_count: selectedRecipes.length,
           push_result: pushResult

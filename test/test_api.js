@@ -1,8 +1,13 @@
 import assert from 'node:assert';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { getDatabase, PREDEFINED_TAGS } from '../src/db.js';
-import { syncFromListi, sanitizeWeeklyPlanForHealingCabin, addMissingIngredientsToListi } from '../src/integrations.js';
+import { syncFromListi, sanitizeWeeklyPlanForHealingCabin, addMissingIngredientsToListi, pushToHealingCabin } from '../src/integrations.js';
 import { calculateRecipeMatches } from '../src/matching.js';
+import { seedData } from '../src/seed.js';
+import { createServer } from '../src/server.js';
 
 console.log('--- Starting Integration & Schema Tests ---');
 
@@ -197,4 +202,133 @@ assert(berries, 'Berries should be inserted into pantry_groceries');
 assert.strictEqual(berries.status, 'ברשימת קניות', 'Status should be shopping list');
 console.log('✓ Quick-add to Listi shopping list passed.');
 
+// Test 9 & 10: HTTP Server Static Assets, Scrape Validation & Recipe CRUD + Weekly Plan
+console.log('Test 9-10: HTTP Server Static Assets, Scrape Validation & Recipe CRUD...');
+const httpDb = getDatabase(':memory:');
+seedData(httpDb);
+const { server } = createServer(httpDb);
+await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+const { port } = server.address();
+const baseUrl = `http://127.0.0.1:${port}`;
+
+try {
+  for (const assetPath of ['/manifest.json', '/sw.js', '/icons/icon.svg']) {
+    const res = await fetch(`${baseUrl}${assetPath}`);
+    assert.strictEqual(res.status, 200, `${assetPath} should return 200`);
+  }
+
+  const scrapeBadRes = await fetch(`${baseUrl}/api/recipes/scrape?url=`);
+  assert.strictEqual(scrapeBadRes.status, 400, 'Empty scrape url should return 400');
+
+  const createRes = await fetch(`${baseUrl}/api/recipes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: 'בדיקת מתכון זמני',
+      description: 'תיאור',
+      instructions: '1. ערבוב',
+      calories: 320,
+      protein_grams: 28,
+      ingredients: [{ name: 'טופו', amount: '150', unit: 'גרם' }],
+      tags: ['עתיר חלבון', 'צמחוני']
+    })
+  });
+  assert.strictEqual(createRes.status, 201);
+  const created = await createRes.json();
+  assert(Number.isInteger(created.id) && created.id > 0);
+
+  const updateRes = await fetch(`${baseUrl}/api/recipes/${created.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: 'בדיקת מתכון מעודכן', calories: 350 })
+  });
+  assert.strictEqual(updateRes.status, 200);
+  const updated = await updateRes.json();
+  assert.strictEqual(updated.title, 'בדיקת מתכון מעודכן');
+  assert.strictEqual(updated.calories, 350);
+
+  const assignRes = await fetch(`${baseUrl}/api/weekly-plan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      day_of_week: 'ראשון',
+      meal_type: 'ביניים אחה"צ',
+      recipe_id: created.id
+    })
+  });
+  assert.strictEqual(assignRes.status, 200);
+
+  const planRes = await fetch(`${baseUrl}/api/weekly-plan`);
+  assert.strictEqual(planRes.status, 200);
+  const planRows = await planRes.json();
+  const snackSlot = planRows.find(s => s.day_of_week === 'ראשון' && s.meal_type === 'ביניים אחה"צ');
+  assert(snackSlot, 'Afternoon snack slot should be stored');
+  assert.strictEqual(snackSlot.title, 'בדיקת מתכון מעודכן');
+  assert('image_url' in snackSlot && 'is_base_prep' in snackSlot, 'Weekly plan should expose image_url and is_base_prep');
+
+  const delRes = await fetch(`${baseUrl}/api/recipes/${created.id}`, { method: 'DELETE' });
+  assert.strictEqual(delRes.status, 200);
+
+  const afterDelPlan = await (await fetch(`${baseUrl}/api/weekly-plan`)).json();
+  assert(!afterDelPlan.some(s => s.recipe_id === created.id), 'Deleting recipe should cascade from weekly_plan');
+
+  // Test 11: seedData must not resurrect deleted recipes unless force=true
+  console.log('Test 11: seedData deletion persistence & force reset...');
+  const countBeforeReseed = httpDb.prepare('SELECT COUNT(*) as c FROM recipes').get().c;
+  httpDb.prepare('DELETE FROM recipes WHERE id = (SELECT id FROM recipes LIMIT 1)').run();
+  const countAfterDelete = httpDb.prepare('SELECT COUNT(*) as c FROM recipes').get().c;
+  assert.strictEqual(countAfterDelete, countBeforeReseed - 1);
+  seedData(httpDb);
+  assert.strictEqual(httpDb.prepare('SELECT COUNT(*) as c FROM recipes').get().c, countAfterDelete, 'seedData should not resurrect deleted recipes');
+  seedData(httpDb, true);
+  assert.strictEqual(httpDb.prepare('SELECT COUNT(*) as c FROM recipes').get().c, countBeforeReseed, 'seedData(db, true) should restore defaults');
+
+  // Test 12: pushToHealingCabin updates temp plansDB.json including afternoonSnack
+  console.log('Test 12: pushToHealingCabin plansDB.json sync...');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cabin-test-'));
+  const tmpPlansPath = path.join(tmpDir, 'plansDB.json');
+  fs.writeFileSync(tmpPlansPath, JSON.stringify({
+    weeklyPlan: [
+      {
+        dayName: 'ראשון',
+        nutrition: {
+          targetCalories: 0,
+          targetProteinGrams: 0,
+          meals: {
+            breakfast: { name: 'old', calories: 0, proteinGrams: 0 },
+            morningSnack: { name: 'old', calories: 0, proteinGrams: 0 },
+            lunch: { name: 'old', calories: 0, proteinGrams: 0 },
+            afternoonSnack: { name: 'old', calories: 0, proteinGrams: 0 },
+            dinner: { name: 'old', calories: 0, proteinGrams: 0 }
+          }
+        }
+      }
+    ]
+  }, null, 2));
+
+  try {
+    const pushOut = await pushToHealingCabin(
+      [
+        { day_of_week: 'ראשון', meal_type: 'ביניים אחה"צ', title: 'יוגורט חלבון ואגוזים', calories: 220, protein_grams: 20, description: 'חטיף מזין' },
+        { day_of_week: 'ראשון', meal_type: 'צהריים', title: 'סלמון צלוי', calories: 450, protein_grams: 42, description: '' }
+      ],
+      undefined,
+      tmpPlansPath
+    );
+    assert.strictEqual(pushOut.status, 'success');
+    assert.strictEqual(pushOut.updatedMeals, 2);
+    const savedPlans = JSON.parse(fs.readFileSync(tmpPlansPath, 'utf8'));
+    const sundayMeals = savedPlans.weeklyPlan[0].nutrition.meals;
+    assert.strictEqual(sundayMeals.afternoonSnack.name, 'יוגורט חלבון ואגוזים');
+    assert.strictEqual(sundayMeals.lunch.name, 'סלמון צלוי');
+    assert.strictEqual(savedPlans.weeklyPlan[0].nutrition.targetCalories, 670);
+    assert.strictEqual(savedPlans.weeklyPlan[0].nutrition.targetProteinGrams, 62);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+} finally {
+  await new Promise(resolve => server.close(resolve));
+}
+
+console.log('✓ HTTP & integration tests passed.');
 console.log('--- ALL TESTS PASSED! ---');
