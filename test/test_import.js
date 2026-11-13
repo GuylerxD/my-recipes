@@ -230,4 +230,48 @@ console.log('Test I6: URL import uses schema.org data and gets past bot-block pa
   }
 }
 console.log('✓ URL import passed.');
+
+console.log('Test I7: Google Keep notes are split into ingredients and steps...');
+{
+  const { splitIngredient, parseRecipeText } = globalThis.RecipeTags;
+  const split = s => { const r = splitIngredient(s); return [r.amount, r.unit, r.name]; };
+  assert.deepStrictEqual(split('2 כוסות קמח'), ['2', 'כוסות', 'קמח']);
+  assert.deepStrictEqual(split('☐ 1/2 כפית מלח'), ['1/2', 'כפית', 'מלח'], 'Keep checkbox stripped');
+  assert.deepStrictEqual(split('1½ כפות שמן זית'), ['1 1/2', 'כפות', 'שמן זית']);
+  assert.deepStrictEqual(split('חצי כוס סוכר'), ['1/2', 'כוס', 'סוכר']);
+  assert.deepStrictEqual(split('שתי ביצים'), ['2', '', 'ביצים']);
+  assert.deepStrictEqual(split('200 גר׳ גבינה בולגרית'), ['200', "גר'", 'גבינה בולגרית']);
+  assert.deepStrictEqual(split('200גרם חמאה'), ['200', 'גרם', 'חמאה']);
+  assert.deepStrictEqual(split('2-3 שיני שום'), ['2-3', 'שיני', 'שום']);
+  assert.deepStrictEqual(split('כף שמן זית'), ['1', 'כף', 'שמן זית']);
+  assert.deepStrictEqual(split('קורט מלח'), ['', 'קורט', 'מלח']);
+  assert.deepStrictEqual(split('קמח - 2 כוסות'), ['2', 'כוסות', 'קמח']);
+  assert.deepStrictEqual(split('ביצים 3'), ['3', '', 'ביצים']);
+  assert.deepStrictEqual(split('כוסברה קצוצה'), ['', '', 'כוסברה קצוצה'], '"כוס" inside a word is not a unit');
+  assert.deepStrictEqual(split("קוטג' 5%"), ['', '', "קוטג' 5%"], 'Fat % is not an amount');
+  assert.deepStrictEqual(split('מלח'), ['', '', 'מלח']);
+
+  // Keep checklist note, no headers at all
+  const keepList = parseRecipeText('עוגת שוקולד\n☐ 2 ביצים\n☐ כוס סוכר\n☐ 100 גרם שוקולד מריר\n☐ מלח\nמערבבים את כל החומרים בקערה גדולה.\nאופים 30 דקות ב-180 מעלות.');
+  assert.strictEqual(keepList.title, 'עוגת שוקולד');
+  assert.deepStrictEqual(keepList.ingredients, ['2 ביצים', 'כוס סוכר', '100 גרם שוקולד מריר', 'מלח']);
+  assert.deepStrictEqual(keepList.instructions, ['מערבבים את כל החומרים בקערה גדולה.', 'אופים 30 דקות ב-180 מעלות.']);
+
+  // Headers with emoji / extra words, steps numbered, prep time line, bidi marks
+  const withHeaders = parseRecipeText('‏שקשוקה\nזמן הכנה: 25 דקות\n🥚 המצרכים (ל-4 מנות):\n- 4 ביצים\n- 3 עגבניות, בצל, 2 שיני שום\nאופן ההכנה:\n1. מטגנים את הבצל\n2. מוסיפים עגבניות ומבשלים');
+  assert.strictEqual(withHeaders.title, 'שקשוקה');
+  assert.strictEqual(withHeaders.prep_time_minutes, 25);
+  assert.deepStrictEqual(withHeaders.ingredients, ['4 ביצים', '3 עגבניות', 'בצל', '2 שיני שום'], 'Comma list split');
+  assert.deepStrictEqual(withHeaders.instructions, ['מטגנים את הבצל', 'מוסיפים עגבניות ומבשלים']);
+
+  // Ingredients header, then steps without a header
+  const noStepsHeader = parseRecipeText('סלט\nמצרכים:\nמלפפון\nעגבנייה\nחותכים הכל לקוביות קטנות ומתבלים בשמן זית ולימון');
+  assert.deepStrictEqual(noStepsHeader.ingredients, ['מלפפון', 'עגבנייה']);
+  assert.deepStrictEqual(noStepsHeader.instructions, ['חותכים הכל לקוביות קטנות ומתבלים בשמן זית ולימון']);
+
+  // "זמן הכנה" is not the instructions header; "קוטג', לבנה או..." stays one ingredient
+  const tricky = parseRecipeText("לחמניות\nמצרכים:\nקוטג', לבנה או סימפוניה\nהכנה:\nלערבב");
+  assert.deepStrictEqual(tricky.ingredients, ["קוטג', לבנה או סימפוניה"]);
+}
+console.log('✓ Keep text parsing passed.');
 console.log('--- ALL IMPORT TESTS PASSED! ---');

@@ -1942,7 +1942,7 @@
   </div>
 
   <!-- Bump ?v= when these change: the service worker serves cached JS first. -->
-  <script src="recipe-tags.js?v=3"></script>
+  <script src="recipe-tags.js?v=4"></script>
   <script src="gemini-client.js?v=4"></script>
   <script>
     // =========================================================
@@ -3822,12 +3822,12 @@
       container.innerHTML = '';
       if (Array.isArray(data.ingredients) && data.ingredients.length > 0) {
         data.ingredients.forEach(ing => {
-          if (typeof ing === 'string') {
-            addIngredientRow(ing, '', '');
-          } else if (typeof ing === 'object' && ing !== null) {
-            addIngredientRow(ing.name || '', ing.amount || '', ing.unit || '');
-          }
+          const item = typeof ing === 'string' ? { name: ing } : (ing || {});
+          // "2 כוסות קמח" in one string (imports, older recipes) → separate amount / unit / name fields.
+          const parts = (item.amount || item.unit) ? item : window.RecipeTags.splitIngredient(item.name || '');
+          if (parts.name) addIngredientRow(parts.name, parts.amount || '', parts.unit || '');
         });
+        if (!container.children.length) addIngredientRow();
       } else {
         addIngredientRow();
       }
@@ -3856,47 +3856,7 @@
     }
 
     function parseClientTextHeuristic(text) {
-      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-      if (lines.length === 0) return null;
-
-      const title = lines[0].replace(/^[#*•\-\d.\s]+/, '').slice(0, 80);
-      let section = 'desc';
-      const ingredients = [];
-      const instructions = [];
-      const descList = [];
-
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i];
-        const lower = line.toLowerCase();
-        if (line.includes('מצרכים') || line.includes('מרכיבים') || lower.includes('ingredient')) {
-          section = 'ingredients';
-          continue;
-        }
-        if (line.includes('הכנה') || line.includes('הוראות') || lower.includes('instruction') || lower.includes('method') || lower.includes('direction')) {
-          section = 'instructions';
-          continue;
-        }
-
-        if (section === 'ingredients') {
-          const cleaned = line.replace(/^([•*\-]+|\d+[.)])\s*/, ''); // keep quantities like "2 ביצים"
-          if (cleaned) ingredients.push(cleaned);
-        } else if (section === 'instructions') {
-          instructions.push(line);
-        } else {
-          descList.push(line);
-        }
-      }
-
-      return {
-        title: title || 'מתכון מטקסט',
-        description: descList.slice(0, 3).join(' ') || 'מתכון שיובא מטקסט חופשי',
-        instructions,
-        ingredients,
-        prep_time_minutes: null,
-        calories: null,
-        protein_grams: null,
-        difficulty: 'בינוני'
-      };
+      return window.RecipeTags.parseRecipeText(text);
     }
 
     async function parseSmartPasteText() {
@@ -5179,10 +5139,12 @@ ${library}
         if (urlMatch && sharedText.length < 250) {
           targetUrl = urlMatch[0];
         } else {
+          // Keep sends the note title separately; don't repeat it when the text already starts with it.
+          const textHasTitle = sharedTitle && sharedText.split('\n')[0].trim() === sharedTitle;
           const parts = [];
-          if (sharedTitle) parts.push(sharedTitle);
-          if (sharedText && sharedText !== sharedTitle) parts.push(sharedText);
-          targetText = parts.join('\n\n').trim();
+          if (sharedTitle && !textHasTitle) parts.push(sharedTitle);
+          if (sharedText) parts.push(sharedText);
+          targetText = parts.join('\n').trim();
         }
       }
 

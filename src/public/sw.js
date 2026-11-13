@@ -1,8 +1,8 @@
-const CACHE_NAME = 'my-recipes-v9';
+const CACHE_NAME = 'my-recipes-v10';
 const CORE_ASSETS = [
   './',
   './index.html',
-  './recipe-tags.js?v=3',
+  './recipe-tags.js?v=4',
   './gemini-client.js?v=4',
   './manifest.json',
   './add-recipe',

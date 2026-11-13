@@ -12,7 +12,7 @@ import './public/recipe-tags.js';
 import './public/gemini-client.js';
 
 // Shared with the browser so every import path uses the same prompt and tag rules.
-const { IMPORT_PROMPT: SYSTEM_PROMPT, inferTags, optionalNumber, isBlockedPage, extractJsonLdRecipe } = globalThis.RecipeTags;
+const { IMPORT_PROMPT: SYSTEM_PROMPT, inferTags, optionalNumber, isBlockedPage, extractJsonLdRecipe, parseRecipeText } = globalThis.RecipeTags;
 
 /**
  * Checks whether an input string is a valid HTTP/HTTPS URL.
@@ -286,47 +286,18 @@ export { sanitizeRecipeOutput };
  * @returns {object}
  */
 function heuristicFallbackParser(rawText) {
-  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
-  let title = lines[0] ? lines[0].replace(/^[#*•\-\d.\s]+/, '').slice(0, 80) : 'מתכון מיובא';
-
-  let section = 'desc';
-  const ingredients = [];
-  const instructions = [];
-  const desc = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const l = lines[i];
-    const low = l.toLowerCase();
-
-    if (l.includes('מצרכים') || l.includes('מרכיבים') || l.includes('חומרים') || low.includes('ingredient')) {
-      section = 'ing';
-      continue;
-    }
-    if (l.includes('הכנה') || l.includes('הוראות') || low.includes('instruction') || low.includes('method') || low.includes('direction')) {
-      section = 'inst';
-      continue;
-    }
-
-    // Strip bullets and "1." / "1)" numbering, but keep quantities like "2 ביצים".
-    if (section === 'ing') {
-      const cleanIng = l.replace(/^([-*•]+|\d+[.)])\s*/, '').trim();
-      if (cleanIng.length > 1) ingredients.push(cleanIng);
-    } else if (section === 'inst') {
-      const cleanInst = l.replace(/^([-*•]+|\d+[.)])\s*/, '').trim();
-      if (cleanInst.length > 2) instructions.push(cleanInst);
-    } else {
-      desc.push(l);
-    }
-  }
+  // Same parser the browser uses (handles Google Keep notes with or without headers).
+  const parsed = parseRecipeText(rawText) || { title: 'מתכון מיובא', ingredients: [], instructions: [], description: '', prep_time_minutes: null };
+  const { title, ingredients, instructions } = parsed;
 
   // No AI available: keep only what the text actually says; leave nutrition blank for the user.
   return {
     title,
     ingredients,
     instructions,
-    prep_time_minutes: null,
+    prep_time_minutes: parsed.prep_time_minutes,
     tags: inferTags({ title, ingredients, instructions }),
-    description: desc.slice(0, 2).join(' '),
+    description: parsed.description,
     calories: null,
     protein_grams: null,
     difficulty: 'בינוני'
