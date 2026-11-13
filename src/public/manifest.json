@@ -9,8 +9,8 @@
   "orientation": "portrait",
   "lang": "he",
   "dir": "rtl",
-  "background_color": "#181412",
-  "theme_color": "#181412",
+  "background_color": "#F6F1E9",
+  "theme_color": "#F6F1E9",
   "share_target": {
     "action": "./add-recipe",
     "method": "GET",

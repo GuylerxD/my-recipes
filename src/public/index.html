@@ -7,8 +7,21 @@
   
   <!-- PWA Settings -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#181412">
-  <meta name="background-color" content="#181412">
+  <meta name="theme-color" content="#F6F1E9">
+  <meta name="background-color" content="#F6F1E9">
+  <script>
+    // Apply the saved theme (or the system preference) before first paint, to avoid a flash.
+    (function () {
+      var theme = null;
+      try { theme = localStorage.getItem('myRecipesTheme'); } catch (e) {}
+      if (theme !== 'light' && theme !== 'dark') {
+        theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'dark' ? '#171310' : '#F6F1E9');
+    })();
+  </script>
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,48 +30,100 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
     /* =========================================================
-       WARM DARK SOLID FLAT DESIGN PALETTE
-       - No gradients, no heavy drop shadows (box-shadow: none)
-       - Border radius: 8px - 12px
-       - Background: Deep Espresso (#181412)
-       - Cards/Blocks: Warm Umber (#231E1B) & Warm Cocoa (#2D2622)
-       - Primary Actions: Warm Terracotta (#C85A32)
-       - In-Stock / Completed: Earthy Olive (#6B8E4E)
+       KITCHEN JOURNAL DESIGN — LIGHT (default) + DARK
+       - Paper-cream surfaces, ink text, serif display headings
+       - Flat: no gradients, no heavy drop shadows (box-shadow: none)
+       - Primary Actions: Terracotta. In-Stock / Completed: Olive
+       - Theme is set on <html data-theme="light|dark"> (see head script)
        - STRICT PROHIBITION: NO TURQUOISE, NO MINT, NO PINK, NO GOLD
        ========================================================= */
-    :root {
-      --bg: #181412;
-      --surface: #231E1B;
-      --card-bg: #2D2622;
-      --card-border: #3F3630;
-      --text: #F5EFE6;
-      --text-muted: #B5A99F;
-      --primary: #C85A32;
-      --primary-hover: #B34B26;
-      --primary-active: #9A3E1D;
-      --olive: #6B8E4E;
-      --olive-bg: #242E1D;
+    :root,
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #F6F1E9;
+      --surface: #FFFDF8;
+      --card-bg: #F1EADF;
+      --card-border: #E4DACB;
+      --text: #221C17;
+      --text-muted: #6B5F55;
+      --primary: #B4472A;
+      --primary-hover: #9C3C22;
+      --primary-active: #84321C;
+      --primary-text: #B4472A;      /* terracotta used as text/links */
+      --on-primary: #FFFFFF;        /* text on terracotta/olive fills */
+      --olive: #4F6B3A;
+      --olive-hover: #435C31;
+      --olive-bg: #E7ECDD;
+      --olive-border: #C9D4B6;
+      --olive-text: #33472A;
+      --secondary: #4A3F37;
+      --secondary-bg: #F1EADF;
+      --border: #E4DACB;
+      --danger: #A33224;
+      --danger-bg: #F8E3DE;
+      --danger-border: #EBC3BA;
+      --danger-hover: #F2D3CB;
+      --warn: #9A5B12;
+      --tag-bg: #FFFDF8;
+      --tag-border: #E1D6C6;
+      --tag-text: #221C17;
+      --tag-hover-bg: #F1EADF;
+      --tag-hover-border: #D3C5B1;
+      --tag-active-bg: #B4472A;
+      --tag-active-text: #FFFFFF;
+      --slot-empty-border: #D3C5B1;
+      --nav-active-bg: transparent;
+      --overlay: rgba(34, 28, 23, 0.45);
+      --code-bg: #F1EADF;
+      --code-text: #33472A;
+      --font-display: 'Frank Ruhl Libre', 'Heebo', serif;
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-lg: 18px;
+      --bottom-nav-height: 70px;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #171310;
+      --surface: #211C18;
+      --card-bg: #2A241F;
+      --card-border: #3A322B;
+      --text: #F4EEE6;
+      --text-muted: #B3A79C;
+      --primary: #B4472A;
+      --primary-hover: #C2532F;
+      --primary-active: #9C3C22;
+      --primary-text: #E8906B;
+      --on-primary: #FFFFFF;
+      --olive: #5E7E46;
+      --olive-hover: #6B8E4E;
+      --olive-bg: #232B1C;
       --olive-border: #3F5432;
       --olive-text: #C9E2B3;
       --secondary: #3A312C;
-      --secondary-bg: #2D2622;
-      --border: #3F3630;
-      --danger: #E87A7A;
-      --danger-bg: #331D1D;
-      --danger-border: #5C2B2B;
-      --tag-bg: #2D2622;
-      --tag-border: #4A3F38;
-      --tag-text: #E6DDD3;
-      --tag-active-bg: #C85A32;
-      --tag-active-text: #F5EFE6;
-      --radius-sm: 8px;
-      --radius-md: 10px;
-      --radius-lg: 12px;
-      --bottom-nav-height: 66px;
+      --secondary-bg: #2A241F;
+      --border: #3A322B;
+      --danger: #EE8B7E;
+      --danger-bg: #351E1A;
+      --danger-border: #5C2E27;
+      --danger-hover: #442621;
+      --warn: #E39A5A;
+      --tag-bg: #2A241F;
+      --tag-border: #463C34;
+      --tag-text: #E9E1D7;
+      --tag-hover-bg: #342C26;
+      --tag-hover-border: #574B43;
+      --tag-active-bg: #B4472A;
+      --tag-active-text: #FFFFFF;
+      --slot-empty-border: #4E433B;
+      --nav-active-bg: transparent;
+      --overlay: rgba(10, 8, 7, 0.78);
+      --code-bg: #110E0C;
+      --code-text: #C9E2B3;
     }
 
     * {
@@ -71,9 +136,16 @@
       -webkit-tap-highlight-color: transparent;
     }
 
+    /* Serif display headings (Kitchen Journal) */
+    h1, h2, h3, .recipe-title, .day-header, #detailTitle {
+      font-family: var(--font-display);
+      letter-spacing: 0;
+    }
+
     body {
       background-color: var(--bg);
       color: var(--text);
+      transition: background-color 0.2s ease, color 0.2s ease;
       padding: 14px 14px calc(var(--bottom-nav-height) + 28px + env(safe-area-inset-bottom, 0px)) 14px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
@@ -93,10 +165,10 @@
       align-items: center;
       gap: 10px;
       margin-bottom: 14px;
-      background: var(--surface);
-      padding: 12px 16px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
+      background: transparent;
+      padding: 10px 4px;
+      border: none;
+      border-radius: 0;
     }
     .app-brand {
       display: flex;
@@ -112,12 +184,40 @@
       border: 1px solid var(--border);
     }
     .app-title-group h1 {
-      font-size: 1.25rem;
-      font-weight: 800;
+      font-size: clamp(1.3rem, 5.5vw, 1.6rem);
+      font-weight: 700;
       color: var(--text);
-      letter-spacing: -0.2px;
-      line-height: 1.15;
+      line-height: 1.1;
+      white-space: nowrap;
     }
+    .theme-toggle {
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      cursor: pointer;
+    }
+    .theme-toggle:hover { background: var(--card-bg); }
+    .theme-toggle svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    /* Show the icon of the theme you'd switch TO */
+    .theme-toggle .icon-sun { display: none; }
+    :root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+    :root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
     .app-title-group p {
       font-size: 0.78rem;
       color: var(--text-muted);
@@ -174,9 +274,9 @@
       color: var(--text);
     }
     .tab-btn.active {
-      background: var(--primary);
-      color: var(--text);
-      border-color: var(--primary);
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
     }
 
     /* Solid Blocks / Cards */
@@ -225,17 +325,17 @@
       transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
     .tag-chip:hover {
-      background: #382F2A;
-      border-color: #574B43;
+      background: var(--tag-hover-bg);
+      border-color: var(--tag-hover-border);
     }
     .tag-chip.active {
-      background: var(--primary) !important;
-      color: var(--text) !important;
+      background: var(--tag-active-bg) !important;
+      color: var(--tag-active-text) !important;
       border-color: var(--primary-hover) !important;
     }
     .tag-chip.form-chip.selected {
-      background: var(--primary);
-      color: var(--text);
+      background: var(--tag-active-bg);
+      color: var(--tag-active-text);
       border-color: var(--primary-hover);
     }
 
@@ -268,7 +368,7 @@
       color: var(--text-muted);
     }
     .search-input:focus {
-      border-color: var(--primary);
+      border-color: var(--primary-text);
     }
 
     /* Recipe Grid & Solid Full-width Cards */
@@ -419,7 +519,7 @@
     }
     .carousel-badge {
       background: var(--primary);
-      color: var(--text);
+      color: var(--on-primary);
       padding: 5px 12px;
       border-radius: var(--radius-sm);
       font-size: 0.82rem;
@@ -540,14 +640,14 @@
       position: relative;
     }
     .meal-slot.empty {
-      border: 1px dashed #4E433B;
+      border: 1px dashed var(--slot-empty-border);
       background: var(--card-bg);
       align-items: center;
       cursor: pointer;
       text-align: center;
     }
     .meal-slot.empty:hover {
-      border-color: var(--primary);
+      border-color: var(--primary-text);
       background: var(--surface);
     }
     .meal-slot.filled {
@@ -599,6 +699,249 @@
       justify-content: flex-end;
     }
 
+    /* =========================================================
+       PLANNER — KITCHEN JOURNAL LAYOUT
+       Week strip → selected day (hero meal + rows) → weekend preps → ideas
+       ========================================================= */
+    .planner-wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .planner-wrap.week-mode { max-width: none; }
+    .planner-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .planner-date {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    .planner-title {
+      font-size: clamp(1.8rem, 8vw, 2.3rem);
+      font-weight: 700;
+      line-height: 1.1;
+      color: var(--text);
+    }
+    .planner-sync-btn {
+      height: 44px;
+      min-width: 44px;
+      flex-shrink: 0;
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 14px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .planner-sync-btn:hover { background: var(--card-bg); }
+    .planner-sync-btn svg,
+    .icon-btn svg,
+    .prep-chip svg {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.9;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .planner-sync-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+    @media (max-width: 640px) {
+      .planner-sync-btn { padding: 0; width: 44px; }
+      .planner-sync-label { display: none; }
+    }
+
+    .week-strip {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 4px;
+    }
+    .week-day {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 8px 0;
+      min-height: 64px;
+      border-radius: 16px;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .week-day:hover { background: var(--card-bg); }
+    .wd-name { font-size: 0.75rem; color: var(--text-muted); }
+    .wd-num { font-size: 1.08rem; font-weight: 600; }
+    .wd-dot { width: 5px; height: 5px; border-radius: 3px; background: var(--primary-text); }
+    .wd-dot.empty { background: transparent; }
+    .week-day.today:not(.selected) .wd-num { color: var(--primary-text); font-weight: 800; }
+    .week-day.selected { background: var(--text); color: var(--bg); }
+    .week-day.selected .wd-name { color: var(--bg); opacity: 0.75; }
+    .week-day.selected .wd-dot:not(.empty) { background: var(--bg); }
+
+    .planner-section { display: flex; flex-direction: column; gap: 12px; }
+    .planner-section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .planner-section-title { font-size: 1.45rem; font-weight: 700; color: var(--text); }
+    .planner-section-sub { font-size: 0.85rem; color: var(--text-muted); margin-top: -6px; }
+    .link-btn {
+      background: none;
+      border: 0;
+      color: var(--primary-text);
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 10px 2px;
+      cursor: pointer;
+    }
+    .planner-day-totals { display: flex; gap: 8px; flex-wrap: wrap; margin-top: -4px; }
+    .totals-chip {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 999px;
+      padding: 4px 11px;
+    }
+    .planner-day-view { display: flex; flex-direction: column; gap: 12px; }
+
+    .hero-meal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .hero-meal-img { position: relative; height: 200px; background: var(--card-bg); }
+    .hero-meal-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .hero-meal-chip {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 5px 11px;
+      border-radius: 999px;
+    }
+    .hero-meal-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; }
+    .hero-meal-title { font-size: 1.35rem; font-weight: 700; line-height: 1.25; color: var(--text); }
+    .hero-meal-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; }
+    .meal-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.82rem; font-weight: 500; color: var(--text-muted); }
+    .meal-meta span { display: inline-flex; align-items: center; gap: 5px; }
+    .meal-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      cursor: pointer;
+    }
+    .icon-btn:hover { background: var(--card-bg); color: var(--text); }
+    .icon-btn.danger:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
+    .icon-btn svg { width: 18px; height: 18px; }
+
+    .meal-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      cursor: pointer;
+      color: var(--text);
+      text-align: right;
+    }
+    .meal-row-thumb { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; flex-shrink: 0; background: var(--card-bg); }
+    .meal-row-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .meal-row-label { font-size: 0.75rem; font-weight: 700; color: var(--primary-text); }
+    .meal-row-title { font-size: 1rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .meal-row-meta { font-size: 0.8rem; color: var(--text-muted); }
+    .meal-row.empty {
+      background: transparent;
+      border: 1px dashed var(--slot-empty-border);
+      padding: 10px 14px;
+      justify-content: space-between;
+    }
+    .meal-row.empty:hover { border-color: var(--primary-text); }
+    .meal-row.empty .meal-row-label { color: var(--text-muted); font-size: 0.85rem; }
+    .meal-row-add { font-size: 0.88rem; font-weight: 600; color: var(--primary-text); }
+
+    .prep-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .prep-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      height: 42px;
+      padding: 0 4px;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      max-width: 100%;
+    }
+    .prep-chip.done { background: var(--olive-bg); border-color: var(--olive-border); color: var(--olive-text); }
+    .prep-chip button {
+      background: transparent;
+      border: 0;
+      color: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .prep-check { width: 34px; height: 34px; border-radius: 17px; flex-shrink: 0; }
+    .prep-check svg { width: 18px; height: 18px; }
+    .prep-title {
+      font-size: 0.86rem;
+      font-weight: 600;
+      padding: 0 2px;
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block !important;
+    }
+    .prep-remove { width: 30px; height: 30px; border-radius: 15px; color: var(--text-muted) !important; flex-shrink: 0; }
+    .prep-remove svg { width: 14px; height: 14px; }
+    .prep-add {
+      height: 42px;
+      padding: 0 16px;
+      border-radius: 999px;
+      background: transparent;
+      border: 1px dashed var(--primary-text);
+      color: var(--primary-text);
+      font-weight: 600;
+      font-size: 0.86rem;
+      cursor: pointer;
+    }
+    .prep-empty { font-size: 0.85rem; color: var(--text-muted); width: 100%; }
+
     /* Buttons: Solid Flat (44px+ Mobile Friendly) */
     .btn {
       padding: 10px 16px;
@@ -617,7 +960,7 @@
     }
     .btn-primary {
       background: var(--primary);
-      color: var(--text);
+      color: var(--on-primary);
       border-color: var(--primary-hover);
     }
     .btn-primary:hover {
@@ -628,11 +971,11 @@
     }
     .btn-success {
       background: var(--olive);
-      color: var(--text);
+      color: var(--on-primary);
       border-color: var(--olive-border);
     }
     .btn-success:hover {
-      background: #5B7B42;
+      background: var(--olive-hover);
     }
     .btn-warning {
       background: var(--card-bg);
@@ -649,7 +992,7 @@
     }
     .btn-outline.active {
       background: var(--primary);
-      color: var(--text);
+      color: var(--on-primary);
       border-color: var(--primary-hover);
     }
     .btn-danger {
@@ -661,7 +1004,7 @@
       font-size: 0.82rem;
     }
     .btn-danger:hover {
-      background: #472525;
+      background: var(--danger-hover);
     }
     .btn-sm {
       padding: 6px 12px;
@@ -673,7 +1016,7 @@
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(12, 10, 9, 0.78);
+      background: var(--overlay);
       display: none;
       justify-content: center;
       align-items: center;
@@ -753,7 +1096,7 @@
       color: var(--text-muted);
     }
     .form-control:focus {
-      border-color: var(--primary);
+      border-color: var(--primary-text);
     }
     textarea.form-control { min-height: 84px; resize: vertical; }
     .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
@@ -788,8 +1131,8 @@
     .status-missing { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
     .status-grocery { background: var(--card-bg); color: var(--text); border-color: var(--card-border); }
     pre {
-      background: #120F0D;
-      color: var(--olive-text);
+      background: var(--code-bg);
+      color: var(--code-text);
       border: 1px solid var(--border);
       padding: 12px;
       border-radius: var(--radius-sm);
@@ -862,12 +1205,12 @@
       max-width: 100%;
     }
     .bottom-nav-item.active {
-      color: var(--primary);
-      border-top-color: var(--primary);
-      background: #28211D;
+      color: var(--primary-text);
+      border-top-color: transparent;
+      background: var(--nav-active-bg);
     }
     .bottom-nav-item.active .bottom-nav-label {
-      color: var(--primary);
+      color: var(--primary-text);
       font-weight: 800;
     }
 
@@ -915,14 +1258,14 @@
       pointer-events: auto;
       animation: toast-in 0.2s ease-out;
     }
-    .toast.toast-warn { border-inline-start-color: #D9A441; }
+    .toast.toast-warn { border-inline-start-color: var(--warn); }
     .toast.toast-error { border-inline-start-color: var(--danger); }
     .toast.toast-leaving { opacity: 0; transform: translateY(6px); transition: opacity 0.2s, transform 0.2s; }
     .toast-message { flex: 1; line-height: 1.4; }
     .toast-action {
       background: none;
       border: 1px solid var(--border);
-      color: var(--primary);
+      color: var(--primary-text);
       border-radius: 8px;
       padding: 6px 10px;
       font: inherit;
@@ -953,6 +1296,10 @@
           📲 התקן אפליקציה
         </button>
         <span class="badge badge-mint">✓ ענן מסונכרן</span>
+        <button type="button" id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="מעבר למצב כהה" title="מעבר למצב כהה">
+          <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        </button>
       </div>
     </header>
 
@@ -968,51 +1315,52 @@
 
     <!-- 1. WEEKLY MEAL PREP TAB -->
     <section id="tab-planner" class="tab-content">
-      <!-- Carousel for Ninja Air Fryer -->
-      <div class="carousel-section">
-        <div class="carousel-header">
-          <div class="carousel-badge">🔥 נינג'ה אייר פרייר — הכנה מהירה ופריכה</div>
-          <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">גלילה לשיבוץ מיידי</span>
-        </div>
-        <div id="ninjaAirFryerCarousel" class="carousel-scroll">
-          <!-- Populated by JS -->
-        </div>
-      </div>
-
-      <!-- Meal Prep Action Header -->
-      <div class="card card-solid-khaki" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-        <div>
-          <h2 style="font-size: 1.25rem; font-weight: 800;">תכנון תפריט שבועי (Meal Prep)</h2>
-          <p style="color: var(--text-muted); font-size: 0.85rem;">שבצי מנות לפי ימי השבוע וסוגי ארוחות, וסנכרני ל-The Healing Cabin</p>
-        </div>
-        <button class="btn btn-primary" style="padding: 10px 20px;" onclick="approveAndSyncPlan()">
-          🚀 אשר וסנכרן תפריט ל-The Healing Cabin
-        </button>
-      </div>
-
-      <!-- Weekend Preps Section (הכנות לסופ"ש) -->
-      <div class="card card-solid-khaki" style="margin-top: 14px; border: 1px solid var(--border);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+      <div class="planner-wrap">
+        <!-- Planner header: date, title, sync -->
+        <div class="planner-head">
           <div>
-            <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 6px;">
-              <span>🥫</span> הכנות לסופ"ש (Weekend Preps)
-            </h3>
-            <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 2px;">
-              רטבים, ממרחים, לחמים ותוספות בסיס להכנה מראש לשימוש במהלך השבוע
-            </p>
+            <p id="plannerTodayLabel" class="planner-date"></p>
+            <h2 class="planner-title">מה מבשלים השבוע</h2>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="openWeekendPrepChooser()">
-            + הוסף הכנת בסיס
+          <button type="button" class="planner-sync-btn" onclick="approveAndSyncPlan()" aria-label="אישור וסנכרון התפריט ל-The Healing Cabin" title="אישור וסנכרון התפריט ל-The Healing Cabin">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-3.5"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 3.5"/><path d="M20 20v-4h-4"/></svg>
+            <span class="planner-sync-label">סנכרון ל-Healing Cabin</span>
           </button>
         </div>
-        <div id="weekendPrepsList" class="weekend-preps-grid">
-          <!-- Rendered dynamically -->
-        </div>
-      </div>
 
-      <!-- Days Grid (ראשון עד שבת) -->
-      <div id="weeklyPlannerDaysGrid" class="planner-days-grid" style="margin-top: 14px;">
-        <!-- Rendered dynamically -->
+        <!-- Week strip (Sunday → Saturday) -->
+        <div id="plannerWeekStrip" class="week-strip" role="tablist" aria-label="ימי השבוע"></div>
+
+        <!-- Selected day (or whole week) -->
+        <section class="planner-section">
+          <div class="planner-section-head">
+            <h2 id="plannerDayHeading" class="planner-section-title">היום</h2>
+            <button type="button" id="plannerViewToggle" class="link-btn" onclick="togglePlannerView()">לכל השבוע</button>
+          </div>
+          <div id="plannerDayTotals" class="planner-day-totals"></div>
+          <div id="plannerDayView" class="planner-day-view"></div>
+          <div id="weeklyPlannerDaysGrid" class="planner-days-grid" style="display: none;"></div>
+        </section>
+
+        <!-- Weekend Preps (הכנות לסופ"ש) -->
+        <section class="planner-section">
+          <div class="planner-section-head">
+            <h2 class="planner-section-title">הכנות לסופ״ש</h2>
+          </div>
+          <p class="planner-section-sub">רטבים, ממרחים ולחמים להכנה מראש לשימוש במהלך השבוע</p>
+          <div id="weekendPrepsList" class="prep-chips"></div>
+        </section>
+
+        <!-- Ninja Air Fryer ideas -->
+        <section class="planner-section">
+          <div class="planner-section-head">
+            <h2 class="planner-section-title">רעיונות מהאייר פרייר</h2>
+            <span class="planner-section-sub" style="margin: 0;">גלילה לשיבוץ מיידי</span>
+          </div>
+          <div id="ninjaAirFryerCarousel" class="carousel-scroll">
+            <!-- Populated by JS -->
+          </div>
+        </section>
       </div>
     </section>
 
@@ -1265,7 +1613,7 @@
           <textarea id="smartPasteInput" class="form-control" rows="4" placeholder="הדבק כאן את כל הטקסט..."></textarea>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
             <button type="button" class="btn btn-primary btn-sm" onclick="parseSmartPasteText()">נתח ומלא את הטופס</button>
-            <span id="smartPasteStatus" style="font-size: 0.8rem; color: var(--primary); font-weight: 700;"></span>
+            <span id="smartPasteStatus" style="font-size: 0.8rem; color: var(--primary-text); font-weight: 700;"></span>
           </div>
         </div>
       </div>
@@ -1335,7 +1683,7 @@
             </label>
             <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">מתכון זה יוצג באזור 'הכנות לסופ"ש' וניתן יהיה לסמנו כהושלם ולהוסיפו ישירות למזווה</span>
           </div>
-          <input type="checkbox" id="formIsBasePrep" style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--primary);">
+          <input type="checkbox" id="formIsBasePrep" style="width: 22px; height: 22px; cursor: pointer; accent-color: var(--primary-text);">
         </div>
 
         <div class="form-group">
@@ -1451,7 +1799,7 @@
         <h2 style="font-size: 1.2rem; font-weight: 800;">שיבוץ מתכון ללוח השבועי</h2>
         <button class="close-btn" onclick="document.getElementById('quickAssignSlotModal').classList.remove('open')">&times;</button>
       </div>
-      <p id="quickAssignRecipeName" style="font-weight: 800; color: var(--primary); margin-bottom: 12px;"></p>
+      <p id="quickAssignRecipeName" style="font-weight: 800; color: var(--primary-text); margin-bottom: 12px;"></p>
       
       <div class="form-group">
         <label class="form-label">יום בשבוע:</label>
@@ -1495,7 +1843,7 @@
         השף צריך מפתח Gemini API כדי לעבוד. המפתח חינמי:
       </p>
       <ol style="font-size: 0.85rem; color: var(--text-muted); margin: 0 18px 12px 0; display: grid; gap: 4px;">
-        <li>היכנסי ל-<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color: var(--primary);">aistudio.google.com/apikey</a> עם חשבון Google.</li>
+        <li>היכנסי ל-<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color: var(--primary-text);">aistudio.google.com/apikey</a> עם חשבון Google.</li>
         <li>לחצי <b>Create API key</b> והעתיקי את המפתח (מתחיל ב-AIza).</li>
         <li>הדביקי אותו כאן ולחצי "שמור ובדוק".</li>
       </ol>
@@ -1946,6 +2294,40 @@
     let aiChatMessages = [];
 
     // =========================================================
+    // THEME (LIGHT / DARK) — initial value is set by the <head> script
+    // =========================================================
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'dark' ? '#171310' : '#F6F1E9');
+      const btn = document.getElementById('themeToggle');
+      if (btn) {
+        const label = theme === 'dark' ? 'מעבר למצב בהיר' : 'מעבר למצב כהה';
+        btn.setAttribute('aria-label', label);
+        btn.setAttribute('title', label);
+      }
+    }
+
+    function toggleTheme() {
+      const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('myRecipesTheme', next); } catch (e) {}
+      applyTheme(next);
+    }
+
+    applyTheme(document.documentElement.getAttribute('data-theme') || 'light');
+
+    // Follow the system setting until the user picks a theme themselves
+    if (window.matchMedia) {
+      const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const onSystemThemeChange = (e) => {
+        let saved = null;
+        try { saved = localStorage.getItem('myRecipesTheme'); } catch (err) {}
+        if (saved !== 'light' && saved !== 'dark') applyTheme(e.matches ? 'dark' : 'light');
+      };
+      if (darkQuery.addEventListener) darkQuery.addEventListener('change', onSystemThemeChange);
+    }
+
+    // =========================================================
     // TAB NAVIGATION (DESKTOP + MOBILE SYNC)
     // =========================================================
     function showTab(tabName) {
@@ -2204,11 +2586,200 @@
     // =========================================================
     // 2. WEEKLY PLANNER GRID & WEEKEND PREPS
     // =========================================================
+    const DAY_LETTERS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+    const PLANNER_ICONS = {
+      clock: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+      protein: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg>',
+      flame: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.7 1.2 2.7 2.5 3 0-3-1-5.5 0-8z"/></svg>',
+      swap: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4L3 8l4 4"/><path d="M3 8h14"/><path d="M17 20l4-4-4-4"/><path d="M21 16H7"/></svg>',
+      close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+      circle: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>',
+      check: '<svg viewBox="0 0 24 24" aria-hidden="true" style="stroke-width: 2.6;"><path d="M5 12l4 4 10-10"/></svg>'
+    };
+    const PLANNER_FALLBACK_IMG = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';
+
+    let plannerSelectedDay = new Date().getDay();
+    let plannerViewMode = 'day';
+    try { if (localStorage.getItem('plannerViewMode') === 'week') plannerViewMode = 'week'; } catch (e) {}
+
+    function resolveSlotRecipe(day, meal) {
+      const slot = weeklyPlan[`${day}_${meal}`];
+      if (!slot) return null;
+      let recipe = null;
+      if (slot.title && slot.title !== 'undefined') {
+        recipe = slot;
+      } else if (slot.recipeId) {
+        recipe = allRecipes.find(r => String(r.id) === String(slot.recipeId));
+      } else {
+        recipe = allRecipes.find(r => String(r.id) === String(slot));
+      }
+      return (recipe && recipe.title && recipe.title !== 'undefined') ? recipe : null;
+    }
+
+    function getCurrentWeekDates() {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+      return DAYS.map((_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
+    }
+
+    function plannerMealMeta(recipe) {
+      const parts = [];
+      if (Number(recipe.prep_time_minutes)) parts.push(`<span>${PLANNER_ICONS.clock}${Number(recipe.prep_time_minutes)} דק׳</span>`);
+      parts.push(`<span>${PLANNER_ICONS.protein}${Number(recipe.protein_grams) || 0} ג׳ חלבון</span>`);
+      parts.push(`<span>${PLANNER_ICONS.flame}${Number(recipe.calories) || 0} קל׳</span>`);
+      return parts.join('');
+    }
+
+    function plannerMealActions(day, meal, mealTitle) {
+      const safeDay = escapeHtml(day);
+      const safeMeal = escapeHtml(meal);
+      const safeTitle = escapeHtml(mealTitle);
+      return `
+        <div class="meal-actions">
+          <button type="button" class="icon-btn" aria-label="החלפת ${safeTitle}" title="החלפה" onclick="event.stopPropagation(); openRecipeChooser('${safeDay}', '${safeMeal}')">${PLANNER_ICONS.swap}</button>
+          <button type="button" class="icon-btn danger" aria-label="הסרת ${safeTitle}" title="הסרה" onclick="event.stopPropagation(); removeSlot('${safeDay}', '${safeMeal}')">${PLANNER_ICONS.close}</button>
+        </div>
+      `;
+    }
+
+    function selectPlannerDay(index) {
+      plannerSelectedDay = index;
+      plannerViewMode = 'day';
+      try { localStorage.setItem('plannerViewMode', 'day'); } catch (e) {}
+      renderWeeklyPlanner();
+    }
+
+    function togglePlannerView() {
+      plannerViewMode = plannerViewMode === 'week' ? 'day' : 'week';
+      try { localStorage.setItem('plannerViewMode', plannerViewMode); } catch (e) {}
+      renderWeeklyPlanner();
+    }
+
     function renderWeeklyPlanner() {
-      const container = document.getElementById('weeklyPlannerDaysGrid');
       renderNinjaAirFryerCarousel();
       renderWeekendPreps();
 
+      const todayIdx = new Date().getDay();
+      const weekDates = getCurrentWeekDates();
+      const isWeek = plannerViewMode === 'week';
+
+      const todayLabel = document.getElementById('plannerTodayLabel');
+      if (todayLabel) {
+        todayLabel.textContent = new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+      }
+
+      // Week strip
+      const strip = document.getElementById('plannerWeekStrip');
+      if (strip) {
+        strip.innerHTML = DAYS.map((day, i) => {
+          const hasMeals = MEALS.some(meal => resolveSlotRecipe(day, meal));
+          const selected = !isWeek && i === plannerSelectedDay;
+          const classes = ['week-day', selected ? 'selected' : '', i === todayIdx ? 'today' : ''].join(' ').trim();
+          return `
+            <button type="button" class="${classes}" role="tab" aria-selected="${selected}" aria-label="יום ${escapeHtml(day)}${i === todayIdx ? ' (היום)' : ''}${hasMeals ? ', יש מנות משובצות' : ''}" onclick="selectPlannerDay(${i})">
+              <span class="wd-name">${DAY_LETTERS[i]}</span>
+              <span class="wd-num">${weekDates[i].getDate()}</span>
+              <span class="wd-dot ${hasMeals ? '' : 'empty'}"></span>
+            </button>
+          `;
+        }).join('');
+      }
+
+      const wrap = document.querySelector('#tab-planner .planner-wrap');
+      if (wrap) wrap.classList.toggle('week-mode', isWeek);
+      const toggleBtn = document.getElementById('plannerViewToggle');
+      if (toggleBtn) toggleBtn.textContent = isWeek ? 'תצוגת יום' : 'לכל השבוע';
+
+      const heading = document.getElementById('plannerDayHeading');
+      const totalsEl = document.getElementById('plannerDayTotals');
+      const dayView = document.getElementById('plannerDayView');
+      const weekGrid = document.getElementById('weeklyPlannerDaysGrid');
+
+      if (isWeek) {
+        if (heading) heading.textContent = 'כל השבוע';
+        totalsEl.style.display = 'none';
+        dayView.style.display = 'none';
+        weekGrid.style.display = '';
+        renderWeekGrid(weekGrid);
+        return;
+      }
+
+      weekGrid.style.display = 'none';
+      totalsEl.style.display = '';
+      dayView.style.display = '';
+
+      const day = DAYS[plannerSelectedDay];
+      if (heading) heading.textContent = plannerSelectedDay === todayIdx ? 'היום' : `יום ${day}`;
+
+      const filled = MEALS.map(meal => ({ meal, recipe: resolveSlotRecipe(day, meal) }));
+      const filledOnly = filled.filter(f => f.recipe);
+      const totalCal = filledOnly.reduce((s, f) => s + (Number(f.recipe.calories) || 0), 0);
+      const totalProt = filledOnly.reduce((s, f) => s + (Number(f.recipe.protein_grams) || 0), 0);
+
+      totalsEl.innerHTML = `
+        <span class="totals-chip">${filledOnly.length} מתוך ${MEALS.length} ארוחות</span>
+        <span class="totals-chip">${totalCal} קל׳</span>
+        <span class="totals-chip">${Math.round(totalProt * 10) / 10} ג׳ חלבון</span>
+      `;
+
+      // Hero = lunch, else dinner, else the first planned meal
+      const hero = filled.find(f => f.recipe && f.meal === 'צהריים')
+        || filled.find(f => f.recipe && f.meal === 'ארוחת ערב')
+        || filledOnly[0]
+        || null;
+
+      let html = '';
+      if (hero) {
+        const r = hero.recipe;
+        const safeId = escapeHtml(r.id || r.recipeId || '');
+        html += `
+          <article class="hero-meal" onclick="openRecipeDetails('${safeId}')">
+            <div class="hero-meal-img">
+              <img src="${escapeHtml(getSmartRecipeImage(r))}" alt="" onerror="this.onerror=null; this.src='${PLANNER_FALLBACK_IMG}'">
+              <span class="hero-meal-chip">${escapeHtml(hero.meal)}</span>
+            </div>
+            <div class="hero-meal-body">
+              <h3 class="hero-meal-title">${escapeHtml(r.title)}</h3>
+              <div class="hero-meal-foot">
+                <div class="meal-meta">${plannerMealMeta(r)}</div>
+                ${plannerMealActions(day, hero.meal, r.title)}
+              </div>
+            </div>
+          </article>
+        `;
+      }
+
+      html += filled.filter(f => f !== hero).map(({ meal, recipe }) => {
+        const safeDay = escapeHtml(day);
+        const safeMeal = escapeHtml(meal);
+        if (!recipe) {
+          return `
+            <button type="button" class="meal-row empty" onclick="openRecipeChooser('${safeDay}', '${safeMeal}')">
+              <span class="meal-row-label">${safeMeal}</span>
+              <span class="meal-row-add">+ שיבוץ מנה</span>
+            </button>
+          `;
+        }
+        const safeId = escapeHtml(recipe.id || recipe.recipeId || '');
+        const safeTitle = escapeHtml(recipe.title);
+        return `
+          <div class="meal-row" onclick="openRecipeDetails('${safeId}')">
+            <img class="meal-row-thumb" src="${escapeHtml(getSmartRecipeImage(recipe))}" alt="" onerror="this.onerror=null; this.src='${PLANNER_FALLBACK_IMG}'">
+            <div class="meal-row-info">
+              <span class="meal-row-label">${safeMeal}</span>
+              <span class="meal-row-title" title="${safeTitle}">${safeTitle}</span>
+              <span class="meal-row-meta">${Number(recipe.calories) || 0} קל׳ · ${Number(recipe.protein_grams) || 0} ג׳ חלבון</span>
+            </div>
+            ${plannerMealActions(day, meal, recipe.title)}
+          </div>
+        `;
+      }).join('');
+
+      dayView.innerHTML = html;
+    }
+
+    // Whole-week overview (the original 7-column grid)
+    function renderWeekGrid(container) {
       container.innerHTML = DAYS.map(day => {
         let totalCal = 0;
         let totalProt = 0;
@@ -2261,7 +2832,7 @@
             return `
               <div class="meal-slot empty" onclick="openRecipeChooser('${safeDay}', '${safeMeal}')">
                 <div class="slot-label">${safeMeal}</div>
-                <div style="font-size: 0.85rem; color: var(--primary); font-weight: 700;">+ שיבוץ מתכון</div>
+                <div style="font-size: 0.85rem; color: var(--primary-text); font-weight: 700;">+ שיבוץ מתכון</div>
               </div>
             `;
           }
@@ -2286,43 +2857,36 @@
       const container = document.getElementById('weekendPrepsList');
       if (!container) return;
 
+      const addChip = '<button type="button" class="prep-add" onclick="openWeekendPrepChooser()">+ הוספה</button>';
+
       if (!weekendPreps || weekendPreps.length === 0) {
         container.innerHTML = `
-          <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); font-size: 0.88rem; padding: 14px; background: var(--card-bg); border: 1px dashed var(--border); border-radius: var(--radius-sm);">
-            עדיין לא שובצו הכנות לסופ"ש. לחצי על <b>"+ הוסף הכנת בסיס"</b> כדי לתזמן רטבים, ממרחים או לחמים לקראת השבוע.
-          </div>
+          <p class="prep-empty">עדיין לא שובצו הכנות לסופ״ש.</p>
+          ${addChip}
         `;
         return;
       }
 
       container.innerHTML = weekendPreps.map(prep => {
-        const fullRecipe = allRecipes.find(r => String(r.id) === String(prep.recipeId)) || prep;
-        const img = getSmartRecipeImage(fullRecipe);
         const isDone = prep.completed;
         const inPantry = prep.added_to_pantry;
+        const safeTitle = escapeHtml(prep.title);
+        const safePrepId = escapeHtml(prep.id);
+        const safeRecipeId = escapeHtml(prep.recipeId || '');
+        const status = isDone ? (inPantry ? 'הוכן ונוסף למזווה' : 'הוכן') : 'עוד לא הוכן';
+
+        const checkBtn = isDone
+          ? `<span class="prep-check" style="display: inline-flex; align-items: center; justify-content: center;" title="${status}">${PLANNER_ICONS.check}</span>`
+          : `<button type="button" class="prep-check" aria-label="סימון ${safeTitle} כהוכן" title="סימון כהוכן" onclick="completeWeekendPrep('${safePrepId}')">${PLANNER_ICONS.circle}</button>`;
 
         return `
-          <div class="weekend-prep-card ${isDone ? 'completed' : ''}" id="prepCard_${prep.id}">
-            <div style="display: flex; gap: 10px; align-items: center;">
-              <img src="${escapeHtml(img)}" style="width: 44px; height: 44px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border);" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'">
-              <div style="flex-grow: 1; min-width: 0;">
-                <div style="font-weight: 700; font-size: 0.9rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(prep.title)}">${escapeHtml(prep.title)}</div>
-                <div style="font-size: 0.78rem; color: var(--text-muted);">⏱ ${prep.prep_time_minutes || 15} דק' | 🔥 ${prep.calories || 0} קל' | 💪 ${prep.protein_grams || 0}g</div>
-              </div>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--border);">
-              <div>
-                ${isDone
-                  ? `<span class="badge" style="background: var(--primary); color: white; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.78rem;">✓ הוכן ${inPantry ? '(במזווה)' : ''}</span>`
-                  : `<button class="btn btn-primary btn-sm" style="padding: 4px 10px; font-size: 0.8rem;" onclick="completeWeekendPrep('${prep.id}')">✓ סמן כהושלם</button>`
-                }
-              </div>
-              <button class="btn btn-outline btn-sm" style="padding: 2px 8px; font-size: 0.78rem; color: var(--text-muted);" onclick="removeWeekendPrep('${prep.id}')">הסר</button>
-            </div>
+          <div class="prep-chip ${isDone ? 'done' : ''}" id="prepCard_${safePrepId}">
+            ${checkBtn}
+            <button type="button" class="prep-title" title="${safeTitle} · ${status}" onclick="openRecipeDetails('${safeRecipeId}')">${safeTitle}</button>
+            <button type="button" class="prep-remove" aria-label="הסרת ${safeTitle}" title="הסרה" onclick="removeWeekendPrep('${safePrepId}')">${PLANNER_ICONS.close}</button>
           </div>
         `;
-      }).join('');
+      }).join('') + addChip;
     }
 
     function openWeekendPrepChooser() {
@@ -2514,7 +3078,7 @@
       };
 
       let titleText = '❌ הסנכרון ל-The Healing Cabin נכשל';
-      let titleColor = '#b91c1c';
+      let titleColor = 'var(--danger)';
       let messageHtml = 'לא ניתן היה ליצור קשר עם השרת המקומי (<code>/api/weekly-plan/approve-and-push</code>). הנתונים נשמרו מקומית בדפדפן בלבד.';
 
       try {
@@ -2532,7 +3096,7 @@
           messageHtml = 'הנתונים נדחפו בהצלחה. <strong>אימות אבטחה:</strong> מצרכים ואופן הכנה סוננו והוסרו לחלוטין כדי לשמור על תצוגת Checkboxes נקייה.';
         } else if (res.ok && pushStatus === 'simulated_success') {
           titleText = '⚠️ הדחיפה לא נשלחה החוצה (מצב סימולציה)';
-          titleColor = '#b45309';
+          titleColor = 'var(--warn)';
           messageHtml = 'התפריט נבדק ונשמר מקומית בלבד, אך <strong>לא נשלח ל-The Healing Cabin</strong> כי משתנה הסביבה <code>THE_HEALING_CABIN_URL</code> אינו מוגדר בשרת.';
         } else {
           const errDetail = data?.push_result?.statusCode ? `HTTP ${data.push_result.statusCode}` : (data?.error || `HTTP ${res.status}`);
@@ -2699,7 +3263,7 @@
           const name = typeof ing === 'string' ? ing : `${ing.amount || ''} ${ing.unit || ''} ${ing.name || ''}`.trim();
           return `
             <li style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.88rem;">
-              <input type="checkbox" id="detail_ing_${idx}" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary);">
+              <input type="checkbox" id="detail_ing_${idx}" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary-text);">
               <label for="detail_ing_${idx}" style="cursor: pointer; flex: 1; user-select: none;">${escapeHtml(name)}</label>
             </li>
           `;
