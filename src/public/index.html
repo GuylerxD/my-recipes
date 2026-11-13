@@ -338,6 +338,45 @@
       color: var(--tag-active-text);
       border-color: var(--primary-hover);
     }
+    .tag-chip.add-chip {
+      background: transparent;
+      border-style: dashed;
+      color: var(--primary-text);
+      font-weight: 700;
+    }
+    .tag-chip .chip-count {
+      font-size: 0.72rem;
+      opacity: 0.7;
+    }
+
+    /* Category manager */
+    .category-list {
+      display: grid;
+      gap: 6px;
+      max-height: 46vh;
+      overflow-y: auto;
+      margin-top: 12px;
+    }
+    .category-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--card-bg);
+    }
+    .category-row-name {
+      font-weight: 700;
+      color: var(--text);
+    }
+    .category-row-count {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-inline-start: 6px;
+      font-weight: 600;
+    }
 
     /* Filter Row */
     .filter-bar {
@@ -1423,6 +1462,14 @@
           </div>
 
           <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted);">קטגוריות:</span>
+              <button class="btn btn-outline btn-sm" onclick="openCategoryModal()">📂 + קטגוריה</button>
+            </div>
+            <div id="galleryCategoryCloud" class="tag-cloud"></div>
+          </div>
+
+          <div>
             <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">סינון לפי תגיות (התאמה מלאה - AND):</div>
             <div id="galleryTagCloud" class="tag-cloud"></div>
           </div>
@@ -1687,6 +1734,11 @@
         </div>
 
         <div class="form-group">
+          <label class="form-label">📂 קטגוריות (אפשר לבחור כמה)</label>
+          <div id="formCategoryChips" class="tag-cloud"></div>
+        </div>
+
+        <div class="form-group">
           <label class="form-label">תגיות לסינון מהיר (Multi-select)</label>
           <div id="formTagChips" class="tag-cloud"></div>
         </div>
@@ -1777,6 +1829,11 @@
         <div style="margin-bottom: 10px;">
           <div id="detailTags" class="tag-cloud"></div>
         </div>
+
+        <div style="margin-bottom: 10px;">
+          <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">📂 קטגוריות (לחיצה מוסיפה או מסירה):</div>
+          <div id="detailCategoryChips" class="tag-cloud"></div>
+        </div>
       </div>
 
       <div style="display: flex; justify-content: space-between; gap: 8px; border-top: 1px solid var(--border); padding-top: 14px; flex-wrap: wrap;">
@@ -1858,6 +1915,28 @@
       <div style="display: flex; justify-content: flex-end; gap: 8px;">
         <button class="btn btn-outline" onclick="toggleApiKeyModal()">סגור</button>
         <button class="btn btn-primary" id="btnSaveApiKey" onclick="saveGeminiApiKey()">שמור ובדוק</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CATEGORY MANAGER (last, so it opens above the recipe form / details) -->
+  <div id="categoryModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 460px;">
+      <div class="modal-header">
+        <h2 style="font-size: 1.2rem; font-weight: 800;">📂 הקטגוריות שלי</h2>
+        <button class="close-btn" onclick="closeCategoryModal()">&times;</button>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+        למשל: קינוחים, עוגות, עוגיות, פחמימה. משייכים מתכון לקטגוריה בעריכת המתכון או בלחיצה על הקטגוריה בתוך המתכון.
+      </p>
+      <form onsubmit="addCategoryFromInput(event)" style="display: flex; gap: 8px;">
+        <input type="text" id="newCategoryInput" class="form-control" placeholder="שם קטגוריה חדשה" maxlength="30" autocomplete="off">
+        <button type="submit" class="btn btn-primary">הוסף</button>
+      </form>
+      <div id="categoryModalStatus" style="font-size: 0.85rem; min-height: 1.2em; margin-top: 6px;" aria-live="polite"></div>
+      <div id="categoryList" class="category-list"></div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 14px;">
+        <button class="btn btn-outline" onclick="closeCategoryModal()">סגור</button>
       </div>
     </div>
   </div>
@@ -1951,6 +2030,207 @@
     function recipeMatchesTag(recipeTags, reqTag) {
       const normReq = normalizeTagName(reqTag);
       return recipeTags.some(t => normalizeTagName(t) === normReq || t === reqTag || t.startsWith(reqTag));
+    }
+
+    // =========================================================
+    // CATEGORIES (user-defined: קינוחים, עוגות, פחמימה...)
+    // A recipe's categories are stored in its tags, so the server keeps them without a schema
+    // change. The list of category names lives in this browser (like the recipes on the phone).
+    // =========================================================
+    const CATEGORY_STORAGE_KEY = 'my_recipes_categories';
+    const DEFAULT_CATEGORIES = ['קינוחים', 'עוגות', 'עוגיות', 'פחמימה'];
+    const CATEGORY_MAX_LENGTH = 30;
+
+    function getCategories() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(CATEGORY_STORAGE_KEY));
+        if (Array.isArray(saved)) return saved.filter(c => typeof c === 'string' && c.trim());
+      } catch {}
+      return [...DEFAULT_CATEGORIES];
+    }
+
+    function saveCategories(list) {
+      try { localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(list)); } catch {}
+    }
+
+    function getRecipeCategories(recipe, categories = getCategories()) {
+      return getRecipeTags(recipe).map(t => String(t).trim()).filter(t => categories.includes(t));
+    }
+
+    function countRecipesInCategory(name) {
+      return allRecipes.filter(r => getRecipeCategories(r, [name]).length > 0).length;
+    }
+
+    /** Saves new tags for a recipe locally and, when it lives on the server, there too. */
+    async function setRecipeTags(recipeId, tags) {
+      const recipe = allRecipes.find(r => String(r.id) === String(recipeId));
+      if (!recipe) return null;
+      let updated = { ...recipe, tags: JSON.stringify(tags) };
+      if (backendAvailable && /^\d+$/.test(String(recipeId))) {
+        try {
+          const res = await fetch(`/api/recipes/${encodeURIComponent(recipeId)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tags })
+          });
+          if (res.ok) {
+            const serverUpdated = await res.json();
+            updated = { ...recipe, ...serverUpdated, image_url: recipe.image_url || getSmartRecipeImage(serverUpdated) };
+          }
+        } catch {}
+      }
+      allRecipes = allRecipes.map(r => String(r.id) === String(recipeId) ? updated : r);
+      if (currentDetailRecipe && String(currentDetailRecipe.id) === String(recipeId)) currentDetailRecipe = updated;
+      saveStoredRecipes(allRecipes);
+      return updated;
+    }
+
+    function categoryChipsHtml(categories, isSelected, onclickFor) {
+      return categories.map((c, i) => `<span class="tag-chip form-chip ${isSelected(c) ? 'selected' : ''}" onclick="${onclickFor(i)}">${escapeHtml(c)}</span>`).join('');
+    }
+
+    function renderGalleryCategories() {
+      const cloud = document.getElementById('galleryCategoryCloud');
+      if (!cloud) return;
+      const categories = getCategories();
+      if (selectedGalleryCategory && !categories.includes(selectedGalleryCategory)) selectedGalleryCategory = '';
+      const chip = (label, active, onclick, count) =>
+        `<span class="tag-chip ${active ? 'active' : ''}" onclick="${onclick}">${escapeHtml(label)}${count !== undefined ? ` <span class="chip-count">${count}</span>` : ''}</span>`;
+      cloud.innerHTML = [
+        chip('הכל', !selectedGalleryCategory, 'selectGalleryCategory(-1)'),
+        ...categories.map((c, i) => chip(c, selectedGalleryCategory === c, `selectGalleryCategory(${i})`, countRecipesInCategory(c))),
+        '<span class="tag-chip add-chip" onclick="openCategoryModal()">+ חדשה</span>'
+      ].join('');
+    }
+
+    function selectGalleryCategory(index) {
+      const name = index >= 0 ? getCategories()[index] : '';
+      selectedGalleryCategory = selectedGalleryCategory === name ? '' : (name || '');
+      renderGalleryCategories();
+      applyGalleryFilters();
+    }
+
+    function renderFormCategories() {
+      const container = document.getElementById('formCategoryChips');
+      if (!container) return;
+      const categories = getCategories();
+      container.innerHTML = categoryChipsHtml(categories, c => selectedFormCategories.has(c), i => `toggleFormCategory(${i})`)
+        + '<span class="tag-chip add-chip" onclick="openCategoryModal()">+ חדשה</span>';
+    }
+
+    function toggleFormCategory(index) {
+      const name = getCategories()[index];
+      if (!name) return;
+      if (selectedFormCategories.has(name)) selectedFormCategories.delete(name);
+      else selectedFormCategories.add(name);
+      renderFormCategories();
+    }
+
+    function renderDetailCategories() {
+      const container = document.getElementById('detailCategoryChips');
+      if (!container || !currentDetailRecipe) return;
+      const categories = getCategories();
+      const mine = getRecipeCategories(currentDetailRecipe, categories);
+      container.innerHTML = categoryChipsHtml(categories, c => mine.includes(c), i => `toggleDetailCategory(${i})`)
+        + '<span class="tag-chip add-chip" onclick="openCategoryModal()">+ חדשה</span>';
+    }
+
+    async function toggleDetailCategory(index) {
+      const name = getCategories()[index];
+      if (!name || !currentDetailRecipe) return;
+      const tags = getRecipeTags(currentDetailRecipe).map(t => String(t).trim());
+      const has = tags.includes(name);
+      const next = has ? tags.filter(t => t !== name) : [...tags, name];
+      const updated = await setRecipeTags(currentDetailRecipe.id, next);
+      if (!updated) return;
+      renderDetailCategories();
+      renderDetailTags(updated);
+      renderGalleryCategories();
+      applyGalleryFilters();
+      showToast(has ? `"${updated.title}" הוסר מ"${name}"` : `✓ "${updated.title}" נוסף ל"${name}"`, { duration: 2500 });
+    }
+
+    function openCategoryModal() {
+      document.getElementById('categoryModalStatus').textContent = '';
+      document.getElementById('newCategoryInput').value = '';
+      renderCategoryList();
+      document.getElementById('categoryModal').classList.add('open');
+      setTimeout(() => document.getElementById('newCategoryInput').focus(), 50);
+    }
+
+    function closeCategoryModal() {
+      document.getElementById('categoryModal').classList.remove('open');
+    }
+
+    function refreshCategoryViews() {
+      renderCategoryList();
+      renderGalleryCategories();
+      renderFormCategories();
+      renderDetailCategories();
+      applyGalleryFilters();
+    }
+
+    function renderCategoryList() {
+      const list = document.getElementById('categoryList');
+      const categories = getCategories();
+      if (categories.length === 0) {
+        list.innerHTML = '<div style="color: var(--text-muted); font-size: 0.88rem; text-align: center; padding: 12px;">אין קטגוריות עדיין. הוסיפי את הראשונה למעלה.</div>';
+        return;
+      }
+      list.innerHTML = categories.map((c, i) => {
+        const count = countRecipesInCategory(c);
+        return `
+          <div class="category-row">
+            <div><span class="category-row-name">${escapeHtml(c)}</span><span class="category-row-count">${count} מתכונים</span></div>
+            <button type="button" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger-border);" onclick="deleteCategory(${i}, this)">מחק</button>
+          </div>`;
+      }).join('');
+    }
+
+    function addCategoryFromInput(e) {
+      e.preventDefault();
+      const input = document.getElementById('newCategoryInput');
+      const status = document.getElementById('categoryModalStatus');
+      const name = input.value.replace(/\s+/g, ' ').trim();
+      const categories = getCategories();
+      const fail = msg => { status.textContent = msg; status.style.color = 'var(--danger)'; };
+      if (!name) return fail('כתבי שם לקטגוריה.');
+      if (name.length > CATEGORY_MAX_LENGTH) return fail(`עד ${CATEGORY_MAX_LENGTH} תווים.`);
+      if (categories.includes(name)) return fail(`"${name}" כבר קיימת.`);
+      if (PREDEFINED_TAGS.includes(normalizeTagName(name))) return fail(`"${name}" כבר קיימת כתגית קבועה.`);
+
+      saveCategories([...categories, name]);
+      // Adding from inside the recipe form: assume it's meant for this recipe.
+      if (document.getElementById('addRecipeModal').classList.contains('open')) selectedFormCategories.add(name);
+      input.value = '';
+      status.textContent = `✓ "${name}" נוספה`;
+      status.style.color = 'var(--primary-text)';
+      refreshCategoryViews();
+      input.focus();
+    }
+
+    /** First click asks for confirmation on the button itself (confirm() is blocked in some webviews). */
+    async function deleteCategory(index, btn) {
+      const name = getCategories()[index];
+      if (!name) return;
+      const count = countRecipesInCategory(name);
+      if (btn && !btn.dataset.armed) {
+        btn.dataset.armed = '1';
+        btn.textContent = count ? `למחוק? (מ-${count} מתכונים)` : 'בטוח? מחק';
+        setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = 'מחק'; } }, 4000);
+        return;
+      }
+      saveCategories(getCategories().filter(c => c !== name));
+      selectedFormCategories.delete(name);
+      if (selectedGalleryCategory === name) selectedGalleryCategory = '';
+      // The recipes themselves stay; only the category label is removed from them.
+      const affected = allRecipes.filter(r => getRecipeCategories(r, [name]).length > 0);
+      for (const r of affected) {
+        await setRecipeTags(r.id, getRecipeTags(r).filter(t => String(t).trim() !== name));
+      }
+      refreshCategoryViews();
+      if (currentDetailRecipe) renderDetailTags(currentDetailRecipe);
+      showToast(`הקטגוריה "${name}" נמחקה${affected.length ? ` (המתכונים עצמם נשארו)` : ''}`, { duration: 3000 });
     }
 
     // =========================================================
@@ -2278,6 +2558,9 @@
     let selectedGalleryTags = new Set();
     let selectedWhatToCookTags = new Set();
     let selectedFormTags = new Set();
+    let selectedFormCategories = new Set();
+    let preservedFormTags = []; // tags that are neither predefined nor categories: kept as-is on save
+    let selectedGalleryCategory = ''; // '' = all categories
     let whatToCookTier = 'all';
     let currentGallerySort = 'default';
     let activeSlotTarget = null;
@@ -3138,8 +3421,10 @@
 
     function clearFilters() {
       selectedGalleryTags.clear();
+      selectedGalleryCategory = '';
       document.getElementById('recipeSearchInput').value = '';
       renderGalleryTags();
+      renderGalleryCategories();
       applyGalleryFilters();
     }
 
@@ -3157,8 +3442,10 @@
 
     function applyGalleryFilters() {
       const searchTerm = (document.getElementById('recipeSearchInput').value || '').trim().toLowerCase();
+      renderGalleryCategories(); // keeps the per-category counts current after saves/deletes
       let filtered = allRecipes.filter(r => {
         const tags = getRecipeTags(r);
+        if (selectedGalleryCategory && !tags.some(t => String(t).trim() === selectedGalleryCategory)) return false;
         for (const reqTag of selectedGalleryTags) {
           if (!recipeMatchesTag(tags, reqTag)) return false;
         }
@@ -3198,8 +3485,11 @@
       }
       noMsg.style.display = 'none';
 
+      const categories = getCategories();
       gallery.innerHTML = recipes.map(r => {
-        const tags = getRecipeTags(r);
+        // Categories first, marked with a folder icon.
+        const recipeCats = getRecipeCategories(r, categories);
+        const tags = [...recipeCats.map(c => '📂 ' + c), ...getRecipeTags(r).filter(t => !categories.includes(String(t).trim()))];
         const image = getSmartRecipeImage(r);
         const safeId = escapeHtml(r.id);
         const safeTitle = escapeHtml(r.title);
@@ -3239,6 +3529,14 @@
       }).join('');
     }
 
+    /** Regular tags of the open recipe (categories have their own toggle row). */
+    function renderDetailTags(recipe) {
+      const categories = getCategories();
+      const tags = getRecipeTags(recipe).filter(t => !categories.includes(String(t).trim()));
+      document.getElementById('detailTags').innerHTML = tags
+        .map(t => `<span class="tag-chip active" style="font-size: 0.78rem; padding: 4px 10px;">${escapeHtml(t)}</span>`).join('');
+    }
+
     function openRecipeDetails(id) {
       const recipe = allRecipes.find(r => String(r.id) === String(id));
       if (!recipe) return;
@@ -3274,13 +3572,8 @@
 
       document.getElementById('detailInstructions').textContent = recipe.instructions || 'אין הוראות הכנה מפורטות.';
 
-      const tags = getRecipeTags(recipe);
-      const tagsEl = document.getElementById('detailTags');
-      if (Array.isArray(tags) && tags.length > 0) {
-        tagsEl.innerHTML = tags.map(t => `<span class="tag-chip active" style="font-size: 0.78rem; padding: 4px 10px;">${escapeHtml(t)}</span>`).join('');
-      } else {
-        tagsEl.innerHTML = '';
-      }
+      renderDetailTags(recipe);
+      renderDetailCategories();
 
       document.getElementById('recipeDetailsModal').classList.add('open');
     }
@@ -3419,6 +3712,11 @@
       document.getElementById('importStatus').textContent = '';
       document.getElementById('smartPasteStatus').textContent = '';
       selectedFormTags.clear();
+      selectedFormCategories.clear();
+      preservedFormTags = [];
+      // Opened while a category is selected in the library: start the new recipe in it.
+      if (!recipeToEdit && selectedGalleryCategory) selectedFormCategories.add(selectedGalleryCategory);
+      renderFormCategories();
 
       if (recipeToEdit) {
         editingRecipeId = recipeToEdit.id;
@@ -3452,6 +3750,8 @@
       document.getElementById('smartPasteStatus').textContent = '';
       if (document.getElementById('formIsBasePrep')) document.getElementById('formIsBasePrep').checked = false;
       selectedFormTags.clear();
+      selectedFormCategories.clear();
+      preservedFormTags = [];
     }
 
     function addIngredientRow(name = '', amount = '', unit = '') {
@@ -3537,12 +3837,21 @@
       // Editing keeps the saved tags as-is; imports get tags checked against the actual ingredients.
       const rawTags = Array.isArray(data.tags) ? data.tags : [];
       const tags = exactEdit ? rawTags : window.RecipeTags.inferTags(data, rawTags);
+      const categories = getCategories();
+      // Imports keep whatever categories were already picked in the form; editing loads the recipe's own.
+      if (exactEdit) {
+        selectedFormCategories.clear();
+        preservedFormTags = [];
+      }
       tags.forEach(t => {
         const norm = normalizeTagName(t);
         if (PREDEFINED_TAGS.includes(norm)) selectedFormTags.add(norm);
+        else if (categories.includes(norm)) selectedFormCategories.add(norm);
+        else if (exactEdit && norm && !preservedFormTags.includes(norm)) preservedFormTags.push(norm);
       });
 
       renderFormTags();
+      renderFormCategories();
       return true;
     }
 
@@ -3872,7 +4181,8 @@
         if (name) ingredients.push({ name, amount, unit });
       });
 
-      const tags = Array.from(selectedFormTags);
+      // Predefined tags, then categories, then any other tag the recipe already had.
+      const tags = [...new Set([...selectedFormTags, ...selectedFormCategories, ...preservedFormTags])];
       const finalImageUrl = image_url || getSmartRecipeImage({ title, description, instructions, tags, ingredients });
       const payload = {
         title, description, instructions, source_url,
@@ -5015,6 +5325,7 @@ ${library}
       }
 
       renderGalleryTags();
+      renderGalleryCategories();
       renderWhatToCookTags();
       renderWeeklyPlanner();
       applyGalleryFilters();
