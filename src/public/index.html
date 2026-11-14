@@ -406,6 +406,86 @@
       opacity: 0.7;
     }
 
+    /* Recipe view switcher: large images / list / text only */
+    .view-switch {
+      display: inline-flex;
+      gap: 2px;
+      padding: 3px;
+      border-radius: 999px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+    }
+    .view-switch button {
+      min-height: 40px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.875rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .view-switch button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .view-switch button[aria-pressed="true"] { background: var(--tag-active-bg); color: var(--tag-active-text); }
+
+    .grid.view-list,
+    .grid.view-text {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    @media (min-width: 900px) {
+      .grid.view-list,
+      .grid.view-text {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    .view-list .recipe-card { flex-direction: row; }
+    .view-list .recipe-img {
+      width: 108px;
+      height: auto;
+      min-height: 108px;
+      flex-shrink: 0;
+      align-self: stretch;
+      border-bottom: 0;
+      border-left: 1px solid var(--border);
+    }
+    .view-text .recipe-img { display: none; }
+    .view-list .recipe-body,
+    .view-text .recipe-body { padding: 12px 14px; min-width: 0; }
+    .view-list .recipe-desc, .view-text .recipe-desc,
+    .view-list .recipe-tags, .view-text .recipe-tags,
+    .view-list .recipe-actions, .view-text .recipe-actions { display: none !important; } /* card sets inline display:flex */
+    .view-list .recipe-title,
+    .view-text .recipe-title { font-size: 1rem; margin-bottom: 0; }
+    .view-list .recipe-meta,
+    .view-text .recipe-meta {
+      background: none;
+      border: 0;
+      padding: 0;
+      margin: 4px 0 0;
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+      justify-content: flex-start;
+      gap: 4px 12px;
+    }
+
+    /* "Change photo" button over the recipe image */
+    .photo-change-btn {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .photo-change-btn:hover { background: var(--card-bg); }
+
     /* Category manager */
     .category-list {
       display: grid;
@@ -1626,6 +1706,11 @@
             <button class="btn btn-sm btn-outline tier-btn" id="tierMissing" onclick="setMatchTier('missing_1_2')">חסרים 1-2 מצרכים</button>
           </div>
 
+          <div class="filter-row">
+            <span style="font-weight: 700; font-size: 0.85rem;">תצוגה:</span>
+            <div class="view-switch" data-view-switch role="group" aria-label="תצוגת המתכונים"></div>
+          </div>
+
           <div>
             <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">סינון אישי לפי תגיות (התאמה מלאה - AND):</div>
             <div id="whatToCookTagCloud" class="tag-cloud"></div>
@@ -1664,6 +1749,11 @@
             <button class="btn btn-sm btn-outline gallery-sort-btn" id="sort_calories_asc" onclick="setGallerySort('calories_asc')">🔥 הכי פחות קלוריות</button>
             <button class="btn btn-sm btn-outline gallery-sort-btn" id="sort_time_asc" onclick="setGallerySort('time_asc')">⏱ הכנה מהירה</button>
             <button class="btn btn-sm btn-outline gallery-sort-btn" id="sort_title_asc" onclick="setGallerySort('title_asc')">א-ת</button>
+          </div>
+
+          <div class="filter-row">
+            <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted);">תצוגה:</span>
+            <div class="view-switch" data-view-switch role="group" aria-label="תצוגת המתכונים"></div>
           </div>
 
           <div>
@@ -2011,7 +2101,10 @@
       </div>
 
       <div style="overflow-y: auto; padding-right: 6px; margin-bottom: 16px; flex-grow: 1;">
-        <img id="detailImg" src="" style="width: 100%; height: 220px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 14px;" onerror="this.src='https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600'">
+        <div style="position: relative; margin-bottom: 14px;">
+          <img id="detailImg" src="" alt="" style="width: 100%; height: 220px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); display: block;">
+          <button type="button" class="btn btn-sm photo-change-btn" onclick="openImageModal()">📷 שינוי תמונה</button>
+        </div>
         
         <p id="detailDesc" style="color: var(--text); font-size: 0.92rem; line-height: 1.5; margin-bottom: 14px; background: var(--card-bg); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);"></p>
         
@@ -2147,6 +2240,36 @@
       <div id="categoryList" class="category-list"></div>
       <div style="display: flex; justify-content: flex-end; margin-top: 14px;">
         <button class="btn btn-outline" onclick="closeCategoryModal()">סגור</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CHANGE RECIPE PHOTO (above the recipe details) -->
+  <div id="imageModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 460px;">
+      <div class="modal-header">
+        <h2 style="font-size: 1.2rem; font-weight: 700;">📷 שינוי תמונה</h2>
+        <button class="close-btn" onclick="closeImageModal()" aria-label="סגירה">&times;</button>
+      </div>
+      <img id="imageModalPreview" src="" alt="" style="width: 100%; height: 180px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); display: block; margin-bottom: 14px;">
+
+      <label class="btn btn-primary" for="imageFileInput" style="width: 100%; justify-content: center; min-height: 50px; font-size: 1rem; cursor: pointer;">
+        📷 צילום או בחירה מהגלריה
+      </label>
+      <input type="file" id="imageFileInput" accept="image/*" style="position: absolute; width: 1px; height: 1px; opacity: 0;" onchange="onRecipePhotoChosen(event)">
+      <p style="font-size: 0.8125rem; color: var(--text-muted); margin: 6px 2px 16px;">התמונה מוקטנת ונשמרת במכשיר הזה.</p>
+
+      <form onsubmit="saveRecipeImageUrl(event)" style="display: flex; gap: 8px;">
+        <label for="imageUrlInput" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">קישור לתמונה</label>
+        <input type="url" id="imageUrlInput" class="form-control" placeholder="או הדביקי קישור לתמונה (https://...)" autocomplete="off">
+        <button type="submit" class="btn btn-outline">שמירה</button>
+      </form>
+
+      <div id="imageModalStatus" style="font-size: 0.85rem; min-height: 1.2em; margin-top: 8px;" aria-live="polite"></div>
+
+      <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+        <button type="button" class="btn btn-outline" onclick="resetRecipeImage()">↺ חזרה לתמונה אוטומטית</button>
+        <button type="button" class="btn btn-outline" onclick="closeImageModal()">סגור</button>
       </div>
     </div>
   </div>
@@ -2479,6 +2602,229 @@
     }
 
     // =========================================================
+    // RECIPE VIEW (large images / list / text only) — remembered per device
+    // =========================================================
+    const RECIPE_VIEWS = [
+      { id: 'large', label: 'תמונות', icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="12" rx="2"/><path d="M3 19h18"/></svg>' },
+      { id: 'list', label: 'רשימה', icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="6" height="6" rx="1"/><rect x="3" y="14" width="6" height="6" rx="1"/><path d="M13 7h8M13 17h8"/></svg>' },
+      { id: 'text', label: 'טקסט', icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>' }
+    ];
+    const RECIPE_VIEW_KEY = 'recipeViewMode';
+    let recipeViewMode = 'large';
+    try {
+      const savedView = localStorage.getItem(RECIPE_VIEW_KEY);
+      if (RECIPE_VIEWS.some(v => v.id === savedView)) recipeViewMode = savedView;
+    } catch {}
+
+    function applyRecipeView() {
+      ['recipeGallery', 'whatToCookGrid'].forEach(id => {
+        const grid = document.getElementById(id);
+        if (!grid) return;
+        RECIPE_VIEWS.forEach(v => grid.classList.toggle('view-' + v.id, v.id === recipeViewMode));
+      });
+      document.querySelectorAll('[data-view-switch]').forEach(sw => {
+        sw.innerHTML = RECIPE_VIEWS.map(v => `
+          <button type="button" aria-pressed="${v.id === recipeViewMode}" onclick="setRecipeView('${v.id}')">${v.icon}${v.label}</button>
+        `).join('');
+      });
+    }
+
+    function setRecipeView(id) {
+      if (!RECIPE_VIEWS.some(v => v.id === id)) return;
+      recipeViewMode = id;
+      try { localStorage.setItem(RECIPE_VIEW_KEY, id); } catch {}
+      applyRecipeView();
+    }
+
+    // =========================================================
+    // RECIPE PHOTOS — the user's own photos live in IndexedDB on this device
+    // (localStorage is too small for images). Keyed by recipe id.
+    // =========================================================
+    const PHOTO_DB_NAME = 'myRecipesPhotos';
+    const PHOTO_STORE = 'photos';
+    let photoDbPromise = null;
+
+    function openPhotoDb() {
+      if (!('indexedDB' in window)) return Promise.reject(new Error('IndexedDB לא נתמך בדפדפן הזה'));
+      if (!photoDbPromise) {
+        photoDbPromise = new Promise((resolve, reject) => {
+          const req = indexedDB.open(PHOTO_DB_NAME, 1);
+          req.onupgradeneeded = () => req.result.createObjectStore(PHOTO_STORE);
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+      return photoDbPromise;
+    }
+
+    async function photoDbRun(mode, fn) {
+      const db = await openPhotoDb();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(PHOTO_STORE, mode);
+        const result = fn(tx.objectStore(PHOTO_STORE));
+        tx.oncomplete = () => resolve(result && 'result' in result ? result.result : undefined);
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    /** Loads every saved photo into customImageUrls (called once at startup). */
+    async function loadCustomPhotos() {
+      try {
+        const db = await openPhotoDb();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(PHOTO_STORE, 'readonly');
+          const req = tx.objectStore(PHOTO_STORE).openCursor();
+          req.onsuccess = () => {
+            const cursor = req.result;
+            if (!cursor) return;
+            if (cursor.value instanceof Blob) customImageUrls[String(cursor.key)] = URL.createObjectURL(cursor.value);
+            cursor.continue();
+          };
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (e) {
+        console.warn('Photos could not be loaded:', e);
+      }
+    }
+
+    async function setCustomPhoto(recipeId, blob) {
+      const key = String(recipeId);
+      await photoDbRun('readwrite', store => store.put(blob, key));
+      if (customImageUrls[key]) URL.revokeObjectURL(customImageUrls[key]);
+      customImageUrls[key] = URL.createObjectURL(blob);
+    }
+
+    async function removeCustomPhoto(recipeId) {
+      const key = String(recipeId);
+      if (!customImageUrls[key]) return;
+      try { await photoDbRun('readwrite', store => store.delete(key)); } catch {}
+      URL.revokeObjectURL(customImageUrls[key]);
+      delete customImageUrls[key];
+    }
+
+    /** Shrinks a photo to max 1000px and JPEG, so it stays around 100–200 KB. */
+    async function compressPhoto(file) {
+      const MAX = 1000;
+      let source;
+      try {
+        source = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      } catch {
+        source = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error('לא ניתן לקרוא את התמונה'));
+          img.src = URL.createObjectURL(file);
+        });
+      }
+      const w = source.width, h = source.height;
+      const scale = Math.min(1, MAX / Math.max(w, h));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
+      canvas.getContext('2d').drawImage(source, 0, 0, canvas.width, canvas.height);
+      return new Promise((resolve, reject) =>
+        canvas.toBlob(b => (b ? resolve(b) : reject(new Error('הכיווץ נכשל'))), 'image/jpeg', 0.82));
+    }
+
+    /** Saves a recipe's image_url locally and, for server recipes, on the server. */
+    async function setRecipeImageUrl(recipeId, imageUrl) {
+      const recipe = allRecipes.find(r => String(r.id) === String(recipeId));
+      if (!recipe) return null;
+      const updated = { ...recipe, image_url: imageUrl };
+      if (backendAvailable && /^\d+$/.test(String(recipeId))) {
+        try {
+          await fetch(`/api/recipes/${encodeURIComponent(recipeId)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_url: imageUrl })
+          });
+        } catch {}
+      }
+      allRecipes = allRecipes.map(r => String(r.id) === String(recipeId) ? updated : r);
+      if (currentDetailRecipe && String(currentDetailRecipe.id) === String(recipeId)) currentDetailRecipe = updated;
+      saveStoredRecipes(allRecipes);
+      return updated;
+    }
+
+    function refreshRecipeImages() {
+      if (currentDetailRecipe) {
+        const src = getSmartRecipeImage(currentDetailRecipe);
+        const detailImg = document.getElementById('detailImg');
+        if (detailImg) detailImg.src = src;
+        const preview = document.getElementById('imageModalPreview');
+        if (preview) preview.src = src;
+      }
+      applyGalleryFilters();
+      applyWhatToCookFilters();
+      renderWeeklyPlanner();
+    }
+
+    function setImageStatus(text, isError = false) {
+      const el = document.getElementById('imageModalStatus');
+      el.textContent = text;
+      el.style.color = isError ? 'var(--danger)' : 'var(--primary-text)';
+    }
+
+    function openImageModal() {
+      if (!currentDetailRecipe) return;
+      document.getElementById('imageModalPreview').src = getSmartRecipeImage(currentDetailRecipe);
+      const current = currentDetailRecipe.image_url;
+      document.getElementById('imageUrlInput').value = current && !isAutoImage(current) && !current.startsWith('data:') ? current : '';
+      document.getElementById('imageFileInput').value = '';
+      setImageStatus('');
+      document.getElementById('imageModal').classList.add('open');
+    }
+
+    function closeImageModal() {
+      document.getElementById('imageModal').classList.remove('open');
+    }
+
+    async function onRecipePhotoChosen(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file || !currentDetailRecipe) return;
+      if (!file.type.startsWith('image/')) return setImageStatus('צריך לבחור קובץ תמונה.', true);
+      setImageStatus('מכין את התמונה…');
+      try {
+        const blob = await compressPhoto(file);
+        await setCustomPhoto(currentDetailRecipe.id, blob);
+        refreshRecipeImages();
+        setImageStatus(`✓ התמונה נשמרה (${Math.round(blob.size / 1024)}KB)`);
+        showToast('התמונה של המתכון עודכנה', { duration: 2500 });
+      } catch (err) {
+        setImageStatus('לא הצלחתי לשמור את התמונה: ' + err.message, true);
+      }
+    }
+
+    async function saveRecipeImageUrl(event) {
+      event.preventDefault();
+      if (!currentDetailRecipe) return;
+      const url = document.getElementById('imageUrlInput').value.trim();
+      if (!/^https?:\/\//i.test(url)) return setImageStatus('צריך קישור שמתחיל ב-https://', true);
+      // Check that the link really is a picture before saving it.
+      const ok = await new Promise(resolve => {
+        const probe = new Image();
+        probe.onload = () => resolve(true);
+        probe.onerror = () => resolve(false);
+        probe.src = url;
+      });
+      if (!ok) return setImageStatus('הקישור לא נטען כתמונה. אפשר לנסות קישור אחר.', true);
+      await removeCustomPhoto(currentDetailRecipe.id); // a link replaces a photo from the phone
+      await setRecipeImageUrl(currentDetailRecipe.id, url);
+      refreshRecipeImages();
+      setImageStatus('✓ הקישור נשמר');
+    }
+
+    async function resetRecipeImage() {
+      if (!currentDetailRecipe) return;
+      await removeCustomPhoto(currentDetailRecipe.id);
+      await setRecipeImageUrl(currentDetailRecipe.id, '');
+      document.getElementById('imageUrlInput').value = '';
+      refreshRecipeImages();
+      setImageStatus('✓ חזרה לתמונה האוטומטית');
+    }
+
+    // =========================================================
     // TAG MANAGER (add / delete filter tags)
     // =========================================================
     const TAG_MAX_LENGTH = 30;
@@ -2652,21 +2998,73 @@
       'photo-1585032226651-759b368d7246'  // retired: noodles (was used for tteokbokki)
     ];
 
+    // "Auto" images get regenerated: stock photos, the generated tiles below, and blob: URLs of
+    // the user's own photos (those live in IndexedDB and are looked up by recipe id, never saved
+    // as a URL). Only a real URL the user or an import set is kept as the recipe's picture.
     function isAutoImage(url) {
-      return !url || url.includes('placeholder') || AUTO_IMAGE_IDS.some(id => url.includes(id));
+      return !url
+        || url.includes('placeholder')
+        || url.startsWith('data:image/svg+xml')
+        || url.startsWith('blob:')
+        || AUTO_IMAGE_IDS.some(id => url.includes(id));
     }
 
+    // ---------------------------------------------------------
+    // Generated picture tiles: a soft color per recipe (from its name) + an icon for the
+    // kind of dish, so no two recipes look identical when there is no real photo.
+    // ---------------------------------------------------------
+    const TILE_COLORS = ['#E3D3BF', '#D7C2AE', '#C9D1BC', '#C5CEDA', '#D9CFC0', '#DDC4AE', '#CEC6D3', '#D5CFB2', '#CDBFB3'];
+    const TILE_ICONS = [
+      { kw: ['סלמון', 'דג', 'טונה', 'אמנון', 'לברק', 'בקלה', 'דניס'], svg: '<path d="M90 150c40-50 120-50 160 0-40 50-120 50-160 0z"/><path d="M250 150l50-35v70z"/><circle cx="125" cy="140" r="7" fill="#2E2A27"/>' },
+      { kw: ['גלידה', 'קרימי', 'סורבה'], svg: '<path d="M150 150h100l-50 110z"/><path d="M150 150a50 50 0 0 1 100 0"/><path d="M165 112a35 35 0 0 1 70 0"/>' },
+      { kw: ['ברד', 'סלאשי', 'שייק', 'משקה', 'סמוזי', 'לימונדה'], svg: '<path d="M140 110h120l-15 150h-90z"/><path d="M215 110l25-60h30"/><path d="M146 160h108"/>' },
+      { kw: ['ביצ', 'שקשוקה', 'חביתה', 'חביתת', 'פריטטה'], svg: '<path d="M200 70c45 0 75 70 75 115a75 75 0 0 1-150 0c0-45 30-115 75-115z"/><circle cx="200" cy="190" r="28" fill="#2E2A27" fill-opacity="0.35"/>' },
+      { kw: ['עוג', 'קינוח', 'מאפין', 'בראוני', 'פנקייק', 'עוגיות'], svg: '<path d="M110 200l180-70v110H110z"/><path d="M110 200h180"/><path d="M200 165v-55"/><circle cx="200" cy="100" r="10"/>' },
+      { kw: ['לחם', 'טוסט', 'פיתה', 'כוסמין', 'לחמני', 'מחמצת', 'בייגל'], svg: '<path d="M115 230v-70a85 55 0 0 1 170 0v70z"/><path d="M160 135l20 35M200 125l20 35M240 135l20 35"/>' },
+      { kw: ['טחינה', 'ממרח', 'רוטב', 'פסטו', 'מטבל', 'קונפי', 'ריבה'], svg: '<path d="M140 120h120v130a20 20 0 0 1-20 20h-80a20 20 0 0 1-20-20z"/><path d="M130 95h140v25H130z"/><path d="M160 175h80"/>' },
+      { kw: ['סלט', 'ירקות', 'ברוקולי', 'קייל', 'תרד', 'עלים'], svg: '<path d="M200 260c-70-30-90-110-30-180 60 70 40 150 30 180z"/><path d="M200 260c10-60 0-110-30-180"/>' },
+      { kw: ['פסטה', 'ספגטי', 'טוקבוקי', 'נודלס', 'אורז', 'קינואה', 'פתיתים'], svg: '<path d="M100 170h200a100 70 0 0 1-200 0z"/><path d="M230 60l-40 110M265 70l-55 100"/>' },
+      { kw: ['מרק', 'עדשים', 'תבשיל', 'קדרה', 'חומוס', 'שעועית'], svg: '<path d="M95 160h210"/><path d="M105 160a95 80 0 0 0 190 0"/><path d="M165 135c-10-15 10-25 0-40M200 135c-10-15 10-25 0-40M235 135c-10-15 10-25 0-40"/>' }
+    ];
+    const TILE_DEFAULT_ICON = '<circle cx="200" cy="160" r="85"/><circle cx="200" cy="160" r="55"/><path d="M315 80v160M300 80v45a15 15 0 0 0 30 0V80"/>';
+
+    function tileHash(str) {
+      let h = 0;
+      const s = String(str || '');
+      for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+      return Math.abs(h);
+    }
+
+    function recipeTileImage(recipe) {
+      const title = String(recipe?.title || '');
+      const text = (title + ' ' + (recipe?.description || '') + ' ' + (recipe?.tags || '')).toLowerCase();
+      // The dish name decides the icon first; description/tags only when the name says nothing.
+      const icon = (TILE_ICONS.find(i => i.kw.some(k => title.toLowerCase().includes(k)))
+        || TILE_ICONS.find(i => i.kw.some(k => text.includes(k))) || { svg: TILE_DEFAULT_ICON }).svg;
+      const h = tileHash(title || recipe?.id);
+      const bg = TILE_COLORS[h % TILE_COLORS.length];
+      // Two soft circles in a per-recipe position make tiles with the same color/icon still differ.
+      const cx1 = 40 + (h % 320), cy1 = 30 + ((h >> 4) % 240), cx2 = 40 + ((h >> 8) % 320);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">`
+        + `<rect width="400" height="300" fill="${bg}"/>`
+        + `<circle cx="${cx1}" cy="${cy1}" r="120" fill="#FFFFFF" fill-opacity="0.22"/>`
+        + `<circle cx="${cx2}" cy="270" r="90" fill="#2E2A27" fill-opacity="0.05"/>`
+        + `<g fill="none" stroke="#2E2A27" stroke-opacity="0.6" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">${icon}</g>`
+        + `</svg>`;
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+
+    // The user's own photos (IndexedDB) → object URLs, keyed by recipe id. Filled at startup.
+    const customImageUrls = {};
+
     function getSmartRecipeImage(recipe) {
+      if (recipe && recipe.id != null && customImageUrls[String(recipe.id)]) {
+        return customImageUrls[String(recipe.id)];
+      }
       if (recipe && !isAutoImage(recipe.image_url)) {
         return recipe.image_url;
       }
-      const text = ((recipe?.title || '') + ' ' + (recipe?.description || '') + ' ' + (recipe?.appliance || '') + ' ' + (recipe?.tags || '') + ' ' + (recipe?.instructions || '')).toLowerCase();
-      for (const item of SMART_IMAGE_MAP) {
-        if (item.keywords.some(k => text.includes(k.toLowerCase()))) {
-          return item.url;
-        }
-      }
-      return DEFAULT_RECIPE_IMAGE;
+      return recipeTileImage(recipe);
     }
 
     const DEFAULT_RECIPES = [
@@ -4077,10 +4475,10 @@
                 <span>💪 ${r.protein_grams || 0}g חלבון</span>
                 <span>📊 ${safeDiff}</span>
               </div>
-              <div class="tag-cloud" style="margin-top: auto; padding-bottom: 2px;">
+              <div class="tag-cloud recipe-tags" style="margin-top: auto; padding-bottom: 2px;">
                 ${tags.map(t => `<span class="tag-chip tag-static" style="font-size: 0.8125rem; padding: 2px 8px;">${escapeHtml(t)}</span>`).join('')}
               </div>
-              <div style="display: flex; gap: 8px; margin-top: 12px;">
+              <div class="recipe-actions" style="display: flex; gap: 8px; margin-top: 12px;">
                 <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="event.stopPropagation(); openRecipeDetails('${safeId}')">
                   👁️ מתכון מלא
                 </button>
@@ -4111,8 +4509,8 @@
       document.getElementById('detailSubtitle').textContent = (recipe.category ? recipe.category + ' • ' : '') + (recipe.appliance || '');
       const detailImg = getSmartRecipeImage(recipe);
       const imgEl = document.getElementById('detailImg');
+      imgEl.onerror = function() { this.onerror = null; this.src = recipeTileImage(recipe); };
       imgEl.src = detailImg;
-      imgEl.onerror = function() { this.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'; };
       document.getElementById('detailDesc').textContent = recipe.description || 'ללא תיאור נוסף';
       document.getElementById('detailTime').innerHTML = `⏱ <b>${recipe.prep_time_minutes || 0}</b> דק'`;
       document.getElementById('detailCalories').innerHTML = `🔥 <b>${recipe.calories || 0}</b> קל'`;
@@ -5029,7 +5427,7 @@
                 <span>💪 ${r.protein_grams || 0}g חלבון</span>
                 <span>📊 ${escapeHtml(r.difficulty || 'בינוני')}</span>
               </div>
-              <div class="tag-cloud" style="margin-top: 8px; padding-bottom: 2px;">
+              <div class="tag-cloud recipe-tags" style="margin-top: 8px; padding-bottom: 2px;">
                 ${tags.map(t => `<span class="tag-chip tag-static" style="font-size: 0.8125rem; padding: 2px 8px;">${escapeHtml(t)}</span>`).join('')}
               </div>
               ${actionBtnHtml}
@@ -5795,6 +6193,8 @@ ${library}
 
     async function initApp() {
       allRecipes = getStoredRecipes();
+      await loadCustomPhotos(); // the user's own photos, before anything renders a recipe image
+      applyRecipeView();
       weeklyPlan = getStoredPlan();
       weekendPreps = getStoredWeekendPreps();
 
