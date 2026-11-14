@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-recipes-v10';
+const CACHE_NAME = 'my-recipes-v11'; // v11: chihuahua chef logo
 const CORE_ASSETS = [
   './',
   './index.html',

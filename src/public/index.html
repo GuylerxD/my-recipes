@@ -7,8 +7,8 @@
   
   <!-- PWA Settings -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#F6F1E9">
-  <meta name="background-color" content="#F6F1E9">
+  <meta name="theme-color" content="#EDE6DC">
+  <meta name="background-color" content="#EDE6DC">
   <script>
     // Apply the saved theme (or the system preference) before first paint, to avoid a flash.
     (function () {
@@ -19,7 +19,7 @@
       }
       document.documentElement.setAttribute('data-theme', theme);
       var meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute('content', theme === 'dark' ? '#171310' : '#F6F1E9');
+      if (meta) meta.setAttribute('content', theme === 'dark' ? '#1E1B19' : '#EDE6DC');
     })();
   </script>
   <meta name="mobile-web-app-capable" content="yes">
@@ -30,99 +30,115 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Varela+Round&family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
     /* =========================================================
-       KITCHEN JOURNAL DESIGN — LIGHT (default) + DARK
-       - Paper-cream surfaces, ink text, serif display headings
+       WINTER "WOOL BLANKET" DESIGN — LIGHT (default) + DARK
+       - Oatmeal & charcoal, soft rounded shapes, Varela Round titles
+       - Primary actions: warm taupe (#B5A99F) with dark text
+       - Secondary blocks (shopping card, user avatar): brown-gray #6B5F55
+       - In-Stock / Completed: Olive
        - Flat: no gradients, no heavy drop shadows (box-shadow: none)
-       - Primary Actions: Terracotta. In-Stock / Completed: Olive
        - Theme is set on <html data-theme="light|dark"> (see head script)
        - STRICT PROHIBITION: NO TURQUOISE, NO MINT, NO PINK, NO GOLD
        ========================================================= */
     :root,
     :root[data-theme="light"] {
       color-scheme: light;
-      --bg: #F6F1E9;
-      --surface: #FFFDF8;
-      --card-bg: #F1EADF;
-      --card-border: #E4DACB;
-      --text: #221C17;
-      --text-muted: #6B5F55;
-      --primary: #B4472A;
-      --primary-hover: #9C3C22;
-      --primary-active: #84321C;
-      --primary-text: #B4472A;      /* terracotta used as text/links */
-      --on-primary: #FFFFFF;        /* text on terracotta/olive fills */
+      --bg: #EDE6DC;
+      --surface: #F8F4EE;
+      --card-bg: #F1EBE3;
+      --card-border: #DDD2C4;
+      --text: #2E2A27;
+      --text-muted: #625A52;
+      --primary: #B5A99F;
+      --primary-hover: #A69A90;
+      --primary-active: #978B81;
+      --primary-text: #6B5F55;      /* accent used as text/links */
+      --on-primary: #2E2A27;        /* text on taupe fills (6:1) */
       --olive: #4F6B3A;
       --olive-hover: #435C31;
-      --olive-bg: #E7ECDD;
-      --olive-border: #C9D4B6;
+      --olive-on: #FFFFFF;
+      --olive-bg: #E4E8D9;
+      --olive-border: #C3CDB0;
       --olive-text: #33472A;
-      --secondary: #4A3F37;
-      --secondary-bg: #F1EADF;
-      --border: #E4DACB;
+      --secondary: #6B5F55;
+      --secondary-text: #F8F4EE;
+      --secondary-bg: #F1EBE3;
+      --border: #DDD2C4;
       --danger: #A33224;
-      --danger-bg: #F8E3DE;
-      --danger-border: #EBC3BA;
-      --danger-hover: #F2D3CB;
-      --warn: #9A5B12;
-      --tag-bg: #FFFDF8;
-      --tag-border: #E1D6C6;
-      --tag-text: #221C17;
-      --tag-hover-bg: #F1EADF;
-      --tag-hover-border: #D3C5B1;
-      --tag-active-bg: #B4472A;
-      --tag-active-text: #FFFFFF;
-      --slot-empty-border: #D3C5B1;
+      --danger-bg: #F6E0DA;
+      --danger-border: #E8C0B6;
+      --danger-hover: #F0D2CA;
+      --warn: #8F5414;
+      --tag-bg: #F8F4EE;
+      --tag-border: #DDD2C4;
+      --tag-text: #2E2A27;
+      --tag-hover-bg: #F1EBE3;
+      --tag-hover-border: #CDBFAE;
+      --tag-active-bg: #2E2A27;
+      --tag-active-text: #F8F4EE;
+      --slot-empty-border: #CDBFAE;
+      --nav-bg: #2E2A27;
+      --nav-border: #2E2A27;
+      --nav-text: #BFB4A8;
+      --nav-active-text: #F8F4EE;
       --nav-active-bg: transparent;
-      --overlay: rgba(34, 28, 23, 0.45);
-      --code-bg: #F1EADF;
+      --knit: #CDBFAE;
+      --overlay: rgba(46, 42, 39, 0.45);
+      --code-bg: #F1EBE3;
       --code-text: #33472A;
-      --font-display: 'Frank Ruhl Libre', 'Heebo', serif;
-      --radius-sm: 10px;
-      --radius-md: 14px;
-      --radius-lg: 18px;
-      --bottom-nav-height: 70px;
+      --font-display: 'Varela Round', 'Heebo', sans-serif;
+      --radius-sm: 14px;
+      --radius-md: 20px;
+      --radius-lg: 26px;
+      --bottom-nav-height: 80px; /* floating bar (68px) + gap below it */
     }
     :root[data-theme="dark"] {
       color-scheme: dark;
-      --bg: #171310;
-      --surface: #211C18;
-      --card-bg: #2A241F;
-      --card-border: #3A322B;
-      --text: #F4EEE6;
-      --text-muted: #B3A79C;
-      --primary: #B4472A;
-      --primary-hover: #C2532F;
-      --primary-active: #9C3C22;
-      --primary-text: #E8906B;
-      --on-primary: #FFFFFF;
+      --bg: #1E1B19;
+      --surface: #292522;
+      --card-bg: #322D29;
+      --card-border: #443D37;
+      --text: #F3EDE6;
+      --text-muted: #B5A99F;
+      --primary: #B5A99F;
+      --primary-hover: #C4B9B0;
+      --primary-active: #A69A90;
+      --primary-text: #CDBFAE;
+      --on-primary: #1E1B19;
       --olive: #5E7E46;
       --olive-hover: #6B8E4E;
-      --olive-bg: #232B1C;
+      --olive-on: #FFFFFF;
+      --olive-bg: #262D1F;
       --olive-border: #3F5432;
       --olive-text: #C9E2B3;
-      --secondary: #3A312C;
-      --secondary-bg: #2A241F;
-      --border: #3A322B;
+      --secondary: #6B5F55;
+      --secondary-text: #F8F4EE;
+      --secondary-bg: #322D29;
+      --border: #443D37;
       --danger: #EE8B7E;
-      --danger-bg: #351E1A;
+      --danger-bg: #3A221E;
       --danger-border: #5C2E27;
-      --danger-hover: #442621;
+      --danger-hover: #472823;
       --warn: #E39A5A;
-      --tag-bg: #2A241F;
-      --tag-border: #463C34;
-      --tag-text: #E9E1D7;
-      --tag-hover-bg: #342C26;
-      --tag-hover-border: #574B43;
-      --tag-active-bg: #B4472A;
-      --tag-active-text: #FFFFFF;
-      --slot-empty-border: #4E433B;
+      --tag-bg: #322D29;
+      --tag-border: #4A423B;
+      --tag-text: #EAE3DB;
+      --tag-hover-bg: #3A342F;
+      --tag-hover-border: #5A5048;
+      --tag-active-bg: #F3EDE6;
+      --tag-active-text: #1E1B19;
+      --slot-empty-border: #554C45;
+      --nav-bg: #332E2A;
+      --nav-border: #443D37;
+      --nav-text: #B5A99F;
+      --nav-active-text: #F3EDE6;
       --nav-active-bg: transparent;
+      --knit: #3A332E;
       --overlay: rgba(10, 8, 7, 0.78);
-      --code-bg: #110E0C;
+      --code-bg: #161412;
       --code-text: #C9E2B3;
     }
 
@@ -136,11 +152,21 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* Serif display font only for large titles; smaller headings stay in Heebo,
-       which reads better at a glance at small sizes. */
+    /* Rounded display font (Varela Round, one weight) only for titles;
+       smaller headings stay in Heebo, which reads better at small sizes. */
     h1, h2, .planner-title, .planner-section-title, .hero-meal-title, #detailTitle {
       font-family: var(--font-display);
+      font-weight: 400 !important; /* Varela Round has no bold; avoid faux-bold */
       letter-spacing: 0;
+    }
+
+    /* Knitted stripe across the top of the screen */
+    .knit-band {
+      display: block;
+      width: calc(100% + 28px);
+      height: 24px;
+      margin: -14px -14px 6px;
+      color: var(--knit);
     }
 
     /* Numbers (calories, protein, minutes, dates) line up in columns */
@@ -195,9 +221,9 @@
       min-width: 0;
     }
     .app-brand-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
       flex-shrink: 0;
       border: 1px solid var(--border);
     }
@@ -209,11 +235,11 @@
       white-space: nowrap;
     }
     .theme-toggle {
-      width: 44px;
-      height: 44px;
+      width: 48px;
+      height: 48px;
       flex-shrink: 0;
-      border-radius: 22px;
-      border: 1px solid var(--border);
+      border-radius: 24px;
+      border: 0;
       background: var(--surface);
       color: var(--text);
       display: inline-flex;
@@ -780,15 +806,14 @@
       gap: 12px;
     }
     .planner-date {
-      font-size: 0.82rem;
+      font-size: 0.875rem;
       font-weight: 500;
       color: var(--text-muted);
-      margin-bottom: 2px;
+      margin-top: 4px;
     }
     .planner-title {
-      font-size: clamp(1.8rem, 8vw, 2.3rem);
-      font-weight: 700;
-      line-height: 1.1;
+      font-size: clamp(1.7rem, 7.5vw, 2.1rem);
+      line-height: 1.2;
       color: var(--text);
     }
     .planner-sync-btn {
@@ -824,34 +849,37 @@
       .planner-sync-label { display: none; }
     }
 
+    /* Day pills: "היום", "מחר", then weekday names (scrolls sideways) */
     .week-strip {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 4px;
-    }
-    .week-day {
       display: flex;
-      flex-direction: column;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      margin: 0 -2px;
+      padding: 2px;
+    }
+    .week-strip::-webkit-scrollbar { display: none; }
+    .week-day {
+      flex-shrink: 0;
+      display: inline-flex;
       align-items: center;
-      gap: 3px;
-      padding: 8px 0;
-      min-height: 64px;
-      border-radius: 16px;
+      gap: 7px;
+      height: 44px;
+      padding: 0 18px;
+      border-radius: 22px;
       border: 0;
-      background: transparent;
+      background: var(--surface);
       color: var(--text);
+      font-size: 0.95rem;
+      font-weight: 500;
       cursor: pointer;
       transition: background 0.15s ease, color 0.15s ease;
     }
     .week-day:hover { background: var(--card-bg); }
-    .wd-name { font-size: 0.8125rem; color: var(--text-muted); }
-    .wd-num { font-size: 1.08rem; font-weight: 600; }
-    .wd-dot { width: 5px; height: 5px; border-radius: 3px; background: var(--primary-text); }
-    .wd-dot.empty { background: transparent; }
-    .week-day.today:not(.selected) .wd-num { color: var(--primary-text); font-weight: 700; }
-    .week-day.selected { background: var(--text); color: var(--bg); }
-    .week-day.selected .wd-name { color: var(--bg); opacity: 0.75; }
-    .week-day.selected .wd-dot:not(.empty) { background: var(--bg); }
+    .wd-dot { width: 6px; height: 6px; border-radius: 3px; background: var(--primary-text); flex-shrink: 0; }
+    .wd-dot.empty { display: none; }
+    .week-day.selected { background: var(--tag-active-bg); color: var(--tag-active-text); font-weight: 600; }
+    .week-day.selected .wd-dot { background: var(--tag-active-text); }
 
     .planner-section { display: flex; flex-direction: column; gap: 12px; }
     .planner-section-head {
@@ -885,13 +913,57 @@
 
     .hero-meal {
       background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      overflow: hidden;
+      border-radius: 28px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
       cursor: pointer;
     }
-    .hero-meal-img { position: relative; height: 200px; background: var(--card-bg); }
+    .hero-meal-img { position: relative; height: 180px; border-radius: 20px; overflow: hidden; background: var(--card-bg); }
     .hero-meal-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .hero-meal-buttons { display: flex; gap: 8px; align-items: center; }
+    .hero-meal-buttons .btn-primary { flex-grow: 1; min-height: 50px; font-size: 1rem; }
+    .hero-meal-buttons .btn-outline { min-height: 50px; background: transparent; border: 1.5px solid var(--slot-empty-border); }
+
+    /* Weekly shopping card (brown-gray block) */
+    .shop-card {
+      background: var(--secondary);
+      color: var(--secondary-text);
+      border-radius: 24px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .shop-card-icon {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      border-radius: 24px;
+      background: var(--secondary-text);
+      color: var(--secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .shop-card-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+    .shop-card-text { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .shop-card-title { font-size: 1rem; font-weight: 600; }
+    .shop-card-sub { font-size: 0.875rem; opacity: 0.92; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .shop-card-btn {
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 22px;
+      border: 0;
+      background: var(--secondary-text);
+      color: var(--secondary);
+      font-weight: 700;
+      font-size: 0.875rem;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .shop-card-btn:disabled { opacity: 0.7; cursor: default; }
     .hero-meal-chip {
       position: absolute;
       top: 12px;
@@ -903,8 +975,8 @@
       padding: 5px 11px;
       border-radius: 999px;
     }
-    .hero-meal-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; }
-    .hero-meal-title { font-size: 1.35rem; font-weight: 700; line-height: 1.25; color: var(--text); }
+    .hero-meal-body { padding: 0 4px; display: flex; flex-direction: column; gap: 6px; }
+    .hero-meal-title { font-size: 1.4rem; line-height: 1.3; color: var(--text); }
     .hero-meal-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; }
     .meal-meta { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.82rem; font-weight: 500; color: var(--text-muted); }
     .meal-meta span { display: inline-flex; align-items: center; gap: 5px; }
@@ -1006,9 +1078,9 @@
 
     /* Buttons: Solid Flat (44px+ Mobile Friendly) */
     .btn {
-      padding: 10px 16px;
+      padding: 10px 18px;
       min-height: 44px;
-      border-radius: var(--radius-sm);
+      border-radius: 999px;
       border: 1px solid transparent;
       cursor: pointer;
       font-weight: 700;
@@ -1033,7 +1105,7 @@
     }
     .btn-success {
       background: var(--olive);
-      color: var(--on-primary);
+      color: var(--olive-on);
       border-color: var(--olive-border);
     }
     .btn-success:hover {
@@ -1210,19 +1282,24 @@
     /* =========================================================
        BOTTOM NAVIGATION BAR (SOLID OPAQUE WARM DARK, MOBILE FIRST)
        ========================================================= */
+    /* Floating rounded bar (Wool design) */
     .bottom-nav {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
-      background: var(--surface);
-      border-top: 1px solid var(--border);
+      bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      left: 14px;
+      right: 14px;
+      max-width: 560px;
+      margin: 0 auto;
+      height: 68px;
+      background: var(--nav-bg);
+      border: 1px solid var(--nav-border);
+      border-radius: 34px;
       display: flex;
       align-items: stretch;
       justify-content: space-around;
       z-index: 1500;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding: 0 6px;
+      overflow: hidden;
     }
     .bottom-nav-item {
       flex: 1;
@@ -1233,8 +1310,8 @@
       gap: 4px;
       background: transparent;
       border: none;
-      border-top: 3px solid transparent;
-      color: var(--text-muted);
+      border-top: 0;
+      color: var(--nav-text);
       cursor: pointer;
       padding: 6px 2px;
       text-decoration: none;
@@ -1243,7 +1320,12 @@
       min-width: 0;
     }
     .bottom-nav-item:active {
-      background: var(--card-bg);
+      opacity: 0.8;
+    }
+    .bottom-nav-item:focus-visible {
+      outline-color: var(--nav-active-text);
+      outline-offset: -4px;
+      border-radius: 24px;
     }
     .bottom-nav-icon {
       display: inline-flex;
@@ -1270,12 +1352,11 @@
       max-width: 100%;
     }
     .bottom-nav-item.active {
-      color: var(--primary-text);
-      border-top-color: transparent;
+      color: var(--nav-active-text);
       background: var(--nav-active-bg);
     }
     .bottom-nav-item.active .bottom-nav-label {
-      color: var(--primary-text);
+      color: var(--nav-active-text);
       font-weight: 700;
     }
 
@@ -1292,6 +1373,14 @@
       .app-title-group p {
         display: none;
       }
+      .knit-band {
+        width: calc(100% + 20px);
+        margin: -10px -10px 4px;
+      }
+    }
+    @media (max-width: 520px) {
+      /* Not enough room next to the title on phones */
+      header .badge-mint { display: none; }
     }
     /* Toast notifications (save confirmations etc.) */
     .toast-stack {
@@ -1347,6 +1436,14 @@
   </style>
 </head>
 <body>
+  <svg class="knit-band" aria-hidden="true" focusable="false">
+    <defs>
+      <pattern id="knitPattern" width="20" height="12" patternUnits="userSpaceOnUse">
+        <path d="M2 2l8 8 8-8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#knitPattern)"/>
+  </svg>
   <div class="container">
     <header>
       <div class="app-brand">
@@ -1384,8 +1481,8 @@
         <!-- Planner header: date, title, sync -->
         <div class="planner-head">
           <div>
+            <h2 id="plannerGreeting" class="planner-title">שבוע נעים</h2>
             <p id="plannerTodayLabel" class="planner-date"></p>
-            <h2 class="planner-title">מה מבשלים השבוע</h2>
           </div>
           <button type="button" class="planner-sync-btn" onclick="approveAndSyncPlan()" aria-label="אישור וסנכרון התפריט ל-The Healing Cabin" title="אישור וסנכרון התפריט ל-The Healing Cabin">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-3.5"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 3.5"/><path d="M20 20v-4h-4"/></svg>
@@ -1406,6 +1503,9 @@
           <div id="plannerDayView" class="planner-day-view"></div>
           <div id="weeklyPlannerDaysGrid" class="planner-days-grid" style="display: none;"></div>
         </section>
+
+        <!-- What's missing for this week's planned meals (vs. the Listi pantry) -->
+        <div id="plannerShoppingCard"></div>
 
         <!-- Weekend Preps (הכנות לסופ"ש) -->
         <section class="planner-section">
@@ -2608,7 +2708,7 @@
     function applyTheme(theme) {
       document.documentElement.setAttribute('data-theme', theme);
       const meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute('content', theme === 'dark' ? '#171310' : '#F6F1E9');
+      if (meta) meta.setAttribute('content', theme === 'dark' ? '#1E1B19' : '#EDE6DC');
       const btn = document.getElementById('themeToggle');
       if (btn) {
         const label = theme === 'dark' ? 'מעבר למצב בהיר' : 'מעבר למצב כהה';
@@ -2987,27 +3087,40 @@
       const weekDates = getCurrentWeekDates();
       const isWeek = plannerViewMode === 'week';
 
+      // Greeting ("שבת נעימה") + how many meals are planned for today
+      const greetingEl = document.getElementById('plannerGreeting');
+      if (greetingEl) {
+        greetingEl.textContent = todayIdx === 6 ? 'שבת נעימה' : `יום ${DAYS[todayIdx]} נעים`;
+      }
       const todayLabel = document.getElementById('plannerTodayLabel');
       if (todayLabel) {
-        todayLabel.textContent = new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+        const plannedToday = MEALS.filter(meal => resolveSlotRecipe(DAYS[todayIdx], meal)).length;
+        const dateText = new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'long' }).format(new Date());
+        const countText = plannedToday === 0
+          ? 'עוד לא תוכננו ארוחות להיום'
+          : plannedToday === 1 ? 'ארוחה אחת מתוכננת להיום' : `${plannedToday} ארוחות מתוכננות להיום`;
+        todayLabel.textContent = `${countText} · ${dateText}`;
       }
 
-      // Week strip
+      // Day pills, starting from today: "היום", "מחר", then weekday names
       const strip = document.getElementById('plannerWeekStrip');
       if (strip) {
-        strip.innerHTML = DAYS.map((day, i) => {
+        strip.innerHTML = [0, 1, 2, 3, 4, 5, 6].map(offset => {
+          const i = (todayIdx + offset) % 7;
+          const day = DAYS[i];
+          const label = offset === 0 ? 'היום' : offset === 1 ? 'מחר' : day;
           const hasMeals = MEALS.some(meal => resolveSlotRecipe(day, meal));
           const selected = !isWeek && i === plannerSelectedDay;
-          const classes = ['week-day', selected ? 'selected' : '', i === todayIdx ? 'today' : ''].join(' ').trim();
           return `
-            <button type="button" class="${classes}" role="tab" aria-selected="${selected}" aria-label="יום ${escapeHtml(day)}${i === todayIdx ? ' (היום)' : ''}${hasMeals ? ', יש מנות משובצות' : ''}" onclick="selectPlannerDay(${i})">
-              <span class="wd-name">${DAY_LETTERS[i]}</span>
-              <span class="wd-num">${weekDates[i].getDate()}</span>
+            <button type="button" class="week-day ${selected ? 'selected' : ''}" role="tab" aria-selected="${selected}" aria-label="${label === day ? 'יום ' + escapeHtml(day) : label + ' (יום ' + escapeHtml(day) + ')'}${hasMeals ? ', יש מנות משובצות' : ''}" onclick="selectPlannerDay(${i})">
+              <span>${escapeHtml(label)}</span>
               <span class="wd-dot ${hasMeals ? '' : 'empty'}"></span>
             </button>
           `;
         }).join('');
       }
+
+      renderPlannerShoppingCard();
 
       const wrap = document.querySelector('#tab-planner .planner-wrap');
       if (wrap) wrap.classList.toggle('week-mode', isWeek);
@@ -3033,7 +3146,11 @@
       dayView.style.display = '';
 
       const day = DAYS[plannerSelectedDay];
-      if (heading) heading.textContent = plannerSelectedDay === todayIdx ? 'היום' : `יום ${day}`;
+      if (heading) {
+        heading.textContent = plannerSelectedDay === todayIdx ? 'היום'
+          : plannerSelectedDay === (todayIdx + 1) % 7 ? `מחר · יום ${day}`
+          : `יום ${day}`;
+      }
 
       const filled = MEALS.map(meal => ({ meal, recipe: resolveSlotRecipe(day, meal) }));
       const filledOnly = filled.filter(f => f.recipe);
@@ -3072,10 +3189,12 @@
             </div>
             <div class="hero-meal-body">
               <h3 class="hero-meal-title">${escapeHtml(r.title)}</h3>
-              <div class="hero-meal-foot">
-                <div class="meal-meta">${plannerMealMeta(r)}</div>
-                ${plannerMealActions(day, hero.meal, r.title)}
-              </div>
+              <div class="meal-meta">${plannerMealMeta(r)}</div>
+            </div>
+            <div class="hero-meal-buttons">
+              <button type="button" class="btn btn-primary" onclick="event.stopPropagation(); openRecipeDetails('${safeId}')">להתחיל לבשל</button>
+              <button type="button" class="btn btn-outline" onclick="event.stopPropagation(); openRecipeChooser('${escapeHtml(day)}', '${escapeHtml(hero.meal)}')">החלפה</button>
+              <button type="button" class="icon-btn danger" aria-label="הסרת ${escapeHtml(r.title)}" title="הסרה" onclick="event.stopPropagation(); removeSlot('${escapeHtml(day)}', '${escapeHtml(hero.meal)}')">${PLANNER_ICONS.close}</button>
             </div>
           </article>
         `;
@@ -3108,6 +3227,116 @@
       }).join('');
 
       dayView.innerHTML = html;
+    }
+
+    // =========================================================
+    // WEEKLY SHOPPING CARD — ingredients of this week's planned meals
+    // that aren't in the pantry (same matching as "מה להכין")
+    // =========================================================
+    let plannerMissingItems = [];
+
+    function getKnownPantry() {
+      if (currentPantryStock.length || currentShoppingList.length) {
+        return { stock: currentPantryStock, shopping: currentShoppingList };
+      }
+      try {
+        const cached = JSON.parse(localStorage.getItem(PANTRY_CACHE_KEY) || 'null');
+        if (cached && Array.isArray(cached.stock)) return { stock: cached.stock, shopping: cached.shopping || [] };
+      } catch (e) {}
+      return null;
+    }
+
+    function computeWeekMissingIngredients(pantry) {
+      const inList = (name, list) => {
+        const lower = String(name || '').trim().toLowerCase();
+        return list.some(item => {
+          const itemLower = String(item || '').trim().toLowerCase();
+          if (itemLower.length < 2) return false;
+          return lower.includes(itemLower) || itemLower.includes(lower);
+        });
+      };
+      const missing = [];
+      const seen = new Set();
+      DAYS.forEach(day => MEALS.forEach(meal => {
+        const recipe = resolveSlotRecipe(day, meal);
+        if (!recipe) return;
+        const full = allRecipes.find(r => String(r.id) === String(recipe.id || recipe.recipeId)) || recipe;
+        getRecipeIngredients(full).forEach(ing => {
+          const name = String(typeof ing === 'string' ? ing : (ing.name || '')).trim();
+          const key = name.toLowerCase();
+          if (!name || seen.has(key)) return;
+          seen.add(key);
+          // Skip what's already in stock or already on the Listi shopping list
+          if (!inList(name, pantry.stock) && !inList(name, pantry.shopping)) missing.push(name);
+        });
+      }));
+      return missing;
+    }
+
+    function renderPlannerShoppingCard() {
+      const el = document.getElementById('plannerShoppingCard');
+      if (!el) return;
+      const cartIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>';
+      const pantry = getKnownPantry();
+
+      if (!pantry) {
+        el.innerHTML = `
+          <div class="shop-card">
+            <span class="shop-card-icon">${cartIcon}</span>
+            <div class="shop-card-text">
+              <span class="shop-card-title">מה חסר לשבוע?</span>
+              <span class="shop-card-sub">צריך לסנכרן את המזווה כדי לבדוק</span>
+            </div>
+            <button type="button" class="shop-card-btn" onclick="showTab('pantry')">למזווה</button>
+          </div>
+        `;
+        return;
+      }
+
+      plannerMissingItems = computeWeekMissingIngredients(pantry);
+      if (plannerMissingItems.length === 0) {
+        el.innerHTML = `
+          <div class="shop-card">
+            <span class="shop-card-icon">${PLANNER_ICONS.check}</span>
+            <div class="shop-card-text">
+              <span class="shop-card-title">יש הכל לשבוע</span>
+              <span class="shop-card-sub">כל המצרכים של התפריט במזווה או ברשימת הקניות</span>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const count = plannerMissingItems.length;
+      el.innerHTML = `
+        <div class="shop-card">
+          <span class="shop-card-icon">${cartIcon}</span>
+          <div class="shop-card-text">
+            <span class="shop-card-title">${count === 1 ? 'חסר מצרך אחד לשבוע' : `חסרים ${count} מצרכים לשבוע`}</span>
+            <span class="shop-card-sub" title="${escapeHtml(plannerMissingItems.join(', '))}">${escapeHtml(plannerMissingItems.join(', '))}</span>
+          </div>
+          <button type="button" class="shop-card-btn" onclick="sendWeekMissingToListi(this)">ל-Listi</button>
+        </div>
+      `;
+    }
+
+    async function sendWeekMissingToListi(btn) {
+      const items = plannerMissingItems.slice();
+      if (items.length === 0) return;
+      btn.disabled = true;
+      btn.textContent = 'שולח…';
+      try {
+        await pushMissingItemsToListiBackendOrCloud(items);
+        btn.textContent = '✓ נשלח';
+        showToast(`${items.length} מצרכים נוספו לרשימת הקניות ב-Listi`);
+        loadPantry();
+        await loadWhatToCook();
+        renderPlannerShoppingCard();
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'ל-Listi';
+        showToast('שגיאה בשליחה ל-Listi: ' + err.message, { type: 'error' });
+      }
     }
 
     // Whole-week overview (the original 7-column grid)
@@ -4387,6 +4616,7 @@
       currentPantrySource = result ? result.source : '';
       updateAiPantryBadge();
       applyWhatToCookFilters();
+      renderPlannerShoppingCard();
     }
 
     function applyWhatToCookFilters() {
@@ -4993,7 +5223,7 @@ ${library}
 
         return `
           <div style="display: flex; gap: 10px; align-items: flex-start; ${isUser ? 'flex-direction: row-reverse;' : ''}">
-            <div style="width: 32px; height: 32px; border-radius: 50%; background: ${isUser ? 'var(--secondary)' : 'var(--primary)'}; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: ${isUser ? 'var(--secondary)' : 'var(--primary)'}; color: ${isUser ? 'var(--secondary-text)' : 'var(--on-primary)'}; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0;">
               ${isUser ? '👤' : '✨'}
             </div>
             <div style="max-width: 85%; background: ${bg}; border: 1px solid ${border}; border-radius: var(--radius-md); padding: 12px 14px;">

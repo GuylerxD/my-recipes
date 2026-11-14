@@ -1,14 +1,47 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Full bleed Espresso background for maskable safe-zone -->
-  <rect width="512" height="512" fill="#181412"/>
-  <!-- Warm Umber inner badge -->
-  <rect x="44" y="44" width="424" height="424" rx="96" fill="#231E1B" stroke="#3F3630" stroke-width="8"/>
-  <!-- Terracotta culinary plate / emblem -->
-  <circle cx="256" cy="276" r="132" fill="#C85A32"/>
-  <!-- Chef Hat in Warm Ivory (clean flat geometry) -->
-  <path d="M188 228c-22 0-40-18-40-40 0-19 13-35 31-39 7-26 31-45 60-45 6 0 12 1 17 3 5-2 11-3 17-3 29 0 53 19 60 45 18 4 31 20 31 39 0 22-18 40-40 40H188z" fill="#F5EFE6"/>
-  <rect x="184" y="236" width="144" height="30" rx="8" fill="#F5EFE6"/>
-  <!-- Minimalist Fork & Spoon in Warm Ivory inside Terracotta circle -->
-  <path d="M214 286v26c0 9 7 16 16 16v42c0 6 4 10 10 10s10-4 10-10v-42c9 0 16-7 16-16v-26c0-4-3-7-7-7s-7 3-7 7v18h-5v-18c0-4-3-7-7-7s-7 3-7 7v18h-5v-18c0-4-3-7-7-7s-7 3-7 7z" fill="#F5EFE6"/>
-  <path d="M294 279c-13 0-22 12-22 28 0 12 6 22 14 26v37c0 6 4 10 10 10s10-4 10-10v-37c8-4 14-14 14-26 0-16-9-28-26-28z" fill="#F5EFE6"/>
+  <!-- MY RECIPES logo: a cute chihuahua chef (anime style), Wool palette.
+       Full-bleed background; the artwork stays inside the maskable safe zone (r ≈ 205). -->
+  <rect width="512" height="512" fill="#6B5F55"/>
+  <circle cx="256" cy="256" r="212" fill="#EDE6DC"/>
+
+  <g transform="translate(256 282) scale(0.9) translate(-256 -282)"
+     stroke="#2E2A27" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+
+    <!-- Big chihuahua ears (behind the head) -->
+    <path d="M168 236 Q118 170 100 104 Q170 128 226 194 Z" fill="#D9A877"/>
+    <path d="M344 236 Q394 170 412 104 Q342 128 286 194 Z" fill="#D9A877"/>
+    <path d="M178 220 Q142 176 130 134 Q172 152 206 194 Z" fill="#F2C9A0" stroke="none"/>
+    <path d="M334 220 Q370 176 382 134 Q340 152 306 194 Z" fill="#F2C9A0" stroke="none"/>
+
+    <!-- Apple-shaped head -->
+    <ellipse cx="256" cy="300" rx="125" ry="106" fill="#D9A877"/>
+
+    <!-- Kerchief (winter scarf) tied under the chin -->
+    <path d="M196 392 Q256 410 316 392 L256 448 Z" fill="#B4532A"/>
+    <!-- Light muzzle -->
+    <ellipse cx="256" cy="348" rx="60" ry="42" fill="#F6E3CC" stroke="none"/>
+    <!-- Forehead blaze -->
+    <path d="M240 206 Q256 250 272 206 Z" fill="#F6E3CC" stroke="none"/>
+
+    <!-- Chef hat -->
+    <path d="M188 182 C160 182 150 150 168 132 C170 102 205 88 228 100 C238 76 274 76 284 100 C307 88 342 102 344 132 C362 150 352 182 324 182 Z" fill="#FFFFFF"/>
+    <path d="M226 150 V176 M256 140 V176 M286 150 V176" stroke="#D8D0C6" stroke-width="5"/>
+    <rect x="184" y="170" width="144" height="36" rx="12" fill="#FFFFFF"/>
+
+    <!-- Big sparkly anime eyes -->
+    <ellipse cx="204" cy="298" rx="29" ry="35" fill="#2E2A27" stroke="none"/>
+    <ellipse cx="308" cy="298" rx="29" ry="35" fill="#2E2A27" stroke="none"/>
+    <circle cx="214" cy="285" r="11" fill="#FFFFFF" stroke="none"/>
+    <circle cx="318" cy="285" r="11" fill="#FFFFFF" stroke="none"/>
+    <circle cx="195" cy="311" r="5" fill="#FFFFFF" stroke="none"/>
+    <circle cx="299" cy="311" r="5" fill="#FFFFFF" stroke="none"/>
+
+    <!-- Rosy (apricot) cheeks -->
+    <ellipse cx="166" cy="340" rx="19" ry="10" fill="#E8946A" opacity="0.6" stroke="none"/>
+    <ellipse cx="346" cy="340" rx="19" ry="10" fill="#E8946A" opacity="0.6" stroke="none"/>
+
+    <!-- Nose + "ω" smile -->
+    <path d="M243 330 Q256 321 269 330 Q263 345 256 346 Q249 345 243 330 Z" fill="#2E2A27" stroke="none"/>
+    <path d="M238 356 Q247 368 256 356 Q265 368 274 356" fill="none" stroke-width="5"/>
+  </g>
 </svg>
