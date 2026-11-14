@@ -1,9 +1,10 @@
-const CACHE_NAME = 'my-recipes-v11'; // v11: chihuahua chef logo
+const CACHE_NAME = 'my-recipes-v12'; // v12: cooking tips
 const CORE_ASSETS = [
   './',
   './index.html',
   './recipe-tags.js?v=4',
   './gemini-client.js?v=4',
+  './cooking-tips.js?v=2',
   './manifest.json',
   './add-recipe',
   './icons/icon-192.png',

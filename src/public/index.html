@@ -86,6 +86,10 @@
       --nav-active-text: #F8F4EE;
       --nav-active-bg: transparent;
       --knit: #CDBFAE;
+      --tip-bg: #F3E6D3;
+      --tip-border: #E2CFB4;
+      --tip-text: #4A3F37;
+      --tip-icon: #8F5414;
       --overlay: rgba(46, 42, 39, 0.45);
       --code-bg: #F1EBE3;
       --code-text: #33472A;
@@ -137,6 +141,10 @@
       --nav-active-text: #F3EDE6;
       --nav-active-bg: transparent;
       --knit: #3A332E;
+      --tip-bg: #3A3029;
+      --tip-border: #54463B;
+      --tip-text: #F0E6DA;
+      --tip-icon: #E3A86B;
       --overlay: rgba(10, 8, 7, 0.78);
       --code-bg: #161412;
       --code-text: #C9E2B3;
@@ -926,6 +934,73 @@
     .hero-meal-buttons .btn-primary { flex-grow: 1; min-height: 50px; font-size: 1rem; }
     .hero-meal-buttons .btn-outline { min-height: 50px; background: transparent; border: 1.5px solid var(--slot-empty-border); }
 
+    /* Tip / fact bubble */
+    .tip-bubble {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      background: var(--tip-bg);
+      border: 1px solid var(--tip-border);
+      border-radius: 18px;
+      color: var(--tip-text);
+      text-align: right;
+    }
+    .tip-bubble.has-tail { margin-top: 8px; }
+    .tip-bubble.has-tail::before {
+      content: '';
+      position: absolute;
+      top: -7px;
+      right: 24px;
+      width: 12px;
+      height: 12px;
+      background: var(--tip-bg);
+      border-top: 1px solid var(--tip-border);
+      border-left: 1px solid var(--tip-border);
+      transform: rotate(45deg);
+    }
+    .tip-icon {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      border-radius: 16px;
+      background: var(--surface);
+      color: var(--tip-icon);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tip-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+    .tip-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .tip-label { font-size: 0.8125rem; font-weight: 700; color: var(--tip-icon); }
+    .tip-text { font-size: 0.9375rem; line-height: 1.55; }
+    .tip-close {
+      width: 44px;
+      height: 44px;
+      margin: -10px -8px -10px -10px;
+      flex-shrink: 0;
+      border: 0;
+      border-radius: 22px;
+      background: transparent;
+      color: var(--tip-text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .tip-close:hover { background: var(--tip-border); }
+    .tip-close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+      text-align: center;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
     /* Weekly shopping card (brown-gray block) */
     .shop-card {
       background: var(--secondary);
@@ -1490,6 +1565,9 @@
           </button>
         </div>
 
+        <!-- Food fact of the day (dismissible until tomorrow) -->
+        <div id="plannerFact"></div>
+
         <!-- Week strip (Sunday → Saturday) -->
         <div id="plannerWeekStrip" class="week-strip" role="tablist" aria-label="ימי השבוע"></div>
 
@@ -1556,8 +1634,9 @@
       </div>
 
       <div id="whatToCookGrid" class="grid"></div>
-      <div id="noMatchMsg" style="display: none; text-align: center; padding: 40px; color: var(--text-muted); font-weight: 600;">
-        לא נמצאו מתכונים התואמים את המלאי והתגיות שנבחרו.
+      <div id="noMatchMsg" class="empty-state" style="display: none; padding: 32px 0; max-width: 560px; margin: 0 auto;">
+        <p>לא נמצאו מתכונים התואמים את המלאי והתגיות שנבחרו.</p>
+        <div id="noMatchTip"></div>
       </div>
     </section>
 
@@ -1603,8 +1682,9 @@
       </div>
 
       <div id="recipeGallery" class="grid"></div>
-      <div id="noRecipesMsg" style="display: none; text-align: center; padding: 40px; color: var(--text-muted); font-weight: 600;">
-        לא נמצאו מתכונים התואמים את החיפוש והתגיות שנבחרו.
+      <div id="noRecipesMsg" class="empty-state" style="display: none; padding: 32px 0; max-width: 560px; margin: 0 auto;">
+        <p>לא נמצאו מתכונים התואמים את החיפוש והתגיות שנבחרו.</p>
+        <div id="noRecipesTip"></div>
       </div>
     </section>
 
@@ -1948,6 +2028,7 @@
         </div>
 
         <div style="margin-bottom: 16px;">
+          <div id="detailTip" style="margin-bottom: 14px; max-width: 68ch;"></div>
           <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 8px;">👩‍🍳 אופן ההכנה</h3>
           <div id="detailInstructions" style="white-space: pre-line; line-height: 1.75; color: var(--text); background: var(--card-bg); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 1.0625rem; max-width: 68ch;"></div>
         </div>
@@ -2070,6 +2151,7 @@
   <!-- Bump ?v= when these change: the service worker serves cached JS first. -->
   <script src="recipe-tags.js?v=4"></script>
   <script src="gemini-client.js?v=4"></script>
+  <script src="cooking-tips.js?v=2"></script>
   <script>
     // =========================================================
     // CORE CONSTANTS & SEEDS
@@ -3005,7 +3087,62 @@
       circle: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>',
       check: '<svg viewBox="0 0 24 24" aria-hidden="true" style="stroke-width: 2.6;"><path d="M5 12l4 4 10-10"/></svg>'
     };
-    const PLANNER_FALLBACK_IMG = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';
+    // =========================================================
+    // TIP / FACT BUBBLES (content lives in cooking-tips.js)
+    // =========================================================
+    const TIP_BULB_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>';
+
+    function tipBubbleHtml(text, { label = 'טיפ', tail = false, onCloseJs = '', closeLabel = 'סגירה' } = {}) {
+      if (!text) return '';
+      const close = onCloseJs
+        ? `<button type="button" class="tip-close" aria-label="${escapeHtml(closeLabel)}" title="${escapeHtml(closeLabel)}" onclick="event.stopPropagation(); ${onCloseJs}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`
+        : '';
+      return `
+        <div class="tip-bubble ${tail ? 'has-tail' : ''}" role="note">
+          <span class="tip-icon">${TIP_BULB_ICON}</span>
+          <div class="tip-body">
+            <span class="tip-label">${escapeHtml(label)}</span>
+            <p class="tip-text">${escapeHtml(text)}</p>
+          </div>
+          ${close}
+        </div>
+      `;
+    }
+
+    function recipeTip(recipe) {
+      if (!window.CookingTips || !recipe) return '';
+      const full = allRecipes.find(r => String(r.id) === String(recipe.id || recipe.recipeId)) || recipe;
+      return CookingTips.tipForRecipe(full, getRecipeIngredients(full), getRecipeTags(full));
+    }
+
+    function generalTipText(seed) {
+      return window.CookingTips ? CookingTips.generalTip(seed) : '';
+    }
+
+    const FACT_DISMISS_KEY = 'factOfDayDismissed';
+
+    function renderPlannerFact() {
+      const el = document.getElementById('plannerFact');
+      if (!el || !window.CookingTips) return;
+      let dismissed = null;
+      try { dismissed = localStorage.getItem(FACT_DISMISS_KEY); } catch (e) {}
+      if (dismissed === CookingTips.dayKey()) {
+        el.innerHTML = '';
+        return;
+      }
+      el.innerHTML = tipBubbleHtml(CookingTips.factOfTheDay(), {
+        label: 'ידעת? · העובדה של היום',
+        onCloseJs: 'dismissFactOfDay()',
+        closeLabel: 'הסתרת העובדה עד מחר'
+      });
+    }
+
+    function dismissFactOfDay() {
+      try { localStorage.setItem(FACT_DISMISS_KEY, CookingTips.dayKey()); } catch (e) {}
+      renderPlannerFact();
+    }
+
+    const PLANNER_FALLBACK_IMG ='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800';
 
     let plannerSelectedDay = new Date().getDay();
     let plannerViewMode = 'day';
@@ -3082,6 +3219,7 @@
     function renderWeeklyPlanner() {
       renderNinjaAirFryerCarousel();
       renderWeekendPreps();
+      renderPlannerFact();
 
       const todayIdx = new Date().getDay();
       const weekDates = getCurrentWeekDates();
@@ -3178,6 +3316,15 @@
       }
 
       let html = '';
+      if (filledOnly.length === 0) {
+        // Empty day: a friendly note + a general tip instead of just empty slots
+        html += `
+          <div class="empty-state" style="text-align: right;">
+            <p>${plannerSelectedDay === todayIdx ? 'עוד לא שובצו ארוחות להיום.' : `עוד לא שובצו ארוחות ליום ${escapeHtml(day)}.`} אפשר לשבץ מנה בכל אחת מהארוחות למטה.</p>
+            ${tipBubbleHtml(generalTipText(plannerSelectedDay))}
+          </div>
+        `;
+      }
       if (hero) {
         const r = hero.recipe;
         const safeId = escapeHtml(r.id || r.recipeId || '');
@@ -3191,6 +3338,7 @@
               <h3 class="hero-meal-title">${escapeHtml(r.title)}</h3>
               <div class="meal-meta">${plannerMealMeta(r)}</div>
             </div>
+            ${tipBubbleHtml(recipeTip(r), { tail: true })}
             <div class="hero-meal-buttons">
               <button type="button" class="btn btn-primary" onclick="event.stopPropagation(); openRecipeDetails('${safeId}')">להתחיל לבשל</button>
               <button type="button" class="btn btn-outline" onclick="event.stopPropagation(); openRecipeChooser('${escapeHtml(day)}', '${escapeHtml(hero.meal)}')">החלפה</button>
@@ -3758,7 +3906,9 @@
 
       if (!recipes || recipes.length === 0) {
         gallery.innerHTML = '';
-        noMsg.style.display = 'block';
+        noMsg.style.display = 'flex';
+        const tipEl = document.getElementById('noRecipesTip');
+        if (tipEl) tipEl.innerHTML = tipBubbleHtml(generalTipText(1));
         return;
       }
       noMsg.style.display = 'none';
@@ -3849,6 +3999,8 @@
       }
 
       document.getElementById('detailInstructions').textContent = recipe.instructions || 'אין הוראות הכנה מפורטות.';
+      const detailTipEl = document.getElementById('detailTip');
+      if (detailTipEl) detailTipEl.innerHTML = tipBubbleHtml(recipeTip(recipe), { label: 'טיפ למתכון הזה' });
 
       renderDetailTags(recipe);
       renderDetailCategories();
@@ -4684,7 +4836,9 @@
 
       if (recipes.length === 0) {
         grid.innerHTML = '';
-        noMsg.style.display = 'block';
+        noMsg.style.display = 'flex';
+        const tipEl = document.getElementById('noMatchTip');
+        if (tipEl) tipEl.innerHTML = tipBubbleHtml(generalTipText(2));
         return;
       }
       noMsg.style.display = 'none';
