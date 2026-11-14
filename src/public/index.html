@@ -1669,13 +1669,16 @@
           <div>
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
               <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted);">קטגוריות:</span>
-              <button class="btn btn-outline btn-sm" onclick="openCategoryModal()">📂 + קטגוריה</button>
+              <button class="btn btn-outline btn-sm" onclick="openCategoryModal()">📂 ניהול קטגוריות</button>
             </div>
             <div id="galleryCategoryCloud" class="tag-cloud"></div>
           </div>
 
           <div>
-            <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">סינון לפי תגיות (התאמה מלאה - AND):</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted);">סינון לפי תגיות (התאמה מלאה - AND):</span>
+              <button class="btn btn-outline btn-sm" onclick="openTagModal()">🏷 ניהול תגיות</button>
+            </div>
             <div id="galleryTagCloud" class="tag-cloud"></div>
           </div>
         </div>
@@ -2130,11 +2133,11 @@
   <div id="categoryModal" class="modal-overlay">
     <div class="modal-content" style="max-width: 460px;">
       <div class="modal-header">
-        <h2 style="font-size: 1.2rem; font-weight: 700;">📂 הקטגוריות שלי</h2>
-        <button class="close-btn" onclick="closeCategoryModal()">&times;</button>
+        <h2 style="font-size: 1.2rem; font-weight: 700;">📂 ניהול קטגוריות</h2>
+        <button class="close-btn" onclick="closeCategoryModal()" aria-label="סגירה">&times;</button>
       </div>
       <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
-        למשל: קינוחים, עוגות, עוגיות, פחמימה. משייכים מתכון לקטגוריה בעריכת המתכון או בלחיצה על הקטגוריה בתוך המתכון.
+        הוסיפי קטגוריה חדשה או מחקי קטגוריה קיימת. מחיקה מסירה רק את הקטגוריה, המתכונים עצמם נשארים.
       </p>
       <form onsubmit="addCategoryFromInput(event)" style="display: flex; gap: 8px;">
         <input type="text" id="newCategoryInput" class="form-control" placeholder="שם קטגוריה חדשה" maxlength="30" autocomplete="off">
@@ -2144,6 +2147,29 @@
       <div id="categoryList" class="category-list"></div>
       <div style="display: flex; justify-content: flex-end; margin-top: 14px;">
         <button class="btn btn-outline" onclick="closeCategoryModal()">סגור</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TAG MANAGER (after the other modals, so it opens above the recipe form) -->
+  <div id="tagModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 460px;">
+      <div class="modal-header">
+        <h2 style="font-size: 1.2rem; font-weight: 700;">🏷 ניהול תגיות</h2>
+        <button class="close-btn" onclick="closeTagModal()" aria-label="סגירה">&times;</button>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+        תגיות משמשות לסינון מהיר (למשל: עתיר חלבון, דל סוכר). מחיקת תגית מסירה אותה גם מהמתכונים שמסומנים בה, המתכונים עצמם נשארים.
+      </p>
+      <form onsubmit="addTagFromInput(event)" style="display: flex; gap: 8px;">
+        <label for="newTagInput" class="sr-only" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">שם תגית חדשה</label>
+        <input type="text" id="newTagInput" class="form-control" placeholder="שם תגית חדשה" maxlength="30" autocomplete="off">
+        <button type="submit" class="btn btn-primary">הוסף</button>
+      </form>
+      <div id="tagModalStatus" style="font-size: 0.85rem; min-height: 1.2em; margin-top: 6px;" aria-live="polite"></div>
+      <div id="tagList" class="category-list"></div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 14px;">
+        <button class="btn btn-outline" onclick="closeTagModal()">סגור</button>
       </div>
     </div>
   </div>
@@ -2159,7 +2185,10 @@
     const DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
     const MEALS = ['בוקר', 'ביניים בוקר', 'צהריים', 'ביניים אחה"צ', 'ארוחת ערב'];
 
-    const PREDEFINED_TAGS = [
+    // Filter tags. The user can add and delete tags (see "TAG MANAGER"); the list is saved in this
+    // browser. PREDEFINED_TAGS stays the same array object (contents replaced in place), because
+    // inline handlers refer to it by index: onclick="toggleGalleryTag(PREDEFINED_TAGS[3])".
+    const DEFAULT_TAGS = [
       'עתיר חלבון',
       'דל סוכר',
       'נינג\'ה אייר פרייר',
@@ -2170,6 +2199,14 @@
       'ללא כוסברה',
       'ללא סלטים'
     ];
+    const TAG_STORAGE_KEY = 'my_recipes_tags';
+    const PREDEFINED_TAGS = (() => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(TAG_STORAGE_KEY));
+        if (Array.isArray(saved)) return saved.filter(t => typeof t === 'string' && t.trim());
+      } catch {}
+      return [...DEFAULT_TAGS];
+    })();
 
     /**
      * Non-blocking notification. type: 'success' | 'warn' | 'error'.
@@ -2307,7 +2344,7 @@
       cloud.innerHTML = [
         chip('הכל', !selectedGalleryCategory, 'selectGalleryCategory(-1)'),
         ...categories.map((c, i) => chip(c, selectedGalleryCategory === c, `selectGalleryCategory(${i})`, countRecipesInCategory(c))),
-        '<span class="tag-chip add-chip" onclick="openCategoryModal()">+ חדשה</span>'
+        '<span class="tag-chip add-chip" onclick="openCategoryModal()">+ חדשה / מחיקה</span>'
       ].join('');
     }
 
@@ -2390,7 +2427,7 @@
         return `
           <div class="category-row">
             <div><span class="category-row-name">${escapeHtml(c)}</span><span class="category-row-count">${count} מתכונים</span></div>
-            <button type="button" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger-border);" onclick="deleteCategory(${i}, this)">מחק</button>
+            <button type="button" class="btn btn-sm btn-danger" aria-label="מחיקת הקטגוריה ${escapeHtml(c)}" onclick="deleteCategory(${i}, this)">🗑 מחיקה</button>
           </div>`;
       }).join('');
     }
@@ -2424,8 +2461,8 @@
       const count = countRecipesInCategory(name);
       if (btn && !btn.dataset.armed) {
         btn.dataset.armed = '1';
-        btn.textContent = count ? `למחוק? (מ-${count} מתכונים)` : 'בטוח? מחק';
-        setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = 'מחק'; } }, 4000);
+        btn.textContent = count ? `ללחוץ שוב למחיקה (${count} מתכונים)` : 'ללחוץ שוב למחיקה';
+        setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = '🗑 מחיקה'; } }, 4000);
         return;
       }
       saveCategories(getCategories().filter(c => c !== name));
@@ -2439,6 +2476,106 @@
       refreshCategoryViews();
       if (currentDetailRecipe) renderDetailTags(currentDetailRecipe);
       showToast(`הקטגוריה "${name}" נמחקה${affected.length ? ` (המתכונים עצמם נשארו)` : ''}`, { duration: 3000 });
+    }
+
+    // =========================================================
+    // TAG MANAGER (add / delete filter tags)
+    // =========================================================
+    const TAG_MAX_LENGTH = 30;
+
+    function saveTagList() {
+      try { localStorage.setItem(TAG_STORAGE_KEY, JSON.stringify(PREDEFINED_TAGS)); } catch {}
+    }
+
+    function recipeHasTag(recipe, tag) {
+      return getRecipeTags(recipe).some(t => normalizeTagName(String(t).trim()) === tag);
+    }
+
+    function countRecipesWithTag(tag) {
+      return allRecipes.filter(r => recipeHasTag(r, tag)).length;
+    }
+
+    function openTagModal() {
+      document.getElementById('tagModalStatus').textContent = '';
+      document.getElementById('newTagInput').value = '';
+      renderTagList();
+      document.getElementById('tagModal').classList.add('open');
+      setTimeout(() => document.getElementById('newTagInput').focus(), 50);
+    }
+
+    function closeTagModal() {
+      document.getElementById('tagModal').classList.remove('open');
+    }
+
+    function refreshTagViews() {
+      renderTagList();
+      renderGalleryTags();
+      renderWhatToCookTags();
+      renderFormTags();
+      if (currentDetailRecipe) renderDetailTags(currentDetailRecipe);
+      applyGalleryFilters();
+      applyWhatToCookFilters();
+    }
+
+    function renderTagList() {
+      const list = document.getElementById('tagList');
+      if (!list) return;
+      if (PREDEFINED_TAGS.length === 0) {
+        list.innerHTML = '<div style="color: var(--text-muted); font-size: 0.88rem; text-align: center; padding: 12px;">אין תגיות עדיין. הוסיפי את הראשונה למעלה.</div>';
+        return;
+      }
+      list.innerHTML = PREDEFINED_TAGS.map((t, i) => `
+        <div class="category-row">
+          <div><span class="category-row-name">${escapeHtml(t)}</span><span class="category-row-count">${countRecipesWithTag(t)} מתכונים</span></div>
+          <button type="button" class="btn btn-sm btn-danger" aria-label="מחיקת התגית ${escapeHtml(t)}" onclick="deleteTag(${i}, this)">🗑 מחיקה</button>
+        </div>`).join('');
+    }
+
+    function addTagFromInput(e) {
+      e.preventDefault();
+      const input = document.getElementById('newTagInput');
+      const status = document.getElementById('tagModalStatus');
+      const name = normalizeTagName(input.value.replace(/\s+/g, ' ').trim());
+      const fail = msg => { status.textContent = msg; status.style.color = 'var(--danger)'; };
+      if (!name) return fail('כתבי שם לתגית.');
+      if (name.length > TAG_MAX_LENGTH) return fail(`עד ${TAG_MAX_LENGTH} תווים.`);
+      if (PREDEFINED_TAGS.includes(name)) return fail(`"${name}" כבר קיימת.`);
+      if (getCategories().includes(name)) return fail(`"${name}" כבר קיימת כקטגוריה.`);
+
+      PREDEFINED_TAGS.push(name);
+      saveTagList();
+      // Adding from inside the recipe form: assume it's meant for this recipe.
+      if (document.getElementById('addRecipeModal').classList.contains('open')) selectedFormTags.add(name);
+      input.value = '';
+      status.textContent = `✓ "${name}" נוספה`;
+      status.style.color = 'var(--primary-text)';
+      refreshTagViews();
+      input.focus();
+    }
+
+    /** First tap arms the button, second tap deletes (confirm() is blocked in some webviews). */
+    async function deleteTag(index, btn) {
+      const name = PREDEFINED_TAGS[index];
+      if (!name) return;
+      const count = countRecipesWithTag(name);
+      if (btn && !btn.dataset.armed) {
+        btn.dataset.armed = '1';
+        btn.textContent = count ? `ללחוץ שוב למחיקה (${count} מתכונים)` : 'ללחוץ שוב למחיקה';
+        setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = '🗑 מחיקה'; } }, 4000);
+        return;
+      }
+      PREDEFINED_TAGS.splice(PREDEFINED_TAGS.indexOf(name), 1);
+      saveTagList();
+      selectedGalleryTags.delete(name);
+      selectedWhatToCookTags.delete(name);
+      selectedFormTags.delete(name);
+      // The recipes stay; only this tag is removed from them.
+      const affected = allRecipes.filter(r => recipeHasTag(r, name));
+      for (const r of affected) {
+        await setRecipeTags(r.id, getRecipeTags(r).filter(t => normalizeTagName(String(t).trim()) !== name));
+      }
+      refreshTagViews();
+      showToast(`התגית "${name}" נמחקה${affected.length ? ` (הוסרה מ-${affected.length} מתכונים)` : ''}`, { duration: 3000 });
     }
 
     // =========================================================
@@ -3835,7 +3972,7 @@
       cloud.innerHTML = PREDEFINED_TAGS.map((t, i) => {
         const isSelected = selectedGalleryTags.has(t);
         return `<span class="tag-chip ${isSelected ? 'active' : ''}" onclick="toggleGalleryTag(PREDEFINED_TAGS[${i}])">${escapeHtml(t)}</span>`;
-      }).join('');
+      }).join('') + '<span class="tag-chip add-chip" onclick="openTagModal()">+ חדשה / מחיקה</span>';
     }
 
     function toggleGalleryTag(tag) {
@@ -4202,7 +4339,7 @@
       container.innerHTML = PREDEFINED_TAGS.map((tag, i) => {
         const isSelected = selectedFormTags.has(tag);
         return `<span class="tag-chip form-chip ${isSelected ? 'selected' : ''}" onclick="toggleFormTag(PREDEFINED_TAGS[${i}])">${escapeHtml(tag)}</span>`;
-      }).join('');
+      }).join('') + '<span class="tag-chip add-chip" onclick="openTagModal()">+ חדשה / מחיקה</span>';
     }
 
     function toggleFormTag(tag) {
@@ -4673,7 +4810,7 @@
       cloud.innerHTML = PREDEFINED_TAGS.map((t, i) => {
         const isSelected = selectedWhatToCookTags.has(t);
         return `<span class="tag-chip ${isSelected ? 'active' : ''}" onclick="toggleWhatToCookTag(PREDEFINED_TAGS[${i}])">${escapeHtml(t)}</span>`;
-      }).join('');
+      }).join('') + '<span class="tag-chip add-chip" onclick="openTagModal()">+ חדשה / מחיקה</span>';
     }
 
     function toggleWhatToCookTag(tag) {
