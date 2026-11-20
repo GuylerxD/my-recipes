@@ -1,9 +1,9 @@
-const CACHE_NAME = 'my-recipes-v13'; // v13: URL import falls back to Gemini when sites block
+const CACHE_NAME = 'my-recipes-v14'; // v14: Gemini URL import retries when Gemini is overloaded
 const CORE_ASSETS = [
   './',
   './index.html',
-  './recipe-tags.js?v=5',
-  './gemini-client.js?v=5',
+  './recipe-tags.js?v=6',
+  './gemini-client.js?v=6',
   './cooking-tips.js?v=2',
   './manifest.json',
   './add-recipe',

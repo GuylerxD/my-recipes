@@ -444,7 +444,7 @@ tags (Array of strings - רק מתוך הרשימה הבאה ורק אם מתא�
    * Throws unless Gemini reports it actually retrieved the page, so it never invents a recipe
    * from the URL's words alone.
    */
-  async function importUrlWithGemini(apiKey, url) {
+  async function importUrlWithGemini(apiKey, url, { onRetry } = {}) {
     const G = root.GeminiClient;
     if (!G || !apiKey) throw new Error('נדרש מפתח Gemini כדי לקרוא אתר שחוסם גישה');
     const { text, candidate } = await G.generateWithMeta(apiKey, {
@@ -453,7 +453,11 @@ tags (Array of strings - רק מתוך הרשימה הבאה ורק אם מתא�
         `פתח את העמוד בכתובת הבאה וחלץ ממנו את המתכון כפי שהוא כתוב בעמוד. ` +
         `אם העמוד לא נטען או שאין בו מתכון, החזר JSON עם ingredients ריק. החזר JSON בלבד.\n${url}` }] }],
       tools: [{ url_context: {} }],
-      temperature: 0.1
+      temperature: 0.1,
+      // The user is waiting on this one call: ride out short "high demand" (503) spells.
+      rounds: 3,
+      maxModels: 5,
+      onRetry
     });
     const statuses = (candidate?.urlContextMetadata?.urlMetadata || []).map(m => m.urlRetrievalStatus || '');
     if (!statuses.some(s => /SUCCESS/.test(s))) {

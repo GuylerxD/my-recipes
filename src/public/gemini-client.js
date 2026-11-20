@@ -96,7 +96,13 @@
    * reject tools combined with a JSON response type; ask for JSON in the prompt and use parseJson.
    * @returns {Promise<{ text: string, candidate: any }>}
    */
-  async function generateWithMeta(apiKey, { systemInstruction, contents, responseSchema, json = !!responseSchema, temperature = 0.4, tools }) {
+  /**
+   * `rounds` > 1: when every model is overloaded (503) or rate-limited (429), wait and go through
+   * the models again (Google's overloads usually pass within seconds). `onRetry(round, waitMs)`
+   * lets the UI say it is still trying. `maxModels` caps how many models one round tries.
+   */
+  async function generateWithMeta(apiKey, { systemInstruction, contents, responseSchema, json = !!responseSchema, temperature = 0.4, tools,
+    rounds = 1, maxModels = MAX_MODELS_TO_TRY, onRetry }) {
     const useJson = json && !tools;
     const buildBody = withSchema => {
       const body = {
@@ -121,34 +127,46 @@
     let lastError = null;
     let data = null;
 
-    for (let i = 0; i < models.length && i < MAX_MODELS_TO_TRY && !data; i++) {
-      const model = models[i];
-      // Per model: full request, a short-delay retry, then (if a schema is used) one try without it,
-      // since strict schemas occasionally trigger INTERNAL errors on new models.
-      const attempts = [{ schema: true, wait: 0 }, { schema: true, wait: 1200 }];
-      if (responseSchema) attempts.push({ schema: false, wait: 0 });
-      for (const attempt of attempts) {
-        if (attempt.wait) await sleep(attempt.wait);
-        try {
-          data = await call(model, attempt.schema);
-          break;
-        } catch (err) {
-          lastError = err;
-          if (err.status === 404 && !refreshed) {
-            // Model retired mid-session: refresh the list and start over.
-            refreshed = true;
-            models = await listModels(apiKey, { refresh: true });
-            i = -1;
+    // One pass over the models; sets `data` on success, throws on non-transient errors.
+    const tryModels = async () => {
+      for (let i = 0; i < models.length && i < maxModels && !data; i++) {
+        const model = models[i];
+        // Per model: full request, a short-delay retry, then (if a schema is used) one try without it,
+        // since strict schemas occasionally trigger INTERNAL errors on new models.
+        const attempts = [{ schema: true, wait: 0 }, { schema: true, wait: 1200 }];
+        if (responseSchema) attempts.push({ schema: false, wait: 0 });
+        for (const attempt of attempts) {
+          if (attempt.wait) await sleep(attempt.wait);
+          try {
+            data = await call(model, attempt.schema);
             break;
+          } catch (err) {
+            lastError = err;
+            if (err.status === 404 && !refreshed) {
+              // Model retired mid-session: refresh the list and start over.
+              refreshed = true;
+              models = await listModels(apiKey, { refresh: true });
+              i = -1;
+              break;
+            }
+            if (!isTransient(err)) throw err;
+            // Overload (503) and quota (429) are per model: retrying the same one only adds waiting.
+            if (err.status === 429 || err.status === 503) break;
           }
-          if (!isTransient(err)) throw err;
-          // Overload (503) and quota (429) are per model: retrying the same one only adds waiting.
-          if (err.status === 429 || err.status === 503) break;
+        }
+        if (!data && lastError && typeof console !== 'undefined') {
+          console.warn(`[Gemini] ${model}:`, lastError.status, lastError.detail || lastError.message);
         }
       }
-      if (!data && lastError && typeof console !== 'undefined') {
-        console.warn(`[Gemini] ${model}:`, lastError.status, lastError.detail || lastError.message);
+    };
+
+    for (let round = 0; round < rounds && !data; round++) {
+      if (round > 0) {
+        const waitMs = 3000 * round;
+        if (onRetry) { try { onRetry(round, waitMs); } catch {} }
+        await sleep(waitMs);
       }
+      await tryModels();
     }
 
     if (!data) throw lastError || new GeminiError('Gemini לא ענה.', 0, 'NO_RESPONSE');

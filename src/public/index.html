@@ -2298,8 +2298,8 @@
   </div>
 
   <!-- Bump ?v= when these change: the service worker serves cached JS first. -->
-  <script src="recipe-tags.js?v=5"></script>
-  <script src="gemini-client.js?v=5"></script>
+  <script src="recipe-tags.js?v=6"></script>
+  <script src="gemini-client.js?v=6"></script>
   <script src="cooking-tips.js?v=2"></script>
   <script>
     // =========================================================
@@ -4918,7 +4918,13 @@
       if (!html) {
         if (!apiKey) throw new Error(`${readerError}. חיבור מפתח Gemini יאפשר לקרוא גם אתרים חוסמים`);
         if (!allowGemini) throw new Error(readerError);
-        const ai = await window.RecipeTags.importUrlWithGemini(apiKey, rawUrl);
+        const status = document.getElementById('importStatus');
+        if (status) status.textContent = 'האתר חוסם — Gemini קורא את העמוד...';
+        const ai = await window.RecipeTags.importUrlWithGemini(apiKey, rawUrl, {
+          onRetry: (round, waitMs) => {
+            if (status) status.textContent = `Gemini עמוס כרגע, מנסה שוב בעוד ${Math.round(waitMs / 1000)} שניות (ניסיון ${round + 1} מתוך 3)...`;
+          }
+        });
         return { ...ai, source_url: rawUrl };
       }
       const ogImage = (html.match(/property=["']og:image["'][^>]+content=["']([^"']+)/i) || [])[1] || '';
@@ -4959,7 +4965,8 @@
       const urlInput = document.getElementById('importUrlInput');
       const status = document.getElementById('importStatus');
       const btn = document.getElementById('btnScrape');
-      const rawUrl = (urlInput.value || '').trim();
+      // Drop the #fragment (e.g. "#google_vignette" that ad scripts append): it is not part of the page.
+      const rawUrl = (urlInput.value || '').trim().replace(/#.*$/, '');
 
       if (!rawUrl) {
         status.textContent = 'נא להזין כתובת URL תקינה';

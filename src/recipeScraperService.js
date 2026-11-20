@@ -322,7 +322,8 @@ export async function importRecipe(input, options = {}) {
     throw new Error('Input must be a non-empty string (either a valid URL or free text recipe).');
   }
 
-  const trimmed = input.trim();
+  let trimmed = input.trim();
+  if (isUrl(trimmed)) trimmed = trimmed.replace(/#.*$/, ''); // e.g. "#google_vignette"
   let textToParse = trimmed;
   let sourceUrl = '';
   let detectedImageUrl = '';
