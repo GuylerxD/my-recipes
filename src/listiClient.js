@@ -1,10 +1,10 @@
 /**
- * Client for Listi Fly.io Cloud Service
- * Base URL: https://project-1-listi-checklist-app.fly.dev
+ * Client for the Listi server (home machine, exposed via Tailscale Funnel)
+ * Base URL: https://guyler.tail904df6.ts.net
  * Authentication: Authorization: Bearer 1201 and x-pin: 1201
  */
 
-const LISTI_BASE_URL = process.env.LISTI_BASE_URL || 'https://project-1-listi-checklist-app.fly.dev';
+const LISTI_BASE_URL = process.env.LISTI_BASE_URL || 'https://guyler.tail904df6.ts.net';
 const LISTI_PIN = process.env.LISTI_PIN || '1201';
 
 export function getListiHeaders() {

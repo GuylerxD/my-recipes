@@ -1861,7 +1861,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
           <div>
             <h3 style="font-size: 1.25rem; font-weight: 700;">מזווה ורשימת קניות (Listi Cloud Sync)</h3>
-            <p style="color: var(--text-muted); font-size: 0.85rem;">סנכרון מלא מול ענן Fly.io של Listi (Pin: 1201)</p>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">סנכרון מלא מול שרת Listi (Pin: 1201)</p>
             <p id="pantrySyncStatus" style="color: var(--text-muted); font-size: 0.8rem; margin-top: 4px;"></p>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -1891,7 +1891,7 @@
         <p style="color: var(--text-muted); font-size: 0.88rem; margin-top: 4px;">תקשורת מאובטחת ומסוננת עם אפליקציות חיצוניות</p>
         <div style="margin-top: 14px; display: grid; gap: 12px;">
           <div style="background: var(--card-bg); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--card-border);">
-            <strong>1. סנכרון Listi Cloud (Fly.io):</strong> <code>https://project-1-listi-checklist-app.fly.dev</code><br>
+            <strong>1. סנכרון Listi:</strong> <code>https://guyler.tail904df6.ts.net</code><br>
             שליפת מזווה פעיל (<code>/api/pantry</code>), רשימת קניות (<code>/api/shopping-list</code>), והוספה לעגלה (<code>/api/cabin/shopping</code>).
           </div>
           <div style="background: var(--olive-bg); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--olive-border); color: var(--olive-text);">
@@ -3554,13 +3554,9 @@
         } catch (e) {}
 
         try {
-          const res = await fetch('https://project-1-listi-checklist-app.fly.dev/api/cabin/pantry', {
+          const res = await fetch(`${LISTI_READ_BASE}/api/cabin/pantry`, {
             method: 'POST',
-            headers: {
-              'Authorization': 'Bearer 1201',
-              'x-pin': '1201',
-              'Content-Type': 'application/json'
-            },
+            headers: { ...LISTI_PIN_HEADERS, 'Content-Type': 'application/json' },
             body: JSON.stringify({ item: itemName, name: itemName, status: 'במזווה', list_id: 1, stock_qty: 1 })
           });
           if (res.ok) return await res.json();
@@ -4682,12 +4678,9 @@
         }
 
         if (!addedOk) {
-          const res = await fetch('https://project-1-listi-checklist-app.fly.dev/api/cabin/shopping', {
+          const res = await fetch(`${LISTI_READ_BASE}/api/cabin/shopping`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer 1201'
-            },
+            headers: { ...LISTI_PIN_HEADERS, 'Content-Type': 'application/json' },
             body: JSON.stringify({ items: itemNames, list_id: 1 })
           });
           addedOk = res.ok;
@@ -5399,7 +5392,10 @@
     }
 
     // Read-only access to Listi: what's at home (stock_qty > 0) and what's on the shopping list.
-    const LISTI_READ_BASE = 'https://project-1-listi-checklist-app.fly.dev';
+    // Listi runs on the home machine, exposed publicly via Tailscale Funnel. The PIN goes in a header
+    // (the server rejects ?pin= in the query string).
+    const LISTI_READ_BASE = 'https://guyler.tail904df6.ts.net';
+    const LISTI_PIN_HEADERS = { 'x-pin': '1201' };
     const NON_FOOD_CATEGORY = /ניקיון|פארם/;
     const PANTRY_CACHE_KEY = 'recipes_pantry_cache';
 
@@ -5407,7 +5403,7 @@
       return [...new Set(list.map(s => String(s || '').trim()).filter(Boolean))];
     }
 
-    // Fetch with a timeout: a sleeping Fly.io machine can otherwise hang the request for a long time.
+    // Fetch with a timeout: if the home machine is asleep the request could otherwise hang for a long time.
     function fetchWithTimeout(url, ms = 15000, opts = {}) {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), ms);
@@ -5416,8 +5412,8 @@
 
     async function readPantryFromListi() {
       const [pantryRes, shopRes] = await Promise.all([
-        fetchWithTimeout(`${LISTI_READ_BASE}/api/pantry?list_id=1&pin=1201`),
-        fetchWithTimeout(`${LISTI_READ_BASE}/api/shopping-list?list_id=1&pin=1201`).catch(() => null)
+        fetchWithTimeout(`${LISTI_READ_BASE}/api/pantry?list_id=1`, 15000, { headers: LISTI_PIN_HEADERS }),
+        fetchWithTimeout(`${LISTI_READ_BASE}/api/shopping-list?list_id=1`, 15000, { headers: LISTI_PIN_HEADERS }).catch(() => null)
       ]);
       if (!pantryRes.ok) throw new Error(`Listi ${pantryRes.status}`);
       const data = await pantryRes.json();
@@ -5707,9 +5703,9 @@
         } catch {}
       }
 
-      const res = await fetch('https://project-1-listi-checklist-app.fly.dev/api/cabin/shopping', {
+      const res = await fetch(`${LISTI_READ_BASE}/api/cabin/shopping`, {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer 1201', 'Content-Type': 'application/json' },
+        headers: { ...LISTI_PIN_HEADERS, 'Content-Type': 'application/json' },
         body: JSON.stringify({ items: itemNames, list_id: 1 })
       });
       if (!res.ok) {

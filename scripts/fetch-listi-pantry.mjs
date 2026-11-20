@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const LISTI_BASE = process.env.LISTI_BASE_URL || 'https://project-1-listi-checklist-app.fly.dev';
+const LISTI_BASE = process.env.LISTI_BASE_URL || 'https://guyler.tail904df6.ts.net';
 const LISTI_PIN = process.env.LISTI_PIN || '1201';
 const LIST_ID = process.env.LISTI_LIST_ID || '1';
 const DEPLOYED_SNAPSHOT = process.env.DEPLOYED_SNAPSHOT_URL || 'https://guylerxd.github.io/my-recipes/pantry.json';
@@ -44,7 +44,7 @@ const clean = list => [...new Set(list.map(s => String(s || '').trim()).filter(B
 const isFood = item => !NON_FOOD_CATEGORY.test(item.category || '');
 
 async function fetchFromListi() {
-  const q = `list_id=${LIST_ID}&pin=${LISTI_PIN}`;
+  const q = `list_id=${LIST_ID}`; // PIN is sent as the x-pin header
   const [pantryData, shopData] = await Promise.all([
     getJson(`${LISTI_BASE}/api/pantry?${q}`),
     getJson(`${LISTI_BASE}/api/shopping-list?${q}`).catch(err => {
