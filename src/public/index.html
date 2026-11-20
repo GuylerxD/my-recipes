@@ -1152,6 +1152,14 @@
     .icon-btn:hover { background: var(--card-bg); color: var(--text); }
     .icon-btn.danger:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
     .icon-btn svg { width: 18px; height: 18px; }
+    /* "I ate it" — synced to The Healing Cabin */
+    .icon-btn.eat-btn { font-size: 1.05rem; font-weight: 800; }
+    .icon-btn.eat-btn.eaten, .hero-meal-buttons .btn.eat-btn.eaten { background: #2e9e6a; border-color: #2e9e6a; color: #fff; }
+    .hero-meal-buttons .btn.hero-eat { white-space: nowrap; }
+    .hero-meal-buttons .icon-btn { flex-shrink: 0; }
+    .hero-meal-buttons .btn-outline { padding-inline: 14px; }
+    .meal-row.eaten, .hero-meal.eaten { border-color: #2e9e6a; box-shadow: 0 0 0 1px #2e9e6a inset; }
+    .meal-row.eaten .meal-row-title::after { content: ' ✓'; color: #2e9e6a; }
 
     .meal-row {
       display: flex;
@@ -3730,12 +3738,82 @@
       return parts.join('');
     }
 
+    // =========================================================
+    // EATEN LOG — shared with The Healing Cabin (same GitHub Pages origin,
+    // so both apps read the same localStorage). Today's slots only.
+    // Shape: { 'YYYY-MM-DD': { [`${day}_${meal}`]: { title, calories, protein, meal, at } } }
+    // =========================================================
+    const EATEN_LOG_KEY = 'healing_cabin_eaten_meals';
+    const EATEN_KEEP_DAYS = 14;
+    const localDateKey = (d = new Date()) => d.toLocaleDateString('en-CA');
+    const isTodayDay = (day) => day === DAYS[new Date().getDay()];
+
+    function getEatenLog() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(EATEN_LOG_KEY) || '{}');
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function isEaten(day, meal) {
+      if (!isTodayDay(day)) return false;
+      return !!getEatenLog()[localDateKey()]?.[`${day}_${meal}`];
+    }
+
+    function toggleEaten(day, meal) {
+      if (!isTodayDay(day)) return;
+      const recipe = resolveSlotRecipe(day, meal);
+      if (!recipe) return;
+      const log = getEatenLog();
+      const today = localDateKey();
+      const slotKey = `${day}_${meal}`;
+      const todayLog = { ...(log[today] || {}) };
+      const wasEaten = !!todayLog[slotKey];
+      if (wasEaten) {
+        delete todayLog[slotKey];
+      } else {
+        todayLog[slotKey] = {
+          title: recipe.title || '',
+          calories: Math.round(Number(recipe.calories) || 0),
+          protein: Math.round((Number(recipe.protein_grams) || 0) * 10) / 10,
+          meal,
+          at: Date.now(),
+        };
+      }
+      log[today] = todayLog;
+      // Drop entries older than EATEN_KEEP_DAYS
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - EATEN_KEEP_DAYS);
+      const cutoffKey = localDateKey(cutoff);
+      Object.keys(log).forEach(k => { if (k < cutoffKey) delete log[k]; });
+      try {
+        localStorage.setItem(EATEN_LOG_KEY, JSON.stringify(log));
+      } catch (e) {
+        showToast('לא הצלחתי לשמור את הסימון', { type: 'error' });
+        return;
+      }
+      showToast(wasEaten ? 'הסימון בוטל — הוסר מבקתת הריפוי' : 'נשלח לבקתת הריפוי 🌿');
+      renderWeeklyPlanner();
+    }
+
+    function plannerEatButton(day, meal, mealTitle, { hero = false } = {}) {
+      if (!isTodayDay(day)) return '';
+      const eaten = isEaten(day, meal);
+      const safeTitle = escapeHtml(mealTitle);
+      const cls = hero ? 'btn btn-outline eat-btn hero-eat' : 'icon-btn eat-btn';
+      const label = hero ? (eaten ? 'אכלתי ✓' : 'אכלתי') : '✓';
+      return `<button type="button" class="${cls} ${eaten ? 'eaten' : ''}" aria-pressed="${eaten}" aria-label="${eaten ? 'ביטול סימון אכלתי' : 'אכלתי'}: ${safeTitle}" title="${eaten ? 'ביטול אכלתי' : 'אכלתי'}" onclick="event.stopPropagation(); toggleEaten('${escapeHtml(day)}', '${escapeHtml(meal)}')">${label}</button>`;
+    }
+
     function plannerMealActions(day, meal, mealTitle) {
       const safeDay = escapeHtml(day);
       const safeMeal = escapeHtml(meal);
       const safeTitle = escapeHtml(mealTitle);
       return `
         <div class="meal-actions">
+          ${plannerEatButton(day, meal, mealTitle)}
           <button type="button" class="icon-btn" aria-label="החלפת ${safeTitle}" title="החלפה" onclick="event.stopPropagation(); openRecipeChooser('${safeDay}', '${safeMeal}')">${PLANNER_ICONS.swap}</button>
           <button type="button" class="icon-btn danger" aria-label="הסרת ${safeTitle}" title="הסרה" onclick="event.stopPropagation(); removeSlot('${safeDay}', '${safeMeal}')">${PLANNER_ICONS.close}</button>
         </div>
@@ -3868,7 +3946,7 @@
         const r = hero.recipe;
         const safeId = escapeHtml(r.id || r.recipeId || '');
         html += `
-          <article class="hero-meal" onclick="openRecipeDetails('${safeId}')">
+          <article class="hero-meal ${isEaten(day, hero.meal) ? 'eaten' : ''}" onclick="openRecipeDetails('${safeId}')">
             <div class="hero-meal-img">
               <img src="${escapeHtml(getSmartRecipeImage(r))}" alt="" onerror="this.onerror=null; this.src='${PLANNER_FALLBACK_IMG}'">
               <span class="hero-meal-chip">${escapeHtml(hero.meal)}</span>
@@ -3880,6 +3958,7 @@
             ${tipBubbleHtml(recipeTip(r), { tail: true })}
             <div class="hero-meal-buttons">
               <button type="button" class="btn btn-primary" onclick="event.stopPropagation(); openRecipeDetails('${safeId}')">להתחיל לבשל</button>
+              ${plannerEatButton(day, hero.meal, r.title, { hero: true })}
               <button type="button" class="btn btn-outline" onclick="event.stopPropagation(); openRecipeChooser('${escapeHtml(day)}', '${escapeHtml(hero.meal)}')">החלפה</button>
               <button type="button" class="icon-btn danger" aria-label="הסרת ${escapeHtml(r.title)}" title="הסרה" onclick="event.stopPropagation(); removeSlot('${escapeHtml(day)}', '${escapeHtml(hero.meal)}')">${PLANNER_ICONS.close}</button>
             </div>
@@ -3901,7 +3980,7 @@
         const safeId = escapeHtml(recipe.id || recipe.recipeId || '');
         const safeTitle = escapeHtml(recipe.title);
         return `
-          <div class="meal-row" onclick="openRecipeDetails('${safeId}')">
+          <div class="meal-row ${isEaten(day, meal) ? 'eaten' : ''}" onclick="openRecipeDetails('${safeId}')">
             <img class="meal-row-thumb" src="${escapeHtml(getSmartRecipeImage(recipe))}" alt="" onerror="this.onerror=null; this.src='${PLANNER_FALLBACK_IMG}'">
             <div class="meal-row-info">
               <span class="meal-row-label">${safeMeal}</span>

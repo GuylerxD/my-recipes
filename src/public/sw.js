@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-recipes-v16'; // v16: blocked sites fail fast and go to paste-from-clipboard
+const CACHE_NAME = 'my-recipes-v17'; // v17: "I ate it" button synced to The Healing Cabin
 const CORE_ASSETS = [
   './',
   './index.html',
