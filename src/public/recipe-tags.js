@@ -458,10 +458,10 @@ tags (Array of strings - רק מתוך הרשימה הבאה ורק אם מתא�
       rounds: 3,
       maxModels: 5,
       onRetry,
-      // Reading a page can take a while, but a call that hangs must not block forever:
-      // give each model 45s, and the whole import at most 2 minutes.
-      timeoutMs: 45000,
-      deadlineMs: 120000
+      // A normal page read takes 5-20s. Sites that block bots usually block Google's reader too and
+      // the call just hangs, so give up quickly and point the user to copy-and-paste instead.
+      timeoutMs: 25000,
+      deadlineMs: 35000
     });
     const statuses = (candidate?.urlContextMetadata?.urlMetadata || []).map(m => m.urlRetrievalStatus || '');
     if (!statuses.some(s => /SUCCESS/.test(s))) {

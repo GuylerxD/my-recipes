@@ -1956,6 +1956,10 @@
         </button>
         <div id="smartPasteSection" style="display: none; margin-top: 10px; background: var(--card-bg); border: 1px solid var(--border); padding: 12px; border-radius: var(--radius-sm);">
           <label class="form-label" style="font-size: 0.85rem;">הדבק כאן את טקסט המתכון (מווטסאפ, אינסטגרם, פוסט או אתר):</label>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="pasteRecipeFromClipboard()">📋 הדבק מהלוח ונתח</button>
+            <a id="smartPasteOpenSite" class="btn btn-outline btn-sm" href="#" target="_blank" rel="noopener" style="display: none;">🔗 פתח את המתכון באתר</a>
+          </div>
           <textarea id="smartPasteInput" class="form-control" rows="4" placeholder="הדבק כאן את כל הטקסט..."></textarea>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
             <button type="button" class="btn btn-primary btn-sm" onclick="parseSmartPasteText()">נתח ומלא את הטופס</button>
@@ -2298,8 +2302,8 @@
   </div>
 
   <!-- Bump ?v= when these change: the service worker serves cached JS first. -->
-  <script src="recipe-tags.js?v=7"></script>
-  <script src="gemini-client.js?v=7"></script>
+  <script src="recipe-tags.js?v=8"></script>
+  <script src="gemini-client.js?v=8"></script>
   <script src="cooking-tips.js?v=2"></script>
   <script>
     // =========================================================
@@ -4751,6 +4755,50 @@
       section.style.display = section.style.display === 'none' ? 'block' : 'none';
     }
 
+    /** Fills the smart-paste box from the clipboard and parses it (one tap after copying on the site). */
+    async function pasteRecipeFromClipboard() {
+      const input = document.getElementById('smartPasteInput');
+      const pasteStatus = document.getElementById('smartPasteStatus');
+      let text = '';
+      try {
+        text = navigator.clipboard && navigator.clipboard.readText ? (await navigator.clipboard.readText()).trim() : '';
+      } catch (e) {
+        text = '';
+      }
+      if (!text) {
+        input.focus();
+        pasteStatus.textContent = 'לא הצלחתי לקרוא מהלוח — לחיצה ארוכה בתיבה ← הדבק';
+        return;
+      }
+      input.value = text;
+      await parseSmartPasteText();
+    }
+
+    /** Opens smart paste after a failed URL import; for sites that block bots, explains and links to the page. */
+    function showPasteFallback(rawUrl, reason, siteBlocks) {
+      const status = document.getElementById('importStatus');
+      const section = document.getElementById('smartPasteSection');
+      const openSite = document.getElementById('smartPasteOpenSite');
+      if (siteBlocks) {
+        status.textContent = '🔒 האתר הזה חוסם קריאה אוטומטית של מתכונים. פתחי את המתכון באתר, העתיקי את המצרכים ואופן ההכנה, ולחצי "הדבק מהלוח ונתח".';
+        if (reason) console.info('[import] blocked:', reason);
+      } else {
+        status.textContent = `⚠️ לא הצלחתי לייבא מהכתובת${reason ? ` (${reason})` : ''}. אפשר להדביק את טקסט המתכון ב"הדבקה חכמה" למטה.`;
+      }
+      status.style.color = 'var(--text-muted)';
+      if (openSite) {
+        openSite.href = rawUrl || '#';
+        openSite.style.display = rawUrl ? '' : 'none';
+      }
+      section.style.display = 'block';
+      try { section.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch {}
+    }
+
+    /** True when an import error means the site refuses automated reading (Cloudflare, 403, Gemini blocked/timed out). */
+    function looksLikeSiteBlock(message) {
+      return /חסם|חוסמ|\b40[13]\b|Just a moment|לא הצליח לפתוח את העמוד|לא פתח את העמוד|לא ענה תוך/i.test(String(message || ''));
+    }
+
     function populateRecipeForm(data, sourceUrl = '', exactEdit = false) {
       if (!data || !data.title) return false;
 
@@ -5025,12 +5073,12 @@
             : '✓ המתכון נותח ומולא. כדאי לעבור על המצרכים וההוראות.';
           status.style.color = 'var(--primary)';
         } else {
-          status.textContent = `⚠️ לא הצלחתי לייבא מהכתובת${serverError ? ` (${serverError})` : ''}. אפשר להדביק את טקסט המתכון ב"הדבקה חכמה" למטה.`;
-          status.style.color = 'var(--text-muted)';
-          document.getElementById('smartPasteSection').style.display = 'block';
-        }      } catch (err) {
-        status.textContent = '⚠️ שגיאה בשאיבה: ' + err.message + '. אפשר להשתמש ב"הדבקה חכמה".';
-        document.getElementById('smartPasteSection').style.display = 'block';
+          // Without a Gemini key the message stays as is: connecting a key may still get past the block.
+          const siteBlocks = !!apiKey && looksLikeSiteBlock(serverError);
+          showPasteFallback(rawUrl, serverError, siteBlocks);
+        }
+      } catch (err) {
+        showPasteFallback(rawUrl, 'שגיאה בשאיבה: ' + err.message, false);
       } finally {
         btn.disabled = false;
         btn.textContent = 'ייבא';

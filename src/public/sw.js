@@ -1,9 +1,9 @@
-const CACHE_NAME = 'my-recipes-v15'; // v15: Gemini URL import times out instead of hanging
+const CACHE_NAME = 'my-recipes-v16'; // v16: blocked sites fail fast and go to paste-from-clipboard
 const CORE_ASSETS = [
   './',
   './index.html',
-  './recipe-tags.js?v=7',
-  './gemini-client.js?v=7',
+  './recipe-tags.js?v=8',
+  './gemini-client.js?v=8',
   './cooking-tips.js?v=2',
   './manifest.json',
   './add-recipe',
