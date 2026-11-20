@@ -2298,8 +2298,8 @@
   </div>
 
   <!-- Bump ?v= when these change: the service worker serves cached JS first. -->
-  <script src="recipe-tags.js?v=6"></script>
-  <script src="gemini-client.js?v=6"></script>
+  <script src="recipe-tags.js?v=7"></script>
+  <script src="gemini-client.js?v=7"></script>
   <script src="cooking-tips.js?v=2"></script>
   <script>
     // =========================================================
@@ -4918,13 +4918,21 @@
       if (!html) {
         if (!apiKey) throw new Error(`${readerError}. חיבור מפתח Gemini יאפשר לקרוא גם אתרים חוסמים`);
         if (!allowGemini) throw new Error(readerError);
+        // Reading a page through Gemini can take 10-40 seconds: show a live counter so it never looks stuck.
         const status = document.getElementById('importStatus');
-        if (status) status.textContent = 'האתר חוסם — Gemini קורא את העמוד...';
-        const ai = await window.RecipeTags.importUrlWithGemini(apiKey, rawUrl, {
-          onRetry: (round, waitMs) => {
-            if (status) status.textContent = `Gemini עמוס כרגע, מנסה שוב בעוד ${Math.round(waitMs / 1000)} שניות (ניסיון ${round + 1} מתוך 3)...`;
-          }
-        });
+        const started = Date.now();
+        let phase = 'האתר חוסם — Gemini קורא את העמוד';
+        const tick = () => { if (status) status.textContent = `${phase}... (${Math.round((Date.now() - started) / 1000)} שניות)`; };
+        tick();
+        const timer = setInterval(tick, 1000);
+        let ai;
+        try {
+          ai = await window.RecipeTags.importUrlWithGemini(apiKey, rawUrl, {
+            onRetry: (round) => { phase = `Gemini עמוס כרגע, מנסה שוב (ניסיון ${round + 1} מתוך 3)`; tick(); }
+          });
+        } finally {
+          clearInterval(timer);
+        }
         return { ...ai, source_url: rawUrl };
       }
       const ogImage = (html.match(/property=["']og:image["'][^>]+content=["']([^"']+)/i) || [])[1] || '';

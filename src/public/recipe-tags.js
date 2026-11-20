@@ -457,7 +457,11 @@ tags (Array of strings - רק מתוך הרשימה הבאה ורק אם מתא�
       // The user is waiting on this one call: ride out short "high demand" (503) spells.
       rounds: 3,
       maxModels: 5,
-      onRetry
+      onRetry,
+      // Reading a page can take a while, but a call that hangs must not block forever:
+      // give each model 45s, and the whole import at most 2 minutes.
+      timeoutMs: 45000,
+      deadlineMs: 120000
     });
     const statuses = (candidate?.urlContextMetadata?.urlMetadata || []).map(m => m.urlRetrievalStatus || '');
     if (!statuses.some(s => /SUCCESS/.test(s))) {

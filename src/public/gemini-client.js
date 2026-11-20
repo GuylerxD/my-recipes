@@ -34,16 +34,26 @@
   }
 
   async function request(apiKey, path, init = {}) {
+    const { timeoutMs, ...fetchInit } = init;
+    const controller = timeoutMs ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
     let res;
+    let data;
     try {
       res = await fetch(`${API}/${path}`, {
-        ...init,
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey, ...(init.headers || {}) }
+        ...fetchInit,
+        ...(controller ? { signal: controller.signal } : {}),
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey, ...(fetchInit.headers || {}) }
       });
+      data = await res.json().catch(() => ({}));
     } catch (err) {
+      if (controller && controller.signal.aborted) {
+        throw new GeminiError(`Gemini לא ענה תוך ${Math.round(timeoutMs / 1000)} שניות.`, 504, 'TIMEOUT');
+      }
       throw new GeminiError('אין חיבור לאינטרנט או ש-Gemini חסום ברשת.', 0, 'NETWORK', String(err && err.message || err));
+    } finally {
+      if (timer) clearTimeout(timer);
     }
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const apiMessage = data?.error?.message || '';
       const reason = data?.error?.details?.find?.(d => d.reason)?.reason || data?.error?.status || '';
@@ -61,7 +71,7 @@
   /** Ordered models to try: newest stable flash first, then older flash, then flash-lite. */
   async function listModels(apiKey, { refresh = false } = {}) {
     if (!refresh && modelCache.has(apiKey)) return modelCache.get(apiKey);
-    const data = await request(apiKey, 'models?pageSize=1000');
+    const data = await request(apiKey, 'models?pageSize=1000', { timeoutMs: 15000 });
     const names = (data.models || [])
       .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
       .map(m => String(m.name || '').replace(/^models\//, ''));
@@ -94,15 +104,19 @@
    * Like generate(), but also returns the raw candidate (e.g. for urlContextMetadata).
    * With `tools` (such as [{ url_context: {} }]) JSON mode is not requested, since some models
    * reject tools combined with a JSON response type; ask for JSON in the prompt and use parseJson.
-   * @returns {Promise<{ text: string, candidate: any }>}
-   */
-  /**
+   *
    * `rounds` > 1: when every model is overloaded (503) or rate-limited (429), wait and go through
    * the models again (Google's overloads usually pass within seconds). `onRetry(round, waitMs)`
    * lets the UI say it is still trying. `maxModels` caps how many models one round tries.
+   * `timeoutMs` aborts a single call that hangs (then the next model is tried);
+   * `deadlineMs` caps the whole thing so the user is never left waiting indefinitely.
+   * @returns {Promise<{ text: string, candidate: any }>}
    */
   async function generateWithMeta(apiKey, { systemInstruction, contents, responseSchema, json = !!responseSchema, temperature = 0.4, tools,
-    rounds = 1, maxModels = MAX_MODELS_TO_TRY, onRetry }) {
+    rounds = 1, maxModels = MAX_MODELS_TO_TRY, onRetry, timeoutMs, deadlineMs }) {
+    const deadline = deadlineMs ? Date.now() + deadlineMs : Infinity;
+    const remaining = () => deadline - Date.now();
+    const outOfTime = () => remaining() < 1000;
     const useJson = json && !tools;
     const buildBody = withSchema => {
       const body = {
@@ -117,10 +131,14 @@
       if (systemInstruction) body.systemInstruction = { parts: [{ text: systemInstruction }] };
       return JSON.stringify(body);
     };
-    const call = (model, withSchema) => request(apiKey, `models/${model}:generateContent`, {
-      method: 'POST',
-      body: buildBody(withSchema)
-    });
+    const call = (model, withSchema) => {
+      const limit = Math.min(timeoutMs || Infinity, remaining());
+      return request(apiKey, `models/${model}:generateContent`, {
+        method: 'POST',
+        body: buildBody(withSchema),
+        ...(Number.isFinite(limit) ? { timeoutMs: Math.max(limit, 1000) } : {})
+      });
+    };
 
     let models = await listModels(apiKey);
     let refreshed = false;
@@ -129,13 +147,14 @@
 
     // One pass over the models; sets `data` on success, throws on non-transient errors.
     const tryModels = async () => {
-      for (let i = 0; i < models.length && i < maxModels && !data; i++) {
+      for (let i = 0; i < models.length && i < maxModels && !data && !outOfTime(); i++) {
         const model = models[i];
         // Per model: full request, a short-delay retry, then (if a schema is used) one try without it,
         // since strict schemas occasionally trigger INTERNAL errors on new models.
         const attempts = [{ schema: true, wait: 0 }, { schema: true, wait: 1200 }];
         if (responseSchema) attempts.push({ schema: false, wait: 0 });
         for (const attempt of attempts) {
+          if (outOfTime()) break;
           if (attempt.wait) await sleep(attempt.wait);
           try {
             data = await call(model, attempt.schema);
@@ -150,8 +169,8 @@
               break;
             }
             if (!isTransient(err)) throw err;
-            // Overload (503) and quota (429) are per model: retrying the same one only adds waiting.
-            if (err.status === 429 || err.status === 503) break;
+            // Overload (503), quota (429) and a hung call are per model: retrying the same one only adds waiting.
+            if (err.status === 429 || err.status === 503 || err.reason === 'TIMEOUT') break;
           }
         }
         if (!data && lastError && typeof console !== 'undefined') {
@@ -160,9 +179,10 @@
       }
     };
 
-    for (let round = 0; round < rounds && !data; round++) {
+    for (let round = 0; round < rounds && !data && !outOfTime(); round++) {
       if (round > 0) {
         const waitMs = 3000 * round;
+        if (remaining() < waitMs + 5000) break;
         if (onRetry) { try { onRetry(round, waitMs); } catch {} }
         await sleep(waitMs);
       }
