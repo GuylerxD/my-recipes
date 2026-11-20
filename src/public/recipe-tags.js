@@ -437,8 +437,38 @@ tags (Array of strings - רק מתוך הרשימה הבאה ורק אם מתא�
     };
   }
 
+  /**
+   * Imports a recipe by letting Gemini open the page itself (URL context tool). Used when our own
+   * fetch is blocked (Cloudflare "Just a moment", 403, the free reader refusing the site): Google's
+   * fetcher is rarely blocked by recipe sites. Requires root.GeminiClient and a Gemini key.
+   * Throws unless Gemini reports it actually retrieved the page, so it never invents a recipe
+   * from the URL's words alone.
+   */
+  async function importUrlWithGemini(apiKey, url) {
+    const G = root.GeminiClient;
+    if (!G || !apiKey) throw new Error('נדרש מפתח Gemini כדי לקרוא אתר שחוסם גישה');
+    const { text, candidate } = await G.generateWithMeta(apiKey, {
+      systemInstruction: IMPORT_PROMPT,
+      contents: [{ role: 'user', parts: [{ text:
+        `פתח את העמוד בכתובת הבאה וחלץ ממנו את המתכון כפי שהוא כתוב בעמוד. ` +
+        `אם העמוד לא נטען או שאין בו מתכון, החזר JSON עם ingredients ריק. החזר JSON בלבד.\n${url}` }] }],
+      tools: [{ url_context: {} }],
+      temperature: 0.1
+    });
+    const statuses = (candidate?.urlContextMetadata?.urlMetadata || []).map(m => m.urlRetrievalStatus || '');
+    if (!statuses.some(s => /SUCCESS/.test(s))) {
+      throw new Error(statuses.length ? `גם Gemini לא הצליח לפתוח את העמוד (${statuses[0].replace('URL_RETRIEVAL_STATUS_', '')})` : 'Gemini לא פתח את העמוד');
+    }
+    const data = G.parseJson(text);
+    if (!data || !Array.isArray(data.ingredients) || data.ingredients.length === 0) {
+      throw new Error('Gemini פתח את העמוד אבל לא מצא בו מתכון');
+    }
+    return data;
+  }
+
   root.RecipeTags = {
     TAG, PREDEFINED, IMPORT_PROMPT, inferTags, canonicalTag, optionalNumber,
-    isBlockedPage, extractJsonLdRecipe, isoDurationMinutes, splitIngredient, parseRecipeText
+    isBlockedPage, extractJsonLdRecipe, isoDurationMinutes, splitIngredient, parseRecipeText,
+    importUrlWithGemini
   };
 })(typeof window !== 'undefined' ? window : globalThis);

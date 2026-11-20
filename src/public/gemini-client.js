@@ -83,19 +83,31 @@
 
   /**
    * @param {string} apiKey
-   * @param {{ systemInstruction?: string, contents: any[], responseSchema?: object, json?: boolean, temperature?: number }} opts
+   * @param {{ systemInstruction?: string, contents: any[], responseSchema?: object, json?: boolean, temperature?: number, tools?: any[] }} opts
    * @returns {Promise<string>} the model's text (JSON text when json/responseSchema is requested)
    */
-  async function generate(apiKey, { systemInstruction, contents, responseSchema, json = !!responseSchema, temperature = 0.4 }) {
+  async function generate(apiKey, opts) {
+    return (await generateWithMeta(apiKey, opts)).text;
+  }
+
+  /**
+   * Like generate(), but also returns the raw candidate (e.g. for urlContextMetadata).
+   * With `tools` (such as [{ url_context: {} }]) JSON mode is not requested, since some models
+   * reject tools combined with a JSON response type; ask for JSON in the prompt and use parseJson.
+   * @returns {Promise<{ text: string, candidate: any }>}
+   */
+  async function generateWithMeta(apiKey, { systemInstruction, contents, responseSchema, json = !!responseSchema, temperature = 0.4, tools }) {
+    const useJson = json && !tools;
     const buildBody = withSchema => {
       const body = {
         contents,
         generationConfig: {
           temperature,
-          ...(json ? { responseMimeType: 'application/json' } : {}),
-          ...(withSchema && responseSchema ? { responseSchema } : {})
+          ...(useJson ? { responseMimeType: 'application/json' } : {}),
+          ...(useJson && withSchema && responseSchema ? { responseSchema } : {})
         }
       };
+      if (tools) body.tools = tools;
       if (systemInstruction) body.systemInstruction = { parts: [{ text: systemInstruction }] };
       return JSON.stringify(body);
     };
@@ -147,7 +159,7 @@
       const why = candidate?.finishReason || data.promptFeedback?.blockReason || 'EMPTY';
       throw new GeminiError(`Gemini לא החזיר תשובה (${why}). נסי לנסח אחרת.`, 200, why);
     }
-    return text;
+    return { text, candidate };
   }
 
   /** Parses JSON text, tolerating ```json fences. */
@@ -173,5 +185,5 @@
     }
   }
 
-  root.GeminiClient = { generate, parseJson, validateKey, resolveModel, listModels, GeminiError };
+  root.GeminiClient = { generate, generateWithMeta, parseJson, validateKey, resolveModel, listModels, GeminiError };
 })(typeof window !== 'undefined' ? window : globalThis);

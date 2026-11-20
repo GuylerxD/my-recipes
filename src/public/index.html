@@ -2298,8 +2298,8 @@
   </div>
 
   <!-- Bump ?v= when these change: the service worker serves cached JS first. -->
-  <script src="recipe-tags.js?v=4"></script>
-  <script src="gemini-client.js?v=4"></script>
+  <script src="recipe-tags.js?v=5"></script>
+  <script src="gemini-client.js?v=5"></script>
   <script src="cooking-tips.js?v=2"></script>
   <script>
     // =========================================================
@@ -4901,11 +4901,26 @@
      * Browser-only URL import (used when there is no local server, e.g. on the phone).
      * Mirrors the server: prefer the site's schema.org Recipe data, use AI for the rest.
      */
-    async function importUrlInBrowser(rawUrl, apiKey) {
-      const res = await fetch(`https://r.jina.ai/${rawUrl}`, { headers: { 'X-Return-Format': 'html' } });
-      if (!res.ok) throw new Error(`שירות הקריאה החזיר ${res.status}`);
-      const html = await res.text();
-      if (window.RecipeTags.isBlockedPage(html)) throw new Error('האתר חסם את הגישה');
+    async function importUrlInBrowser(rawUrl, apiKey, { allowGemini = true } = {}) {
+      // The free reader is often refused (Cloudflare "Just a moment", excluded domains, anonymous
+      // rate limits). When that happens, let Gemini open the page from Google's side.
+      let html = '';
+      let readerError = '';
+      try {
+        const res = await fetch(`https://r.jina.ai/${rawUrl}`, { headers: { 'X-Return-Format': 'html' } });
+        const body = await res.text();
+        if (!res.ok) readerError = `שירות הקריאה החזיר ${res.status}`;
+        else if (window.RecipeTags.isBlockedPage(body)) readerError = 'האתר חסם את הגישה';
+        else html = body;
+      } catch (e) {
+        readerError = 'שירות הקריאה לא זמין';
+      }
+      if (!html) {
+        if (!apiKey) throw new Error(`${readerError}. חיבור מפתח Gemini יאפשר לקרוא גם אתרים חוסמים`);
+        if (!allowGemini) throw new Error(readerError);
+        const ai = await window.RecipeTags.importUrlWithGemini(apiKey, rawUrl);
+        return { ...ai, source_url: rawUrl };
+      }
       const ogImage = (html.match(/property=["']og:image["'][^>]+content=["']([^"']+)/i) || [])[1] || '';
 
       const s = window.RecipeTags.extractJsonLdRecipe(html);
@@ -4961,6 +4976,7 @@
         const apiKey = localStorage.getItem('gemini_api_key') || '';
 
         let serverError = '';
+        let serverTriedGemini = false;
 
         // 1. Local server (reads the site's structured recipe data, gets past most anti-bot pages)
         if (backendAvailable) {
@@ -4973,14 +4989,16 @@
             const body = await res.json().catch(() => ({}));
             if (res.ok) data = body;
             else serverError = body.details || body.error || '';
+            serverTriedGemini = !!apiKey;
           } catch (e) {}
         }
 
         // 2. No server (GitHub Pages / phone): do the same in the browser
         if (!data || !data.title || !Array.isArray(data.ingredients) || data.ingredients.length === 0) {
-          status.textContent = 'קוראת את העמוד...';
+          status.textContent = apiKey ? 'קוראת את העמוד (אם האתר חוסם, Gemini יקרא אותו)...' : 'קוראת את העמוד...';
           try {
-            data = await importUrlInBrowser(rawUrl, apiKey);
+            // If the server already asked Gemini and it failed, don't spend a second Gemini call.
+            data = await importUrlInBrowser(rawUrl, apiKey, { allowGemini: !serverTriedGemini });
           } catch (e) {
             serverError = serverError || e.message;
           }

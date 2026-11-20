@@ -165,6 +165,13 @@ export function parsePageHtml(html) {
  * @param {object} options 
  * @returns {Promise<object>}
  */
+/** The Gemini key for this request, if any (browser-provided key, then server env). */
+function geminiKeyFrom(options = {}) {
+  const providedKey = (options.apiKey || '').trim();
+  const isGeminiKey = options.provider === 'gemini' || providedKey.startsWith('AIza');
+  return (isGeminiKey ? providedKey : '') || options.geminiApiKey || process.env.GEMINI_API_KEY || '';
+}
+
 export async function parseRecipeWithLlm(rawText, options = {}) {
   const providedKey = (options.apiKey || '').trim();
   // The browser says which provider the key is for; the prefix check only covers older callers
@@ -322,7 +329,20 @@ export async function importRecipe(input, options = {}) {
 
   if (isUrl(trimmed)) {
     sourceUrl = trimmed;
-    const page = await fetchRawTextFromUrl(trimmed);
+    let page;
+    try {
+      page = await fetchRawTextFromUrl(trimmed);
+    } catch (fetchError) {
+      // The site (and the free reader) blocked us: let Gemini open the page from Google's side.
+      const geminiKey = geminiKeyFrom(options);
+      if (!geminiKey) throw new Error(`${fetchError.message}. חיבור מפתח Gemini יאפשר לקרוא גם אתרים חוסמים`);
+      try {
+        const ai = await globalThis.RecipeTags.importUrlWithGemini(geminiKey, trimmed);
+        return { ...sanitizeRecipeOutput(ai), source_url: trimmed, image_url: '' };
+      } catch (aiError) {
+        throw new Error(`${fetchError.message}; ${aiError.message}`);
+      }
+    }
     if (page.structured) {
       return buildFromStructuredRecipe(page.structured, { sourceUrl, ogImage: page.imageUrl, options });
     }

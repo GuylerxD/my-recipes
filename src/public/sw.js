@@ -1,9 +1,9 @@
-const CACHE_NAME = 'my-recipes-v12'; // v12: cooking tips
+const CACHE_NAME = 'my-recipes-v13'; // v13: URL import falls back to Gemini when sites block
 const CORE_ASSETS = [
   './',
   './index.html',
-  './recipe-tags.js?v=4',
-  './gemini-client.js?v=4',
+  './recipe-tags.js?v=5',
+  './gemini-client.js?v=5',
   './cooking-tips.js?v=2',
   './manifest.json',
   './add-recipe',
