@@ -904,25 +904,6 @@
       line-height: 1.2;
       color: var(--text);
     }
-    .planner-sync-btn {
-      height: 44px;
-      min-width: 44px;
-      flex-shrink: 0;
-      border-radius: 22px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 0 14px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-    }
-    .planner-sync-btn:hover { background: var(--card-bg); }
-    .planner-sync-btn svg,
     .icon-btn svg,
     .prep-chip svg {
       fill: none;
@@ -930,11 +911,6 @@
       stroke-width: 1.9;
       stroke-linecap: round;
       stroke-linejoin: round;
-    }
-    .planner-sync-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
-    @media (max-width: 640px) {
-      .planner-sync-btn { padding: 0; width: 44px; }
-      .planner-sync-label { display: none; }
     }
 
     /* Day pills: "היום", "מחר", then weekday names (scrolls sideways) */
@@ -1641,16 +1617,12 @@
     <!-- 1. WEEKLY MEAL PREP TAB -->
     <section id="tab-planner" class="tab-content">
       <div class="planner-wrap">
-        <!-- Planner header: date, title, sync -->
+        <!-- Planner header: date and title -->
         <div class="planner-head">
           <div>
             <h2 id="plannerGreeting" class="planner-title">שבוע נעים</h2>
             <p id="plannerTodayLabel" class="planner-date"></p>
           </div>
-          <button type="button" class="planner-sync-btn" onclick="approveAndSyncPlan()" aria-label="אישור וסנכרון התפריט ל-The Healing Cabin" title="אישור וסנכרון התפריט ל-The Healing Cabin">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-3.5"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 3.5"/><path d="M20 20v-4h-4"/></svg>
-            <span class="planner-sync-label">סנכרון ל-Healing Cabin</span>
-          </button>
         </div>
 
         <!-- Food fact of the day (dismissible until tomorrow) -->
@@ -1895,12 +1867,10 @@
             שליפת מזווה פעיל (<code>/api/pantry</code>), רשימת קניות (<code>/api/shopping-list</code>), והוספה לעגלה (<code>/api/cabin/shopping</code>).
           </div>
           <div style="background: var(--olive-bg); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--olive-border); color: var(--olive-text);">
-            <strong>2. דחיפה מאובטחת ל-The Healing Cabin:</strong> <code>POST /api/weekly-plan/approve-and-push</code><br>
-            מופעל בעת אישור התפריט השבועי ושולח <strong>אך ורק</strong>: שם מנה, תיאור, קלוריות, וכמות חלבון (מצרכים ואופן הכנה מוסרים לחלוטין!).
+            <strong>2. The Healing Cabin:</strong> כפתור ״אכלתי ✓״ בתפריט של היום<br>
+            שומר את שם המנה, הקלוריות והחלבון ב-<code>healing_cabin_eaten_meals</code>, ובקתת הריפוי (באותו דפדפן) מוסיפה אותם למדדי התזונה. מצרכים ואופן הכנה לא נשלחים.
           </div>
         </div>
-        <h4 style="margin: 16px 0 8px; font-size: 0.95rem;">לוג Payload אחרון שנשלח ל-The Healing Cabin:</h4>
-        <pre id="payloadPreview">// טרם נשלח נתון. לחץ על 'אשר וסנכרן תפריט' בלשונית התפריט השבועי.</pre>
       </div>
     </section>
   </div>
@@ -2083,23 +2053,6 @@
     </div>
   </div>
 
-  <!-- MODAL: PAYLOAD VERIFICATION (THE HEALING CABIN) -->
-  <div id="syncResultModal" class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 id="syncResultTitle" style="font-size: 1.25rem; color: var(--olive-text); font-weight: 700;">✓ התפריט סונכרן ל-The Healing Cabin!</h2>
-        <button class="close-btn" onclick="document.getElementById('syncResultModal').classList.remove('open')">&times;</button>
-      </div>
-      <p id="syncResultMessage" style="font-size: 0.9rem; color: var(--text); margin-bottom: 12px;">
-        הנתונים נדחפו בהצלחה. <strong>אימות אבטחה:</strong> מצרכים ואופן הכנה סוננו והוסרו לחלוטין כדי לשמור על תצוגת Checkboxes נקייה.
-      </p>
-      <div style="font-size: 0.85rem; font-weight: 700; margin-bottom: 6px;">Payload שנשלח החוצה:</div>
-      <pre id="modalPayloadPreview"></pre>
-      <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
-        <button class="btn btn-primary" onclick="document.getElementById('syncResultModal').classList.remove('open')">סגור</button>
-      </div>
-    </div>
-  </div>
 
   <!-- MODAL: RECIPE DETAILS -->
   <div id="recipeDetailsModal" class="modal-overlay">
@@ -3422,11 +3375,18 @@
       return [];
     }
 
+    // One copy only: localStorage (~5MB) is shared with The Healing Cabin on the same origin.
+    // Older versions also wrote _v7 and my_recipes_db; those copies are dropped once v8 is saved.
+    var RECIPES_DB_KEY = 'my_recipes_db_v8';
+    var LEGACY_RECIPES_DB_KEYS = ['my_recipes_db_v7', 'my_recipes_db'];
+
     function getStoredRecipes() {
       try {
-        const stored = localStorage.getItem('my_recipes_db_v8') || localStorage.getItem('my_recipes_db_v7');
+        const stored = localStorage.getItem(RECIPES_DB_KEY) || localStorage.getItem('my_recipes_db_v7');
         if (stored) {
           const list = JSON.parse(stored);
+          // Migrate: make sure v8 holds the data, then the legacy copies are removed by saveStoredRecipes
+          const hasLegacy = LEGACY_RECIPES_DB_KEYS.some(k => localStorage.getItem(k) !== null);
           // Any saved array is the user's data, even a short or empty one; never replace it with defaults.
           if (Array.isArray(list)) {
             let updated = false;
@@ -3453,7 +3413,7 @@
             if (offeredChanged) {
               try { localStorage.setItem('my_recipes_offered_defaults', JSON.stringify(offeredDefaults)); } catch {}
             }
-            if (updated) saveStoredRecipes(list);
+            if (updated || hasLegacy) saveStoredRecipes(list);
             return list;
           }
         }
@@ -3463,11 +3423,21 @@
     }
 
     function saveStoredRecipes(recipes) {
+      const json = JSON.stringify(recipes);
       try {
-        localStorage.setItem('my_recipes_db_v8', JSON.stringify(recipes));
-        localStorage.setItem('my_recipes_db_v7', JSON.stringify(recipes));
-        localStorage.setItem('my_recipes_db', JSON.stringify(recipes));
-      } catch (e) {}
+        localStorage.setItem(RECIPES_DB_KEY, json);
+      } catch (e) {
+        // Storage full: free the legacy duplicates (v8 already holds the same data) and retry once
+        LEGACY_RECIPES_DB_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch {} });
+        try {
+          localStorage.setItem(RECIPES_DB_KEY, json);
+        } catch (err) {
+          showToast('האחסון בדפדפן מלא — המתכונים לא נשמרו. מחקי מתכונים ישנים או תמונות ונסי שוב.', { type: 'error', duration: 8000 });
+          return false;
+        }
+      }
+      LEGACY_RECIPES_DB_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch {} });
+      return true;
     }
 
     async function resetRecipesToDefault() {
@@ -4365,79 +4335,6 @@
       pendingAssignRecipeId = recipe.id;
       document.getElementById('quickAssignRecipeName').textContent = recipe.title;
       document.getElementById('quickAssignSlotModal').classList.add('open');
-    }
-
-    async function approveAndSyncPlan() {
-      const filledSlots = [];
-
-      for (const [key, recipe] of Object.entries(weeklyPlan)) {
-        if (!recipe) continue;
-        const [day, meal] = key.split('_');
-        // Exclude invalid keys and strictly exclude base preps from The Healing Cabin
-        if (!DAYS.includes(day) || !MEALS.includes(meal)) continue;
-        if (recipe.is_base_prep) continue;
-
-        filledSlots.push({
-          day_of_week: day,
-          meal_type: meal,
-          title: recipe.title,
-          description: recipe.description || '',
-          calories: Number(recipe.calories) || 0,
-          protein_grams: Number(recipe.protein_grams) || 0
-        });
-      }
-
-      if (filledSlots.length === 0) {
-        alert('התפריט ריק כרגע. אנא שבץ לפחות ארוחה אחת לפני האישור.');
-        return;
-      }
-
-      const payload = {
-        source: 'MyRecipesApp',
-        event: 'WEEKLY_PLAN_APPROVED',
-        timestamp: new Date().toISOString(),
-        total_meals: filledSlots.length,
-        meals: filledSlots
-      };
-
-      let titleText = '❌ הסנכרון ל-The Healing Cabin נכשל';
-      let titleColor = 'var(--danger)';
-      let messageHtml = 'לא ניתן היה ליצור קשר עם השרת המקומי (<code>/api/weekly-plan/approve-and-push</code>). הנתונים נשמרו מקומית בדפדפן בלבד.';
-
-      try {
-        const res = await fetch('/api/weekly-plan/approve-and-push', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ recipes: filledSlots })
-        });
-        const data = await res.json().catch(() => null);
-        const pushStatus = data?.push_result?.status;
-
-        if (res.ok && pushStatus === 'success') {
-          titleText = '✓ התפריט סונכרן ל-The Healing Cabin!';
-          titleColor = 'var(--olive-text)';
-          messageHtml = 'הנתונים נדחפו בהצלחה. <strong>אימות אבטחה:</strong> מצרכים ואופן הכנה סוננו והוסרו לחלוטין כדי לשמור על תצוגת Checkboxes נקייה.';
-        } else if (res.ok && pushStatus === 'simulated_success') {
-          titleText = '⚠️ הדחיפה לא נשלחה החוצה (מצב סימולציה)';
-          titleColor = 'var(--warn)';
-          messageHtml = 'התפריט נבדק ונשמר מקומית בלבד, אך <strong>לא נשלח ל-The Healing Cabin</strong> כי משתנה הסביבה <code>THE_HEALING_CABIN_URL</code> אינו מוגדר בשרת.';
-        } else {
-          const errDetail = data?.push_result?.statusCode ? `HTTP ${data.push_result.statusCode}` : (data?.error || `HTTP ${res.status}`);
-          messageHtml = `השרת החזיר שגיאה בעת הדחיפה ל-The Healing Cabin (${errDetail}). התפריט לא התעדכן באפליקציה החיצונית.`;
-        }
-      } catch {}
-
-      try {
-        localStorage.setItem('healing_cabin_approved_plan', JSON.stringify(payload));
-      } catch {}
-
-      const titleEl = document.getElementById('syncResultTitle');
-      titleEl.textContent = titleText;
-      titleEl.style.color = titleColor;
-      document.getElementById('syncResultMessage').innerHTML = messageHtml;
-      document.getElementById('modalPayloadPreview').textContent = JSON.stringify(payload, null, 2);
-      document.getElementById('payloadPreview').textContent = JSON.stringify(payload, null, 2);
-      document.getElementById('syncResultModal').classList.add('open');
     }
 
     // =========================================================
@@ -6435,13 +6332,8 @@ ${library}
         } catch {}
       }
 
-      try {
-        const savedPayload = localStorage.getItem('healing_cabin_approved_plan');
-        const previewEl = document.getElementById('payloadPreview');
-        if (savedPayload && previewEl) {
-          previewEl.textContent = JSON.stringify(JSON.parse(savedPayload), null, 2);
-        }
-      } catch {}
+      // Leftover from the removed server push to The Healing Cabin
+      try { localStorage.removeItem('healing_cabin_approved_plan'); } catch {}
 
       const aiInput = document.getElementById('aiUserInput');
       if (aiInput) {

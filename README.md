@@ -52,25 +52,26 @@
 ]
 ```
 
-### אינטגרציה עם The Healing Cabin (דחיפת תפריט מאושר)
-- **נתיב**: `POST /api/weekly-plan/approve-and-push`
-- **פעולה**: מופעל לאחר אישור התפריט השבועי.
-- **אבטחה וסינון**: שולח אך ורק את השדות המורשים (ללא רשימת המצרכים ואופן ההכנה!):
+### אינטגרציה עם The Healing Cabin (כפתור ״אכלתי ✓״)
+שתי האפליקציות מתארחות באותו origin (`https://guylerxd.github.io`), ולכן חולקות את אותו `localStorage`.
+אין שרת באמצע: My Recipes כותבת, בקתת הריפוי קוראת (`src/lib/recipesSync.js` שם).
+
+- **מפתח**: `healing_cabin_eaten_meals`
+- **מי כותב**: My Recipes — `toggleEaten(day, meal)` ב-`index.html`, רק למנות של היום.
+- **מבנה** (רק שם, ארוחה, קלוריות וחלבון — בלי מצרכים ואופן הכנה):
 ```json
 {
-  "source": "NutritionRecipePlanner",
-  "event": "WEEKLY_PLAN_APPROVED",
-  "timestamp": "2026-11-12T12:00:00.000Z",
-  "recipes": [
-    {
-      "title": "גלידת חלבון וניל לנינג'ה קרימי",
-      "description": "גלידת וניל קרמית במיוחד, עתירת חלבון וללא תוספת סוכר.",
-      "calories": 190,
-      "protein_grams": 32
-    }
-  ]
+  "2026-11-20": {
+    "שישי_בוקר": { "title": "שקשוקה", "calories": 400, "protein": 19, "meal": "בוקר", "at": 1763625600000 }
+  }
 }
 ```
+- התאריך מקומי (`toLocaleDateString('en-CA')`), רשומות ישנות מ-14 יום נמחקות בכל כתיבה.
+- **שינוי במבנה חייב להתעדכן בשתי האפליקציות.**
+
+**כללים משותפים ל-origin:**
+- כל Service Worker מוחק רק caches עם הקידומת שלו (`my-recipes-` / `healing-cabin-`).
+- ה-`localStorage` (כ-5MB) משותף — לכן מאגר המתכונים נשמר בעותק יחיד (`my_recipes_db_v8`).
 
 ---
 

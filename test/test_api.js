@@ -1,10 +1,7 @@
 import assert from 'node:assert';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { getDatabase, PREDEFINED_TAGS } from '../src/db.js';
-import { syncFromListi, sanitizeWeeklyPlanForHealingCabin, addMissingIngredientsToListi, pushToHealingCabin } from '../src/integrations.js';
+import { syncFromListi, addMissingIngredientsToListi } from '../src/integrations.js';
 import { calculateRecipeMatches } from '../src/matching.js';
 import { seedData } from '../src/seed.js';
 import { createServer } from '../src/server.js';
@@ -92,48 +89,6 @@ const planEntry = db.prepare(`
 assert(planEntry, 'Weekly plan entry should exist');
 assert.strictEqual(planEntry.recipe_title, 'סלמון בעשבי תיבול');
 console.log('✓ Weekly plan association passed.');
-
-// Test 5: The Healing Cabin Data Sanitization (Security & Strict Payload Check)
-console.log('Test 5: The Healing Cabin Payload Strictness...');
-const recipesForCabin = [
-  {
-    id: 1,
-    title: 'סלמון בעשבי תיבול',
-    description: 'דג עשיר בחלבון',
-    instructions: 'סודי ביותר - אסור לחלוק',
-    source_url: 'https://secret.com',
-    calories: 350,
-    protein_grams: 40.5,
-    ingredients: JSON.stringify(['רכיב 1', 'רכיב 2'])
-  }
-];
-
-const sanitized = sanitizeWeeklyPlanForHealingCabin(recipesForCabin);
-assert.strictEqual(sanitized.length, 1);
-const sanitizedItem = sanitized[0];
-
-// STRICT CHECKS
-assert.strictEqual(sanitizedItem.title, 'סלמון בעשבי תיבול');
-assert.strictEqual(sanitizedItem.description, 'דג עשיר בחלבון');
-assert.strictEqual(sanitizedItem.calories, 350);
-assert.strictEqual(sanitizedItem.protein_grams, 40.5);
-
-// Ensure ingredients and instructions are completely omitted
-assert.strictEqual(sanitizedItem.instructions, undefined, 'instructions MUST NOT be exposed to The Healing Cabin');
-assert.strictEqual(sanitizedItem.ingredients, undefined, 'ingredients MUST NOT be exposed to The Healing Cabin');
-assert.strictEqual(sanitizedItem.source_url, undefined, 'source_url MUST NOT be exposed to The Healing Cabin');
-assert.strictEqual(sanitizedItem.id, undefined, 'id MUST NOT be exposed');
-
-// Ensure base preps (is_base_prep: true) are omitted from The Healing Cabin
-const mixedRecipesForCabin = [
-  ...recipesForCabin,
-  { id: 99, title: 'טחינה ירוקה', is_base_prep: true, calories: 150, protein_grams: 5 },
-  { id: 100, title: 'שום קונפי', day_of_week: 'weekend_prep', calories: 200, protein_grams: 1 }
-];
-const sanitizedMixed = sanitizeWeeklyPlanForHealingCabin(mixedRecipesForCabin);
-assert.strictEqual(sanitizedMixed.length, 1, 'Base Preps must be strictly omitted from The Healing Cabin payload');
-
-console.log('✓ The Healing Cabin payload strict sanitization passed.');
 
 // Test 6: Multi-tag AND filtering
 console.log('Test 6: Multi-tag AND filtering...');
@@ -282,50 +237,6 @@ try {
   assert.strictEqual(httpDb.prepare('SELECT COUNT(*) as c FROM recipes').get().c, countAfterDelete, 'seedData should not resurrect deleted recipes');
   seedData(httpDb, true);
   assert.strictEqual(httpDb.prepare('SELECT COUNT(*) as c FROM recipes').get().c, countBeforeReseed, 'seedData(db, true) should restore defaults');
-
-  // Test 12: pushToHealingCabin updates temp plansDB.json including afternoonSnack
-  console.log('Test 12: pushToHealingCabin plansDB.json sync...');
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cabin-test-'));
-  const tmpPlansPath = path.join(tmpDir, 'plansDB.json');
-  fs.writeFileSync(tmpPlansPath, JSON.stringify({
-    weeklyPlan: [
-      {
-        dayName: 'ראשון',
-        nutrition: {
-          targetCalories: 0,
-          targetProteinGrams: 0,
-          meals: {
-            breakfast: { name: 'old', calories: 0, proteinGrams: 0 },
-            morningSnack: { name: 'old', calories: 0, proteinGrams: 0 },
-            lunch: { name: 'old', calories: 0, proteinGrams: 0 },
-            afternoonSnack: { name: 'old', calories: 0, proteinGrams: 0 },
-            dinner: { name: 'old', calories: 0, proteinGrams: 0 }
-          }
-        }
-      }
-    ]
-  }, null, 2));
-
-  try {
-    const pushOut = await pushToHealingCabin(
-      [
-        { day_of_week: 'ראשון', meal_type: 'ביניים אחה"צ', title: 'יוגורט חלבון ואגוזים', calories: 220, protein_grams: 20, description: 'חטיף מזין' },
-        { day_of_week: 'ראשון', meal_type: 'צהריים', title: 'סלמון צלוי', calories: 450, protein_grams: 42, description: '' }
-      ],
-      undefined,
-      tmpPlansPath
-    );
-    assert.strictEqual(pushOut.status, 'success');
-    assert.strictEqual(pushOut.updatedMeals, 2);
-    const savedPlans = JSON.parse(fs.readFileSync(tmpPlansPath, 'utf8'));
-    const sundayMeals = savedPlans.weeklyPlan[0].nutrition.meals;
-    assert.strictEqual(sundayMeals.afternoonSnack.name, 'יוגורט חלבון ואגוזים');
-    assert.strictEqual(sundayMeals.lunch.name, 'סלמון צלוי');
-    assert.strictEqual(savedPlans.weeklyPlan[0].nutrition.targetCalories, 670);
-    assert.strictEqual(savedPlans.weeklyPlan[0].nutrition.targetProteinGrams, 62);
-  } finally {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  }
 } finally {
   await new Promise(resolve => server.close(resolve));
 }

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getDatabase } from './db.js';
 import { seedData } from './seed.js';
-import { syncFromListi, pushToHealingCabin, addMissingIngredientsToListi } from './integrations.js';
+import { syncFromListi, addMissingIngredientsToListi } from './integrations.js';
 import { importRecipe } from './recipeScraperService.js';
 import { calculateRecipeMatches } from './matching.js';
 import { syncListiCloudToDb, addItemToListiPantry } from './listiClient.js';
@@ -461,33 +461,6 @@ export function createServer(customDb) {
         const { day_of_week, meal_type } = body;
         db.prepare('DELETE FROM weekly_plan WHERE day_of_week = ? AND meal_type = ?').run(day_of_week, meal_type);
         sendJson(200, { success: true, message: 'Slot removed' });
-        return;
-      }
-
-      // 9. POST /api/weekly-plan/approve-and-push - Approves plan & pushes to The Healing Cabin
-      if (req.method === 'POST' && pathname === '/api/weekly-plan/approve-and-push') {
-        const body = await readJsonBody();
-        let selectedRecipes = [];
-
-        if (Array.isArray(body.recipes) && body.recipes.length > 0) {
-          selectedRecipes = body.recipes;
-        } else {
-          // Query distinct recipes in the approved weekly plan with day and meal metadata
-          selectedRecipes = db.prepare(`
-            SELECT wp.day_of_week, wp.meal_type, r.id, r.title, r.description, r.calories, r.protein_grams
-            FROM weekly_plan wp
-            INNER JOIN recipes r ON wp.recipe_id = r.id
-            ORDER BY wp.id ASC
-          `).all();
-        }
-
-        const pushResult = await pushToHealingCabin(selectedRecipes);
-        sendJson(200, {
-          success: pushResult.status === 'success',
-          action: 'WEEKLY_PLAN_APPROVED',
-          recipes_count: selectedRecipes.length,
-          push_result: pushResult
-        });
         return;
       }
 

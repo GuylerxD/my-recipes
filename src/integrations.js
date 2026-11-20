@@ -1,20 +1,10 @@
 /**
- * Integration services for Listi and The Healing Cabin
+ * Integration services for Listi.
+ *
+ * The Healing Cabin is no longer pushed to from the server: the frontend's "אכלתי ✓"
+ * button writes eaten meals to localStorage (healing_cabin_eaten_meals), which the
+ * Cabin reads on the same GitHub Pages origin. See index.html (EATEN LOG).
  */
-import fs from 'node:fs';
-
-const MEAL_TYPE_TO_CABIN_KEY = {
-  'בוקר': 'breakfast',
-  'ארוחת בוקר': 'breakfast',
-  'ביניים בוקר': 'morningSnack',
-  'צהריים': 'lunch',
-  'ארוחת צהריים': 'lunch',
-  'ביניים אחה"צ': 'afternoonSnack',
-  'ביניים אחה״צ': 'afternoonSnack',
-  'ביניים ערב': 'afternoonSnack',
-  'ארוחת ערב': 'dinner',
-  'ערב': 'dinner'
-};
 
 /**
  * Normalizes input status to one of the 3 allowed values:
@@ -64,114 +54,6 @@ export function syncFromListi(db, payload) {
   return {
     synced_count: results.length,
     items: results
-  };
-}
-
-/**
- * Prepares the sanitized payload for 'The Healing Cabin'
- * Strictly includes ONLY: title, description, calories, protein
- * Excludes: ingredients, instructions, source URLs, etc.
- */
-export function sanitizeWeeklyPlanForHealingCabin(recipes) {
-  return recipes
-    .filter(r => !r.is_base_prep && !r.isBasePrep && r.day_of_week !== 'weekend_prep')
-    .map(r => {
-      const item = {
-        title: r.title,
-        description: r.description || '',
-        calories: Number(r.calories) || 0,
-        protein_grams: Number(r.protein_grams) || 0
-      };
-      if (r.day_of_week) item.day_of_week = r.day_of_week;
-      if (r.meal_type) item.meal_type = r.meal_type;
-      return item;
-    });
-}
-
-/**
- * Pushes approved weekly plan recipes to The Healing Cabin
- */
-export async function pushToHealingCabin(
-  recipes,
-  destinationUrl = process.env.THE_HEALING_CABIN_URL,
-  plansFilePath = process.env.THE_HEALING_CABIN_PLANS_PATH
-) {
-  const sanitizedRecipes = sanitizeWeeklyPlanForHealingCabin(recipes);
-  const payload = {
-    source: 'NutritionRecipePlanner',
-    event: 'WEEKLY_PLAN_APPROVED',
-    timestamp: new Date().toISOString(),
-    recipes: sanitizedRecipes
-  };
-
-  if (plansFilePath) {
-    if (!fs.existsSync(plansFilePath)) {
-      return {
-        status: 'failed',
-        message: `Healing Cabin plans file not found: ${plansFilePath}`,
-        payload
-      };
-    }
-
-    const plansDb = JSON.parse(fs.readFileSync(plansFilePath, 'utf-8'));
-    const updatedDays = new Set();
-    const updatedSlots = [];
-
-    for (const item of sanitizedRecipes) {
-      const mealKey = MEAL_TYPE_TO_CABIN_KEY[item.meal_type];
-      if (!item.day_of_week || !mealKey) continue;
-
-      const dayEntry = (plansDb.weeklyPlan || []).find(d => d.dayName === item.day_of_week);
-      if (!dayEntry?.nutrition?.meals) continue;
-
-      dayEntry.nutrition.meals[mealKey] = {
-        name: item.title,
-        calories: item.calories,
-        proteinGrams: item.protein_grams,
-        notes: item.description || ''
-      };
-      updatedDays.add(dayEntry);
-      updatedSlots.push(`${item.day_of_week} - ${item.meal_type}`);
-    }
-
-    for (const dayEntry of updatedDays) {
-      const meals = Object.values(dayEntry.nutrition.meals);
-      dayEntry.nutrition.targetCalories = meals.reduce((sum, m) => sum + (Number(m?.calories) || 0), 0);
-      dayEntry.nutrition.targetProteinGrams = meals.reduce((sum, m) => sum + (Number(m?.proteinGrams) || 0), 0);
-    }
-
-    fs.writeFileSync(plansFilePath, JSON.stringify(plansDb, null, 2) + '\n', 'utf-8');
-    return {
-      status: 'success',
-      mode: 'local_plans_db',
-      updatedMeals: updatedSlots.length,
-      updatedSlots,
-      payload
-    };
-  }
-
-  if (!destinationUrl) {
-    // Simulated successful push when external URL is not yet bound
-    return {
-      status: 'simulated_success',
-      message: 'No external URL configured; validated sanitized payload ready for delivery.',
-      payload
-    };
-  }
-
-  const response = await fetch(destinationUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'User-Agent': 'NutritionPlanner/1.0'
-    },
-    body: JSON.stringify(payload)
-  });
-
-  return {
-    status: response.ok ? 'success' : 'failed',
-    statusCode: response.status,
-    payload
   };
 }
 

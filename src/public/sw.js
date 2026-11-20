@@ -1,4 +1,7 @@
-const CACHE_NAME = 'my-recipes-v18'; // v18: daily 8:00 Listi pantry sync (pantry.json) + auto-sync
+// The Healing Cabin shares this origin (guylerxd.github.io) and the Cache Storage with us,
+// so only caches with our own prefix may be cleaned up.
+const CACHE_PREFIX = 'my-recipes-';
+const CACHE_NAME = `${CACHE_PREFIX}v19`; // v19: clean only own caches, single recipes DB copy, sync button removed
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -23,7 +26,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
+          if (key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME) {
             return caches.delete(key);
           }
         })
