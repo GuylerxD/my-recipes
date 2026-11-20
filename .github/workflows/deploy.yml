@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Daily pantry sync from Listi at 08:00 Israel time.
+  # Cron is UTC: 05:00 UTC = 08:00 in summer (IDT), 06:00 UTC = 08:00 in winter (IST).
+  # The "Check sync time" step lets only the one that lands at 08:xx Israel time continue.
+  schedule:
+    - cron: "0 5 * * *"
+    - cron: "0 6 * * *"
 
 permissions:
   contents: read
@@ -21,17 +27,45 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+      - name: Check sync time
+        id: gate
+        run: |
+          echo "Israel time: $(TZ=Asia/Jerusalem date '+%Y-%m-%d %H:%M %z')"
+          # Pick the cron that equals 08:00 Israel time for today's UTC offset
+          # (decided by the schedule, not the start time, since GitHub may start runs late).
+          if [ "$(TZ=Asia/Jerusalem date +%z)" = "+0300" ]; then WANT="0 5 * * *"; else WANT="0 6 * * *"; fi
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" != "$WANT" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "This cron is not 08:00 in Israel today (DST twin) - skipping."
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
+        if: steps.gate.outputs.run == 'true'
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Sync pantry from Listi
+        if: steps.gate.outputs.run == 'true'
+        run: node scripts/fetch-listi-pantry.mjs
+
       - name: Setup Pages
+        if: steps.gate.outputs.run == 'true'
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
+        if: steps.gate.outputs.run == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: "./src/public"
 
       - name: Deploy to GitHub Pages
+        if: steps.gate.outputs.run == 'true'
         id: deployment
         uses: actions/deploy-pages@v4

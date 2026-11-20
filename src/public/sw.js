@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-recipes-v17'; // v17: "I ate it" button synced to The Healing Cabin
+const CACHE_NAME = 'my-recipes-v18'; // v18: daily 8:00 Listi pantry sync (pantry.json) + auto-sync
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -57,6 +57,9 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (event.request.method !== 'GET') return;
+
+  // Daily pantry snapshot must always be fresh: let the page's own fetch hit the network.
+  if (url.pathname.endsWith('/pantry.json')) return;
 
   // Network first for HTML navigation and Web Share Target GET requests
   if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html') || url.pathname.includes('add-recipe')) {
